@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Bookmarks</string>
+    <string name="share_into_category">Bookmarks: %1$s</string>
+</resources>

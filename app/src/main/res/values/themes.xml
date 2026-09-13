@@ -1,0 +1,24 @@
+<resources>
+    <!--
+      Compose owns all colour; these themes only carry what the platform needs
+      before the first frame. See core/ui/theme for the real palette.
+    -->
+    <style name="Theme.Bookmark" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/seed_surface</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <!-- Quick-save is a translucent sheet over whatever app shared the link. -->
+    <style name="Theme.App.Transparent" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

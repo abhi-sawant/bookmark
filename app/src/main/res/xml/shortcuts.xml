@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+      Direct Share. The four most-used categories are published at runtime as
+      dynamic shortcuts in the CATEGORY_SAVE_TO_BOOKMARK category; the system
+      share sheet then offers "Bookmarks: Reading" and friends directly.
+    -->
+    <share-target android:targetClass="com.bookmark.share.QuickSaveActivity">
+        <data android:mimeType="text/plain" />
+        <category android:name="com.bookmark.share.CATEGORY_SAVE_TO_BOOKMARK" />
+    </share-target>
+</shortcuts>

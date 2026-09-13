@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Allowlist, not a blocklist: only these paths are backed up. The Room database
+  is small and worth keeping; thumbnails live in filesDir/thumbnails/ and are
+  deliberately absent, because they are re-fetchable and would blow the 25MB
+  Auto Backup quota (spec 5.6).
+-->
+<full-backup-content>
+    <include domain="database" path="." />
+    <include domain="sharedpref" path="." />
+    <include domain="file" path="datastore" />
+</full-backup-content>
