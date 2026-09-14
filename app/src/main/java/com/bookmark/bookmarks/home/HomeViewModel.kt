@@ -123,4 +123,9 @@ class HomeViewModel @Inject constructor(
 
     fun thumbnailFile(bookmark: Bookmark): File? =
         bookmark.thumbnailPath?.let { bookmarkRepository.thumbnailFile(it) }
+
+    /** "Retry fetch" -- the detail sheet's FAILED card, or the FALLBACK context-sheet row. */
+    fun retryFetch(bookmark: Bookmark) {
+        bookmarkRepository.requestManualFetch(bookmark.id)
+    }
 }

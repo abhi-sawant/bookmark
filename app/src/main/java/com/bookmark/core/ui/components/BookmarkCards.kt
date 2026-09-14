@@ -232,13 +232,22 @@ fun BookmarkThumbnail(
 }
 
 /**
- * The single thumbnail decision point: the stored image, a shimmer while a fetch
- * is in flight, or the generated tile. There is no fourth "couldn't load" state
- * -- that is the whole point of the fallback chain (design principle 2).
+ * The single thumbnail decision point: the stored image, a live remote
+ * candidate, a shimmer while a fetch is in flight, or the generated tile.
+ * There is no fifth "couldn't load" state -- that is the whole point of the
+ * fallback chain (design principle 2).
  *
  * Taking the URL rather than a [Bookmark] lets the add and quick-save sheets,
  * which are previewing something not yet saved, share it. Before M3 the same
  * three-way branch was written out in three places and had already drifted.
+ *
+ * [previewModel] is the pre-save live preview's only option: a candidate the
+ * engine just found (a remote URL) or an image the user just picked from the
+ * device (a local `Uri`) has no bookmark-owned file yet -- that only exists
+ * once [ThumbnailPipeline][com.bookmark.metadata.image.ThumbnailPipeline]
+ * stores it against a real bookmark id -- so it is loaded directly by Coil
+ * for the preview only, never persisted from here. Coil's `AsyncImage`
+ * accepts either shape as its `model`.
  */
 @Composable
 fun ThumbnailSurface(
@@ -248,6 +257,7 @@ fun ThumbnailSurface(
     modifier: Modifier = Modifier,
     monogramFontSize: TextUnit = 34.sp,
     fetching: Boolean = false,
+    previewModel: Any? = null,
 ) {
     when {
         fetching -> ShimmerBox(modifier = modifier)
@@ -257,6 +267,15 @@ fun ThumbnailSurface(
         // disk, and Coil degrades to the background tint if it has since gone.
         thumbnailFile != null -> AsyncImage(
             model = thumbnailFile,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = modifier
+                .background(accentColor ?: MaterialTheme.colorScheme.surfaceVariant)
+                .clearAndSetSemantics { },
+        )
+
+        previewModel != null -> AsyncImage(
+            model = previewModel,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = modifier

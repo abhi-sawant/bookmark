@@ -18,6 +18,7 @@ import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.ViewList
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -65,6 +66,13 @@ fun BookmarkContextSheet(
     onCopyLink: () -> Unit,
     onShare: () -> Unit,
     onTogglePin: () -> Unit,
+    /**
+     * Null unless [bookmark] is [MetadataState.FALLBACK] -- that's the only
+     * state whose retry affordance lives here rather than the detail sheet
+     * (spec 8.1: FAILED gets a card on the detail sheet, FALLBACK is not an
+     * error state at all and only offers retry from the overflow menu).
+     */
+    onRetryFetch: (() -> Unit)?,
     onDelete: () -> Unit,
 ) {
     ModalBottomSheet(
@@ -120,6 +128,9 @@ fun BookmarkContextSheet(
                 label = if (bookmark.isPinned) "Unpin" else "Pin to top",
                 onClick = onTogglePin,
             )
+            if (onRetryFetch != null) {
+                ContextRow(Icons.Outlined.Refresh, "Retry fetch", onRetryFetch)
+            }
             ContextRow(
                 icon = Icons.Outlined.Delete,
                 label = "Delete",

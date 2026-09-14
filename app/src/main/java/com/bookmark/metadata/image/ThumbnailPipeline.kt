@@ -1,7 +1,9 @@
 package com.bookmark.metadata.image
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.palette.graphics.Palette
 import com.bookmark.core.data.IoDispatcher
 import com.bookmark.metadata.http.UserAgent
@@ -50,9 +52,33 @@ class ThumbnailPipeline @Inject constructor(
         }
     }
 
+    /**
+     * "Pick from device" (spec 5.2 item 5): the same vet/downscale/encode
+     * policy as a fetched candidate, just sourced from a local `Uri` (the
+     * Android Photo Picker's result) instead of a network download.
+     */
+    suspend fun storeFromUri(
+        context: Context,
+        uri: Uri,
+        bookmarkId: String,
+        directory: File,
+    ): StoredThumbnail? = withContext(io) {
+        // MAX_DOWNLOAD_BYTES guards an *untrusted remote* candidate (spec 7.4
+        // step 1); it does not apply here -- a modern phone photo routinely
+        // exceeds 10MB, and capping this read would silently downgrade a
+        // deliberate "Pick from device" choice to the monogram tile.
+        val bytes = runCatching {
+            context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+        }.getOrNull() ?: return@withContext null
+        encode(bytes, bookmarkId, directory)
+    }
+
     private fun attempt(url: String, bookmarkId: String, directory: File): StoredThumbnail? {
         val bytes = download(url) ?: return null
+        return encode(bytes, bookmarkId, directory)
+    }
 
+    private fun encode(bytes: ByteArray, bookmarkId: String, directory: File): StoredThumbnail? {
         // Bounds-only decode first: rejecting a tracking pixel must not cost the
         // memory of materialising it.
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }

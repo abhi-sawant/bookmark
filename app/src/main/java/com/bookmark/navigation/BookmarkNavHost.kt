@@ -32,6 +32,7 @@ import com.bookmark.categories.ui.CategoryEditDialog
 import com.bookmark.categories.ui.DeleteCategoryDialog
 import com.bookmark.core.model.Bookmark
 import com.bookmark.core.model.Category
+import com.bookmark.core.model.MetadataState
 import com.bookmark.core.ui.components.BookmarkBottomBar
 import com.bookmark.core.ui.components.BottomDestination
 import com.bookmark.core.util.LinkActions
@@ -138,7 +139,15 @@ fun BookmarkNavHost() {
                     onSelectCategory = homeViewModel::selectCategory,
                     onSetViewMode = homeViewModel::setViewMode,
                     onSetSortOrder = homeViewModel::setSortOrder,
-                    onOpenBookmark = { LinkActions.open(context, it.url) },
+                    onOpenBookmark = {
+                        // A FAILED bookmark has nothing reliable to open -- show
+                        // the cause and a retry affordance instead (spec 8.1).
+                        if (it.metadataState == MetadataState.FAILED) {
+                            sheet = SheetState.Detail(it)
+                        } else {
+                            LinkActions.open(context, it.url)
+                        }
+                    },
                     onBookmarkLongPress = { sheet = SheetState.Context(it) },
                     onSearch = { /* Search screen arrives in M5 */ },
                     onAdd = {
@@ -187,6 +196,10 @@ fun BookmarkNavHost() {
             onCreateCategory = addEditViewModel::createCategory,
             onAcceptClipboard = addEditViewModel::acceptClipboardSuggestion,
             onDismissClipboard = addEditViewModel::dismissClipboardSuggestion,
+            onSelectThumbnailCandidate = addEditViewModel::selectThumbnailCandidate,
+            onPickLocalThumbnail = addEditViewModel::pickLocalThumbnail,
+            onRemoveThumbnail = addEditViewModel::removeThumbnail,
+            onRetryLivePreview = addEditViewModel::retryLivePreview,
             onSave = addEditViewModel::save,
         )
 
@@ -215,6 +228,14 @@ fun BookmarkNavHost() {
                 homeViewModel.togglePin(current.bookmark)
                 sheet = SheetState.None
             },
+            onRetryFetch = if (current.bookmark.metadataState == MetadataState.FALLBACK) {
+                {
+                    homeViewModel.retryFetch(current.bookmark)
+                    sheet = SheetState.None
+                }
+            } else {
+                null
+            },
             onDelete = {
                 homeViewModel.delete(current.bookmark)
                 sheet = SheetState.None
@@ -225,8 +246,9 @@ fun BookmarkNavHost() {
             bookmark = current.bookmark,
             category = homeState.categoriesById[current.bookmark.categoryId],
             thumbnailFile = homeViewModel.thumbnailFile(current.bookmark),
-            // Until M3 records a cause, a hard failure reads as unreachable.
-            failureMessage = FailureCause.UNREACHABLE.userMessage(),
+            failureMessage = current.bookmark.failureCause
+                ?.let { runCatching { FailureCause.valueOf(it) }.getOrNull() }
+                .userMessage(),
             onDismiss = { sheet = SheetState.None },
             onOpen = { LinkActions.open(context, current.bookmark.url) },
             onShare = { LinkActions.share(context, current.bookmark.url, current.bookmark.title) },
@@ -235,7 +257,7 @@ fun BookmarkNavHost() {
                 sheet = SheetState.AddEdit
             },
             onTogglePin = { homeViewModel.togglePin(current.bookmark) },
-            onRetryFetch = { /* Enqueues a refresh once M3 lands */ },
+            onRetryFetch = { homeViewModel.retryFetch(current.bookmark) },
         )
     }
 
@@ -245,7 +267,7 @@ fun BookmarkNavHost() {
             category = homeState.categoriesById[existing.categoryId],
             thumbnailFile = homeViewModel.thumbnailFile(existing),
             onDismiss = addEditViewModel::dismissDuplicate,
-            onRefreshPreview = addEditViewModel::dismissDuplicate,
+            onRefreshPreview = addEditViewModel::refreshDuplicatePreview,
             onViewBookmark = {
                 addEditViewModel.dismissDuplicate()
                 addEditViewModel.reset()

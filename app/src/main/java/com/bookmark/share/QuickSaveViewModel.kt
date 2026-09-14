@@ -14,9 +14,13 @@ import com.bookmark.core.model.ManualField
 import com.bookmark.core.ui.theme.CategorySwatchHex
 import com.bookmark.core.util.TitleFallback
 import com.bookmark.core.util.UrlNormalizer
+import com.bookmark.metadata.MetadataFetcher
+import com.bookmark.metadata.MetadataResult
 import com.bookmark.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,9 +41,12 @@ data class QuickSaveUiState(
     val duplicateOf: Bookmark? = null,
     val savedBookmark: Bookmark? = null,
     val ready: Boolean = false,
+    val fetchedSiteName: String? = null,
+    /** Feeds only the live-preview thumbnail -- there is no picker in this condensed sheet. */
+    val imageCandidates: List<String> = emptyList(),
 ) {
     val canSave: Boolean get() = UrlNormalizer.isValid(url)
-    val siteName: String? get() = TitleFallback.fromDomain(url)
+    val siteName: String? get() = fetchedSiteName ?: TitleFallback.fromDomain(url)
 }
 
 @HiltViewModel
@@ -48,6 +55,7 @@ class QuickSaveViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val settingsRepository: SettingsRepository,
     private val directShareShortcuts: DirectShareShortcuts,
+    private val metadataFetcher: MetadataFetcher,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(QuickSaveUiState())
@@ -55,6 +63,9 @@ class QuickSaveViewModel @Inject constructor(
 
     /** Whatever the share carried; the sheet is already on screen by now. */
     private var sharedSubject: String? = null
+
+    /** Cancelled and relaunched on every URL change -- the debounce (spec 5.2, 6.3). */
+    private var livePreviewJob: Job? = null
 
     /**
      * Seeds state from the incoming intent. Category data loads separately so
@@ -74,6 +85,10 @@ class QuickSaveViewModel @Inject constructor(
                 urlError = if (extracted.hasUrl) null else "No link found in what was shared",
             )
         }
+        // The sheet is already on screen (spec 6.3's 300ms budget) with a URL in
+        // hand, not one still being typed, so this fetch does not wait out the
+        // debounce -- it starts right away.
+        scheduleLivePreviewFetch(immediate = true)
 
         viewModelScope.launch {
             val categories = categoryRepository.observeAllWithCounts().first()
@@ -89,6 +104,7 @@ class QuickSaveViewModel @Inject constructor(
 
     fun onUrlChange(value: String) {
         _state.update { it.copy(url = value, urlError = null) }
+        scheduleLivePreviewFetch()
     }
 
     fun onTitleChange(value: String) {
@@ -112,6 +128,40 @@ class QuickSaveViewModel @Inject constructor(
                     TitleFallback.resolve(sharedSubject = sharedSubject, url = url)
                 },
                 urlError = null,
+            )
+        }
+        // A known-good extracted URL, not one being typed -- fetch right away.
+        scheduleLivePreviewFetch(immediate = true)
+    }
+
+    /** See [com.bookmark.bookmarks.edit.AddEditViewModel]'s twin for why this calls the engine directly. */
+    private fun scheduleLivePreviewFetch(immediate: Boolean = false) {
+        livePreviewJob?.cancel()
+        val url = _state.value.url
+        if (!UrlNormalizer.isValid(url)) {
+            _state.update { it.copy(fetching = false) }
+            return
+        }
+        livePreviewJob = viewModelScope.launch {
+            if (!immediate) delay(LIVE_PREVIEW_DEBOUNCE_MS)
+            _state.update { it.copy(fetching = true) }
+            applyLivePreview(metadataFetcher.fetch(url))
+        }
+    }
+
+    private fun applyLivePreview(result: MetadataResult) {
+        val metadata = when (result) {
+            is MetadataResult.Success -> result.metadata
+            is MetadataResult.Partial -> result.metadata
+            else -> null
+        }
+        _state.update { current ->
+            current.copy(
+                fetching = false,
+                title = metadata?.title?.takeIf { it.isNotBlank() && !current.titleTouched }
+                    ?: current.title,
+                fetchedSiteName = metadata?.siteName ?: current.fetchedSiteName,
+                imageCandidates = metadata?.imageCandidates ?: current.imageCandidates,
             )
         }
     }
@@ -176,5 +226,9 @@ class QuickSaveViewModel @Inject constructor(
 
     fun dismissDuplicate() {
         _state.update { it.copy(duplicateOf = null) }
+    }
+
+    private companion object {
+        const val LIVE_PREVIEW_DEBOUNCE_MS = 600L
     }
 }

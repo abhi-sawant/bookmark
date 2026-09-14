@@ -41,6 +41,8 @@ fun PreviewCard(
     fetching: Boolean,
     modifier: Modifier = Modifier,
     accentColor: Color? = null,
+    /** A candidate URL or local `Uri` to preview before anything is saved -- see [ThumbnailSurface]. */
+    previewModel: Any? = null,
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -64,6 +66,7 @@ fun PreviewCard(
                     modifier = Modifier.fillMaxSize(),
                     monogramFontSize = 26.sp,
                     fetching = fetching,
+                    previewModel = previewModel,
                 )
             }
 

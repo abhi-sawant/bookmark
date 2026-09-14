@@ -1,6 +1,6 @@
 # Bookmarks — handover
 
-**State:** M0–M3 complete. M4–M7 not started.
+**State:** M0–M4 complete. M5–M7 not started.
 **Date:** 14 September 2026
 
 This is the working document for picking the project up. It records what M0–M2
@@ -17,7 +17,7 @@ are not obvious from the code.
 | M1 — bookmark CRUD, Home list/grid, category CRUD + delete-reassign | Done |
 | M2 — share target, URL extraction, quick-save sheet, Direct Share shortcuts | Done |
 | M3 — metadata engine | Done |
-| M4 — fallback system | **Partially done** — the engine now drives the state machine end to end; what remains is UI: live preview in the add sheet, the `Thumbnail ▾` picker, the real `FailureCause` message, and the retry entry points |
+| M4 — fallback system | Done |
 | M5 — search, sort/filter, settings, export/import | Sort and filter done; FTS table exists but no search UI; Settings is a shell |
 | M6 — performance pass | Not started |
 | M7 — polish | Not started |
@@ -244,6 +244,84 @@ were stripped — 2.4MB down to 356KB — which changes nothing the parser reads
 Regenerating them is a deliberate act, not a build step: they are the record of
 what the web looked like, and a test that silently re-fetches is a test that
 cannot fail.
+
+### M4 — fallback system UI
+
+The engine-side work (state machine, retry policy, thumbnail pipeline) was
+already in place from M3; M4 was entirely UI, wiring existing plumbing that
+had no caller yet.
+
+- **Live preview calls `MetadataFetcher.fetch(url)` directly**, not through
+  WorkManager. `AddEditViewModel`/`QuickSaveViewModel` debounce URL changes
+  600ms (paste included -- accepting the clipboard chip runs the same
+  debounced call) and apply the result to in-memory state only, respecting
+  the same `touchedFields`/`titleTouched` locks used at save time. There is
+  no bookmark id yet to enqueue a worker against, and `MetadataFetcher` was
+  already built self-contained for exactly this (spec 7). The real,
+  persisted fetch still runs after save via `BookmarkRepository.save`'s
+  existing automatic enqueue -- the live preview never writes to the DB.
+- **`ThumbnailSurface`/`PreviewCard` gained a `previewModel: Any?` param**
+  (a Coil model: a remote candidate URL, or a local `content://` `Uri` from
+  the picker) for exactly this pre-save case, ordered between the stored
+  local file and the monogram fallback.
+- **The Thumbnail picker's "choose another image" gates on
+  `imageCandidates.size > 1`**, per spec 5.2 item 5's "if the parser found
+  several" -- worth remembering if a similar list-picker is added elsewhere,
+  since it is easy to instead gate on "list not empty" and show a
+  single-item "choose among 1" menu, which is what the first pass here did
+  before catching it on-device.
+- **`ThumbnailPipeline.attempt` was split into `attempt`/`encode`** so
+  "Pick from device" (`storeFromUri`) can share the decode/scale/WebP/accent
+  -color logic without duplicating it. The 10MB `MAX_DOWNLOAD_BYTES` cap
+  stays on the network path only -- `storeFromUri` reads the picked `Uri`
+  uncapped, since that limit exists to bound an *untrusted remote*
+  candidate (spec 7.4), not a file the user just chose, and a modern phone
+  photo routinely exceeds 10MB.
+- **A manual thumbnail choice (candidate switch / device pick / remove) is
+  applied in a follow-up write** (`BookmarkRepository.applyManualThumbnail`
+  → `BookmarkDao.setManualThumbnail`) right after the row is inserted or
+  updated, never before -- the thumbnail file is named `{bookmarkId}.webp`,
+  which does not exist pre-save. This sets `ManualField.THUMBNAIL`
+  unconditionally, which is what makes `applyMetadata`'s existing CASE guard
+  (already there since M3, just never triggered by anything) leave the
+  choice alone on every subsequent automatic fetch.
+- **A tap on a `FAILED` bookmark opens the detail sheet instead of the
+  browser** (`BookmarkNavHost`'s `onOpenBookmark`); every other state still
+  opens the link directly. This is also the only route to the detail sheet
+  from Home -- there was previously no way to reach it except via "View
+  bookmark" on the duplicate sheet.
+- **The context sheet's "Retry fetch" row is conditional on `FALLBACK`
+  specifically**, not `FAILED` -- per spec 8.1 the two states' retry
+  affordances are deliberately in different places (`FALLBACK`: overflow
+  menu only; `FAILED`: detail sheet card only), and showing it in both
+  would contradict "`FALLBACK` is not an error state."
+
+### What was verified on a real device for M4
+
+Same device (Xiaomi 2201117TI, Android 16). Confirmed working end to end:
+
+- Typing a real URL into the Add sheet populated title, description, site
+  name and a live thumbnail (loaded straight off the network) within the
+  debounce window, without saving anything.
+- The Thumbnail picker's "choose another image" section correctly stayed
+  hidden for a single-candidate page (`ogp.me`) after the size-gating fix
+  above.
+- "Remove" swapped the preview to the monogram tile, and the monogram
+  survived the automatic background fetch after save (the manual-field
+  lock held).
+- "Pick from device" launched the real Android Photo Picker, previewed the
+  picked image pre-save, and the picked image survived save *and* the
+  automatic background fetch afterward -- the riskiest new path, since it
+  is the one path with no prior plumbing at all (no `Uri`/`ContentResolver`
+  use anywhere else in the app).
+- "Refresh preview" on the duplicate sheet and "Retry fetch" on the detail
+  sheet both actually enqueue `MetadataWorker` now (confirmed via
+  `WM-WorkerWrapper` logcat lines), not just dismiss the sheet.
+- A bookmark against a non-resolving host reached terminal `FAILED` after
+  three automatic attempts, tapping its card opened the detail sheet (not
+  the browser) with the real cause-specific message, and its context
+  sheet -- unlike a `FALLBACK` bookmark's -- correctly showed no "Retry
+  fetch" row.
 
 ### Search (M5)
 

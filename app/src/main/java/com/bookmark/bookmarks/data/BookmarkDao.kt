@@ -198,6 +198,33 @@ interface BookmarkDao {
         now: Long,
     )
 
+    /**
+     * The user's own Thumbnail-picker choice, unconditionally: a chosen
+     * candidate, a local pick, or "Remove" (null [thumbnailPath]). Setting bit
+     * 4 of [com.bookmark.core.model.ManualField] here is what makes
+     * [applyMetadata]'s CASE guard leave this alone on every future fetch.
+     */
+    @Query(
+        """
+        UPDATE bookmarks SET
+            thumbnailPath = :thumbnailPath,
+            thumbnailWidth = :thumbnailWidth,
+            thumbnailHeight = :thumbnailHeight,
+            accentColor = :accentColor,
+            manualFields = manualFields | 4,
+            updatedAt = :now
+        WHERE id = :id
+        """
+    )
+    suspend fun setManualThumbnail(
+        id: String,
+        thumbnailPath: String?,
+        thumbnailWidth: Int?,
+        thumbnailHeight: Int?,
+        accentColor: Int?,
+        now: Long,
+    )
+
     /** Settings "Clear thumbnails": the files go, the bookmarks stay (spec 5.6). */
     @Query(
         """

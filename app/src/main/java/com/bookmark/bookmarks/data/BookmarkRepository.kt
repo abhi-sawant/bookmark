@@ -182,6 +182,23 @@ class BookmarkRepository @Inject constructor(
     /** "Retry fetch" / "Refresh preview" -- explicit, so it ignores the toggle. */
     fun requestManualFetch(bookmarkId: String) = metadataEnqueuer.enqueueManual(bookmarkId)
 
+    /**
+     * The user's own Thumbnail-picker choice (a chosen candidate, a local pick,
+     * or "Remove" when [thumbnail] is null). Always sets the manual-field lock,
+     * unconditionally -- this *is* the manual override, so there is nothing to
+     * gate against, unlike [applyMetadata]'s CASE-guarded columns.
+     */
+    suspend fun applyManualThumbnail(bookmarkId: String, thumbnail: StoredThumbnail?) = withContext(io) {
+        dao.setManualThumbnail(
+            id = bookmarkId,
+            thumbnailPath = thumbnail?.relativePath,
+            thumbnailWidth = thumbnail?.width,
+            thumbnailHeight = thumbnail?.height,
+            accentColor = thumbnail?.accentColor,
+            now = System.currentTimeMillis(),
+        )
+    }
+
     suspend fun update(bookmark: Bookmark) = withContext(io) {
         dao.update(bookmark.copy(updatedAt = System.currentTimeMillis()).toEntity())
     }

@@ -1,5 +1,9 @@
 package com.bookmark.bookmarks.edit
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,10 +36,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.bookmark.core.model.BookmarkLimits
 import com.bookmark.core.model.Category
 import com.bookmark.core.ui.components.CategoryDot
@@ -60,6 +66,10 @@ fun AddEditBookmarkSheet(
     onCreateCategory: (String) -> Unit,
     onAcceptClipboard: () -> Unit,
     onDismissClipboard: () -> Unit,
+    onSelectThumbnailCandidate: (String) -> Unit,
+    onPickLocalThumbnail: (Uri) -> Unit,
+    onRemoveThumbnail: () -> Unit,
+    onRetryLivePreview: () -> Unit,
     onSave: () -> Unit,
 ) {
     ModalBottomSheet(
@@ -116,6 +126,7 @@ fun AddEditBookmarkSheet(
                     url = state.url,
                     thumbnailFile = null,
                     fetching = state.fetching,
+                    previewModel = state.previewThumbnailModel,
                     modifier = Modifier.padding(top = 16.dp),
                 )
             }
@@ -144,11 +155,12 @@ fun AddEditBookmarkSheet(
                 modifier = Modifier.padding(top = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                // Thumbnail options need the metadata engine; enabled in M3.
-                OutlinedPicker(
-                    label = "Thumbnail",
-                    enabled = false,
-                    onClick = {},
+                ThumbnailPicker(
+                    state = state,
+                    onSelectCandidate = onSelectThumbnailCandidate,
+                    onPickLocal = onPickLocalThumbnail,
+                    onRemove = onRemoveThumbnail,
+                    onRetry = onRetryLivePreview,
                     modifier = Modifier.weight(1f),
                 )
                 CategoryPicker(
@@ -243,6 +255,106 @@ private fun OutlinedPicker(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+    }
+}
+
+/**
+ * Thumbnail dropdown (spec 5.2 item 5): choose another candidate the parser
+ * found, pick an image from the device, remove it outright, or retry the
+ * live fetch. There is no "selected" label to show -- unlike [CategoryPicker]
+ * the button text is always "Thumbnail", matching the design.
+ */
+@Composable
+private fun ThumbnailPicker(
+    state: AddEditUiState,
+    onSelectCandidate: (String) -> Unit,
+    onPickLocal: (Uri) -> Unit,
+    onRemove: () -> Unit,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val pickMedia = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri -> uri?.let(onPickLocal) }
+
+    // "if the parser found several" (spec 5.2 item 5) -- with only one candidate
+    // there is nothing else to choose, so the section does not appear at all.
+    val currentCandidate = when (val choice = state.thumbnailChoice) {
+        is ThumbnailChoice.Candidate -> choice.url
+        ThumbnailChoice.Auto -> state.imageCandidates.firstOrNull()
+        ThumbnailChoice.Removed, is ThumbnailChoice.Local -> null
+    }
+    val otherCandidates = if (state.imageCandidates.size > 1) {
+        state.imageCandidates.filterNot { it == currentCandidate }
+    } else {
+        emptyList()
+    }
+
+    Box(modifier = modifier) {
+        OutlinedPicker(
+            label = "Thumbnail",
+            onClick = { expanded = true },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            if (otherCandidates.isNotEmpty()) {
+                Text(
+                    text = "Choose another image found on page",
+                    style = BookmarkTheme.text.siteLine,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                )
+                otherCandidates.forEach { candidate ->
+                    DropdownMenuItem(
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                AsyncImage(
+                                    model = candidate,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(BookmarkShapes.thumbnailMedium),
+                                )
+                                Text("Image ${state.imageCandidates.indexOf(candidate) + 1}")
+                            }
+                        },
+                        onClick = {
+                            onSelectCandidate(candidate)
+                            expanded = false
+                        },
+                    )
+                }
+            }
+            DropdownMenuItem(
+                text = { Text("Pick from device") },
+                onClick = {
+                    expanded = false
+                    pickMedia.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                    )
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Remove") },
+                enabled = state.previewThumbnailModel != null,
+                onClick = {
+                    onRemove()
+                    expanded = false
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Retry fetch") },
+                onClick = {
+                    onRetry()
+                    expanded = false
+                },
+            )
+        }
     }
 }
 
