@@ -105,6 +105,110 @@ interface BookmarkDao {
     @Query("SELECT * FROM bookmarks WHERE metadataState IN (:states)")
     suspend fun findByStates(states: List<MetadataState>): List<BookmarkEntity>
 
+    /** The "N bookmarks eligible" line in Settings, without loading the rows. */
+    @Query("SELECT COUNT(*) FROM bookmarks WHERE metadataState IN (:states)")
+    suspend fun countByStates(states: List<MetadataState>): Int
+
+    @Query("UPDATE bookmarks SET metadataState = :state WHERE id = :id")
+    suspend fun setMetadataState(id: String, state: MetadataState)
+
+    /**
+     * Writes the outcome of a fetch, honouring the manual-field locks *in SQL*.
+     *
+     * The obvious alternative -- read the row, check [com.bookmark.core.model.ManualField],
+     * write it back -- has a race: the user can edit the title in the sheet
+     * between the read and the write, and the background fetch would silently
+     * clobber it. Doing the check inside the UPDATE makes the lock atomic with
+     * the write, so design principle 3 ("the user's edit always wins") holds
+     * even under a concurrent edit.
+     *
+     * The bit values are [com.bookmark.core.model.ManualField]: TITLE=1,
+     * DESCRIPTION=2, THUMBNAIL=4.
+     *
+     * `updatedAt` is deliberately left alone: a background fetch is not a user
+     * edit, and bumping it would misreport when the bookmark last changed.
+     */
+    @Query(
+        """
+        UPDATE bookmarks SET
+            title = CASE
+                WHEN (manualFields & 1) = 0 AND :title IS NOT NULL THEN :title
+                ELSE title END,
+            description = CASE
+                WHEN (manualFields & 2) = 0 AND :description IS NOT NULL THEN :description
+                ELSE description END,
+            thumbnailPath = CASE
+                WHEN (manualFields & 4) = 0 THEN :thumbnailPath
+                ELSE thumbnailPath END,
+            thumbnailWidth = CASE
+                WHEN (manualFields & 4) = 0 THEN :thumbnailWidth
+                ELSE thumbnailWidth END,
+            thumbnailHeight = CASE
+                WHEN (manualFields & 4) = 0 THEN :thumbnailHeight
+                ELSE thumbnailHeight END,
+            accentColor = CASE
+                WHEN (manualFields & 4) = 0 THEN COALESCE(:accentColor, accentColor)
+                ELSE accentColor END,
+            siteName = COALESCE(:siteName, siteName),
+            imageCandidates = :imageCandidates,
+            metadataState = :state,
+            failureCause = :failureCause,
+            fetchAttempts = :attempts,
+            lastFetchAt = :now
+        WHERE id = :id
+        """
+    )
+    @Suppress("LongParameterList")
+    suspend fun applyMetadata(
+        id: String,
+        title: String?,
+        description: String?,
+        siteName: String?,
+        thumbnailPath: String?,
+        thumbnailWidth: Int?,
+        thumbnailHeight: Int?,
+        accentColor: Int?,
+        imageCandidates: String?,
+        state: MetadataState,
+        failureCause: String?,
+        attempts: Int,
+        now: Long,
+    )
+
+    /**
+     * Records an attempt that produced no usable metadata. Separate from
+     * [applyMetadata] so a failure can never null out a thumbnail a previous
+     * successful fetch stored.
+     */
+    @Query(
+        """
+        UPDATE bookmarks SET
+            metadataState = :state,
+            failureCause = :failureCause,
+            fetchAttempts = :attempts,
+            lastFetchAt = :now
+        WHERE id = :id
+        """
+    )
+    suspend fun applyFetchFailure(
+        id: String,
+        state: MetadataState,
+        failureCause: String?,
+        attempts: Int,
+        now: Long,
+    )
+
+    /** Settings "Clear thumbnails": the files go, the bookmarks stay (spec 5.6). */
+    @Query(
+        """
+        UPDATE bookmarks SET
+            thumbnailPath = NULL, thumbnailWidth = NULL,
+            thumbnailHeight = NULL, accentColor = NULL
+        WHERE thumbnailPath IS NOT NULL
+        """
+    )
+    suspend fun clearAllThumbnails()
+
     /**
      * FTS-backed search (spec 5.5). The table is created in schema v1; the
      * search screen that uses this arrives in M5.

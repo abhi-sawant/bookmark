@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<title>Broken structured data</title>
+<script type="application/ld+json">
+{ "@context": "https://schema.org", "@type": "Article", "headline": "Unclosed brace,
+</script>
+<script type="application/ld+json">not json at all</script>
+<script type="application/ld+json">
+{ "@context": "https://schema.org", "@type": "Article", "headline": "The good one", "image": "https://example.com/good.jpg" }
+</script>
+</head><body></body></html>

@@ -33,6 +33,15 @@ object ManualField {
     fun clear(mask: Int, field: Int): Int = mask and field.inv()
 }
 
+/**
+ * The name of a `com.bookmark.metadata.FailureCause`, as persisted.
+ *
+ * A typealias rather than the enum itself so the model and persistence layers
+ * do not depend on the metadata package -- the engine is meant to be
+ * self-contained (spec 7), and the UI only ever needs this to look up a message.
+ */
+typealias FailureCauseName = String
+
 @Immutable
 data class Bookmark(
     val id: String,
@@ -44,15 +53,38 @@ data class Bookmark(
     val thumbnailPath: String?,
     val faviconPath: String?,
     val accentColor: Int?,
+    val thumbnailWidth: Int?,
+    val thumbnailHeight: Int?,
+    /** Up to five image URLs the parser found, for the thumbnail picker. */
+    val imageCandidates: List<String>,
     val categoryId: String,
     val metadataState: MetadataState,
+    val failureCause: FailureCauseName?,
     val fetchAttempts: Int,
     val lastFetchAt: Long?,
     val manualFields: Int,
     val isPinned: Boolean,
     val createdAt: Long,
     val updatedAt: Long,
-)
+) {
+    /**
+     * Width over height of the stored thumbnail, or null when there is no image
+     * to size to. Lets the staggered grid lay the card out from the database
+     * rather than by decoding the file during composition.
+     */
+    fun thumbnailAspectRatio(): Float? {
+        val width = thumbnailWidth ?: return null
+        val height = thumbnailHeight ?: return null
+        if (width <= 0 || height <= 0 || thumbnailPath == null) return null
+        // Clamped so a freak panorama or a sliver cannot blow the grid apart.
+        return (width.toFloat() / height).coerceIn(MIN_ASPECT_RATIO, MAX_ASPECT_RATIO)
+    }
+
+    private companion object {
+        const val MIN_ASPECT_RATIO = 0.5f
+        const val MAX_ASPECT_RATIO = 2.0f
+    }
+}
 
 @Immutable
 data class Category(

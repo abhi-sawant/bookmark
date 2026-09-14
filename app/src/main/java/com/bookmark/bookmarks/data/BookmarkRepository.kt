@@ -10,6 +10,10 @@ import com.bookmark.core.model.MetadataState
 import com.bookmark.core.model.SortOrder
 import com.bookmark.core.util.TitleFallback
 import com.bookmark.core.util.UrlNormalizer
+import com.bookmark.metadata.FailureCause
+import com.bookmark.metadata.PageMetadata
+import com.bookmark.metadata.image.StoredThumbnail
+import com.bookmark.metadata.work.MetadataEnqueuer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.util.UUID
@@ -31,6 +35,7 @@ class BookmarkRepository @Inject constructor(
     private val dao: BookmarkDao,
     @ApplicationContext private val context: Context,
     @IoDispatcher private val io: CoroutineDispatcher,
+    private val metadataEnqueuer: MetadataEnqueuer,
 ) {
 
     fun observe(categoryId: String?, sort: SortOrder): Flow<List<Bookmark>> {
@@ -87,8 +92,12 @@ class BookmarkRepository @Inject constructor(
             thumbnailPath = null,
             faviconPath = null,
             accentColor = null,
+            thumbnailWidth = null,
+            thumbnailHeight = null,
+            imageCandidates = null,
             categoryId = categoryId,
             metadataState = MetadataState.PENDING,
+            failureCause = null,
             fetchAttempts = 0,
             lastFetchAt = null,
             manualFields = manualFields,
@@ -99,6 +108,11 @@ class BookmarkRepository @Inject constructor(
 
         try {
             dao.insert(entity)
+            // Every save path funnels through here, and this is where the row is
+            // stamped PENDING, so it is also where the fetch that resolves it is
+            // scheduled. The enqueue is a no-op when previews are off (spec 11),
+            // and the row is already durable either way (design principle 1).
+            metadataEnqueuer.enqueueAutomatic(entity.id)
             SaveResult.Saved(entity.toDomain())
         } catch (e: SQLiteConstraintException) {
             // Lost a race against another save of the same URL.
@@ -107,19 +121,92 @@ class BookmarkRepository @Inject constructor(
         }
     }
 
+    suspend fun findByStates(states: List<MetadataState>): List<Bookmark> = withContext(io) {
+        dao.findByStates(states).map(BookmarkEntity::toDomain)
+    }
+
+    suspend fun countByStates(states: List<MetadataState>): Int = withContext(io) {
+        dao.countByStates(states)
+    }
+
+    suspend fun markFetching(id: String) = withContext(io) {
+        dao.setMetadataState(id, MetadataState.FETCHING)
+    }
+
+    /**
+     * Writes a completed fetch. The manual-field locks are applied inside the
+     * UPDATE (see [BookmarkDao.applyMetadata]) so a concurrent edit in the sheet
+     * cannot be clobbered.
+     */
+    suspend fun applyMetadata(
+        bookmarkId: String,
+        metadata: PageMetadata,
+        thumbnail: StoredThumbnail?,
+        state: MetadataState,
+        cause: FailureCause?,
+        attempts: Int,
+    ) = withContext(io) {
+        dao.applyMetadata(
+            id = bookmarkId,
+            title = metadata.title,
+            description = metadata.description,
+            siteName = metadata.siteName,
+            thumbnailPath = thumbnail?.relativePath,
+            thumbnailWidth = thumbnail?.width,
+            thumbnailHeight = thumbnail?.height,
+            accentColor = thumbnail?.accentColor,
+            imageCandidates = metadata.imageCandidates.joinToString("\n").ifBlank { null },
+            state = state,
+            failureCause = cause?.name,
+            attempts = attempts,
+            now = System.currentTimeMillis(),
+        )
+    }
+
+    /** Records an attempt that yielded nothing, leaving any existing preview intact. */
+    suspend fun recordFetchOutcome(
+        bookmarkId: String,
+        state: MetadataState,
+        cause: FailureCause?,
+        attempts: Int,
+    ) = withContext(io) {
+        dao.applyFetchFailure(
+            id = bookmarkId,
+            state = state,
+            failureCause = cause?.name,
+            attempts = attempts,
+            now = System.currentTimeMillis(),
+        )
+    }
+
+    /** "Retry fetch" / "Refresh preview" -- explicit, so it ignores the toggle. */
+    fun requestManualFetch(bookmarkId: String) = metadataEnqueuer.enqueueManual(bookmarkId)
+
     suspend fun update(bookmark: Bookmark) = withContext(io) {
         dao.update(bookmark.copy(updatedAt = System.currentTimeMillis()).toEntity())
     }
 
+    /**
+     * Removes the row but *keeps* the thumbnail file, because the delete is
+     * undoable (spec 14 Q2) and [restore] puts the row back with the same
+     * `thumbnailPath`. Deleting the file here would make undo silently
+     * downgrade the bookmark to a monogram tile. The file is reclaimed by
+     * [discardDeleted] when the Snackbar resolves, and by
+     * [sweepOrphanThumbnails] on next launch if the process dies first.
+     */
     suspend fun delete(bookmark: Bookmark) = withContext(io) {
         dao.delete(bookmark.toEntity())
-        bookmark.thumbnailPath?.let { deleteThumbnail(it) }
-        bookmark.faviconPath?.let { deleteFavicon(it) }
     }
 
     /** Re-inserts a deleted bookmark verbatim, for Snackbar undo (spec 14 Q2). */
     suspend fun restore(bookmark: Bookmark) = withContext(io) {
         dao.insert(bookmark.toEntity())
+    }
+
+    /** The undo window has closed: the files can go now. */
+    suspend fun discardDeleted(bookmark: Bookmark) = withContext(io) {
+        bookmark.thumbnailPath?.let { deleteThumbnail(it) }
+        bookmark.faviconPath?.let { deleteFavicon(it) }
     }
 
     suspend fun setPinned(id: String, pinned: Boolean) = withContext(io) {
@@ -148,10 +235,29 @@ class BookmarkRepository @Inject constructor(
     suspend fun sweepOrphanThumbnails() = withContext(io) {
         val directory = thumbnailDir()
         if (!directory.isDirectory) return@withContext
+        // Compares bare filenames, so thumbnailPath must stay a bare filename --
+        // ThumbnailPipeline writes "{bookmarkId}.webp" flat for exactly this
+        // reason. Any nested scheme would make every file look orphaned.
         val known = dao.allThumbnailPaths().toSet()
         directory.listFiles()?.forEach { file ->
             if (file.name !in known) file.delete()
         }
+    }
+
+    /**
+     * Settings, "Clear thumbnails" (spec 5.6): re-fetchable, and the bookmarks
+     * themselves are untouched. Returns the number of bytes reclaimed.
+     */
+    suspend fun clearThumbnails(): Long = withContext(io) {
+        val directory = thumbnailDir()
+        val freed = thumbnailBytes()
+        dao.clearAllThumbnails()
+        directory.listFiles()?.forEach { it.delete() }
+        freed
+    }
+
+    suspend fun thumbnailBytes(): Long = withContext(io) {
+        thumbnailDir().listFiles()?.sumOf { it.length() } ?: 0L
     }
 
     fun thumbnailDir(): File = File(context.filesDir, THUMBNAIL_DIR)

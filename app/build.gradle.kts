@@ -42,6 +42,12 @@ android {
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }
+
+    // MigrationTestHelper loads the exported schemas from the test APK's assets,
+    // so the directory KSP writes them to has to be an androidTest asset source.
+    sourceSets.getByName("androidTest") {
+        assets.srcDir("$projectDir/schemas")
+    }
 }
 
 // Export Room schemas so migrations stay reviewable in version control.
@@ -96,6 +102,9 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Drives the spec 7.2 request policy -- redirect cap, UA switching, ranged
+    // GET, content-type gating, early abort -- with no network.
+    testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.turbine)
     testImplementation(libs.robolectric)
 

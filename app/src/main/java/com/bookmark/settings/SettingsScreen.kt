@@ -34,9 +34,11 @@ import com.bookmark.core.ui.theme.BookmarkTheme
  * export is the only disaster-recovery path and should not be buried), then
  * Previews, then Appearance.
  *
- * M0-M2 wires the Appearance controls and the privacy toggle. Backup, refresh
- * and thumbnail clearing arrive with M5/M3 and are shown disabled rather than
- * hidden, so the shape of the screen is already right.
+ * The Appearance controls and the privacy toggle are live. Export, import,
+ * refresh-all and clear-thumbnails are rendered disabled rather than hidden so
+ * the shape of the screen is already right; M5 wires them up, together with the
+ * live counts the design shows in their summaries. The engine behind
+ * refresh-all and clear-thumbnails already exists as of M3.
  */
 @Composable
 fun SettingsScreen(
@@ -66,7 +68,7 @@ fun SettingsScreen(
             SettingsGroup {
                 SettingsRow(
                     title = "Export backup",
-                    subtitle = "Arrives in M5 — a single .zip via the system file picker",
+                    subtitle = "A single .zip via the system file picker",
                     enabled = false,
                 )
                 RowDivider()
@@ -93,7 +95,7 @@ fun SettingsScreen(
                 RowDivider()
                 SettingsRow(
                     title = "Refresh all metadata",
-                    subtitle = "Arrives with the metadata engine in M3",
+                    subtitle = "Re-fetches previews that are missing or failed",
                     enabled = false,
                 )
                 RowDivider()

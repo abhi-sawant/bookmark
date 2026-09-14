@@ -6,6 +6,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,6 +29,8 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.bookmark.core.model.Bookmark
@@ -70,10 +73,20 @@ fun BookmarkGridCard(
         shadowElevation = 1.dp,
     ) {
         Column {
+            // A real thumbnail sizes to its own aspect ratio, which is what
+            // makes the masonry stagger meaningful. Only a fallback tile, which
+            // has no intrinsic ratio, borrows the domain-hash height.
+            val ratio = bookmark.thumbnailAspectRatio()
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(fallbackTileHeightDp(bookmark.url).dp),
+                    .then(
+                        if (ratio != null) {
+                            Modifier.aspectRatio(ratio)
+                        } else {
+                            Modifier.height(fallbackTileHeightDp(bookmark.url).dp)
+                        },
+                    ),
             ) {
                 BookmarkThumbnail(
                     bookmark = bookmark,
@@ -207,27 +220,55 @@ fun BookmarkThumbnail(
     bookmark: Bookmark,
     thumbnailFile: File?,
     modifier: Modifier = Modifier,
-    monogramFontSize: androidx.compose.ui.unit.TextUnit = androidx.compose.ui.unit.TextUnit(
-        34f,
-        androidx.compose.ui.unit.TextUnitType.Sp,
-    ),
+    monogramFontSize: TextUnit = 34.sp,
 ) {
-    val accent = bookmark.accentColor?.let { Color(it) }
-    if (thumbnailFile != null && thumbnailFile.exists()) {
-        AsyncImage(
+    ThumbnailSurface(
+        url = bookmark.url,
+        thumbnailFile = thumbnailFile,
+        accentColor = bookmark.accentColor?.let { Color(it) },
+        modifier = modifier,
+        monogramFontSize = monogramFontSize,
+    )
+}
+
+/**
+ * The single thumbnail decision point: the stored image, a shimmer while a fetch
+ * is in flight, or the generated tile. There is no fourth "couldn't load" state
+ * -- that is the whole point of the fallback chain (design principle 2).
+ *
+ * Taking the URL rather than a [Bookmark] lets the add and quick-save sheets,
+ * which are previewing something not yet saved, share it. Before M3 the same
+ * three-way branch was written out in three places and had already drifted.
+ */
+@Composable
+fun ThumbnailSurface(
+    url: String,
+    thumbnailFile: File?,
+    accentColor: Color?,
+    modifier: Modifier = Modifier,
+    monogramFontSize: TextUnit = 34.sp,
+    fetching: Boolean = false,
+) {
+    when {
+        fetching -> ShimmerBox(modifier = modifier)
+
+        // Deliberately not File.exists(): this runs on the composition thread for
+        // every visible card. thumbnailPath is only ever set once the file is on
+        // disk, and Coil degrades to the background tint if it has since gone.
+        thumbnailFile != null -> AsyncImage(
             model = thumbnailFile,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = modifier
-                .background(accent ?: MaterialTheme.colorScheme.surfaceVariant)
+                .background(accentColor ?: MaterialTheme.colorScheme.surfaceVariant)
                 .clearAndSetSemantics { },
         )
-    } else {
-        MonogramTile(
-            url = bookmark.url,
+
+        else -> MonogramTile(
+            url = url,
             modifier = modifier,
             fontSize = monogramFontSize,
-            accentColor = accent,
+            accentColor = accentColor,
         )
     }
 }

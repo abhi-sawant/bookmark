@@ -9,6 +9,7 @@ import androidx.room.PrimaryKey
 import com.bookmark.categories.data.CategoryEntity
 import com.bookmark.core.model.Bookmark
 import com.bookmark.core.model.Category
+import com.bookmark.core.model.FailureCauseName
 import com.bookmark.core.model.MetadataState
 
 @Entity(
@@ -28,6 +29,8 @@ import com.bookmark.core.model.MetadataState
         Index(value = ["url"], unique = true),
         Index(value = ["categoryId"]),
         Index(value = ["createdAt"]),
+        // The retry queue and Settings' "Refresh all" both scan by state.
+        Index(value = ["metadataState"]),
     ],
 )
 data class BookmarkEntity(
@@ -45,9 +48,29 @@ data class BookmarkEntity(
     /** Relative path inside `filesDir/favicons/`. */
     val faviconPath: String?,
     val accentColor: Int?,
+    /**
+     * Pixel size of the stored thumbnail. Lets the staggered grid lay a card out
+     * at the image's real aspect ratio without decoding the file during
+     * composition -- see BookmarkGridCard.
+     */
+    val thumbnailWidth: Int?,
+    val thumbnailHeight: Int?,
+    /**
+     * Newline-separated image URLs the parser found, up to five, feeding the
+     * "choose another image" picker (spec 5.2, 14 Q5). Newline-separated rather
+     * than JSON because the values are URLs, which cannot contain one.
+     */
+    val imageCandidates: String?,
     @ColumnInfo(defaultValue = Category.UNSORTED_ID)
     val categoryId: String,
     val metadataState: MetadataState,
+    /**
+     * Name of the [com.bookmark.metadata.FailureCause] behind the current state,
+     * so the detail sheet can show the right spec 8.6 message instead of
+     * guessing. Stored as a name rather than an enum so the metadata package
+     * stays out of the persistence layer.
+     */
+    val failureCause: FailureCauseName?,
     @ColumnInfo(defaultValue = "0") val fetchAttempts: Int,
     val lastFetchAt: Long?,
     /** Bitmask, see [com.bookmark.core.model.ManualField]. */
@@ -66,8 +89,12 @@ data class BookmarkEntity(
         thumbnailPath = thumbnailPath,
         faviconPath = faviconPath,
         accentColor = accentColor,
+        thumbnailWidth = thumbnailWidth,
+        thumbnailHeight = thumbnailHeight,
+        imageCandidates = imageCandidates?.lineSequence()?.filter(String::isNotBlank)?.toList().orEmpty(),
         categoryId = categoryId,
         metadataState = metadataState,
+        failureCause = failureCause,
         fetchAttempts = fetchAttempts,
         lastFetchAt = lastFetchAt,
         manualFields = manualFields,
@@ -87,8 +114,12 @@ fun Bookmark.toEntity() = BookmarkEntity(
     thumbnailPath = thumbnailPath,
     faviconPath = faviconPath,
     accentColor = accentColor,
+    thumbnailWidth = thumbnailWidth,
+    thumbnailHeight = thumbnailHeight,
+    imageCandidates = imageCandidates.joinToString("\n").ifBlank { null },
     categoryId = categoryId,
     metadataState = metadataState,
+    failureCause = failureCause,
     fetchAttempts = fetchAttempts,
     lastFetchAt = lastFetchAt,
     manualFields = manualFields,

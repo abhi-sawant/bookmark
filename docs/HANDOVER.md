@@ -1,7 +1,7 @@
 # Bookmarks — handover
 
-**State:** M0–M2 complete. M3–M7 not started.
-**Date:** 13 September 2026
+**State:** M0–M3 complete. M4–M7 not started.
+**Date:** 14 September 2026
 
 This is the working document for picking the project up. It records what M0–M2
 put in place, the seams M3+ extends, and the decisions taken along the way that
@@ -16,8 +16,8 @@ are not obvious from the code.
 | M0 — skeleton, theme, navigation, Room schema + DAOs, seeded default category | Done |
 | M1 — bookmark CRUD, Home list/grid, category CRUD + delete-reassign | Done |
 | M2 — share target, URL extraction, quick-save sheet, Direct Share shortcuts | Done |
-| M3 — metadata engine | **Stubbed** — interface and result types only |
-| M4 — fallback system | **Partially done** — title chain, monogram tiles and the manual-field bitmask are in; the state machine has no engine driving it yet |
+| M3 — metadata engine | Done |
+| M4 — fallback system | **Partially done** — the engine now drives the state machine end to end; what remains is UI: live preview in the add sheet, the `Thumbnail ▾` picker, the real `FailureCause` message, and the retry entry points |
 | M5 — search, sort/filter, settings, export/import | Sort and filter done; FTS table exists but no search UI; Settings is a shell |
 | M6 — performance pass | Not started |
 | M7 — polish | Not started |
@@ -137,62 +137,113 @@ M5 only needs the screen.
 
 ---
 
-## 4. The seams M3+ extends
+## 4. The engine, and the seams M4+ extends
 
-### Metadata engine → `metadata/MetadataFetcher.kt`
+### Metadata engine — built in M3
 
-```kotlin
-interface MetadataFetcher {
-    suspend fun fetch(url: String): MetadataResult
-}
+`metadata/` is a package, not a Gradle module. Spec §7 asks for something
+"self-contained with no Android UI dependencies" and §3 rules out multi-module
+at this scale; those are not in conflict — §7 means package discipline.
+Everything under `parse/`, `special/` and `image/ThumbnailPolicy` is pure JVM.
+
+```
+metadata/
+  MetadataFetcher.kt         interface + result types (unchanged from M0)
+  DefaultMetadataFetcher.kt  fetch → parse → classify; bound in NetworkModule.kt
+  NetworkModule.kt           the one OkHttpClient, and the @Binds M3 swapped
+  http/    HtmlFetcher, RequestUrls, FetchOutcome
+  parse/   MetadataParser, JsonLd, TitleSuffix
+  special/ YouTube
+  image/   ThumbnailPolicy (pure), ThumbnailPipeline (Android)
+  work/    MetadataEnqueuer, MetadataWorker, RefreshAllWorker
 ```
 
-`NoOpMetadataFetcher` returns `MetadataResult.Pending`, bound in
-`MetadataModule`. **M3 swaps that one `@Binds` and no screen changes.** Every
-card currently falls through the title chain and the monogram tile — which is
-precisely the fallback state the design draws, so the UI is already correct.
+Things worth knowing that the code does not say on its own:
 
-Already defined and ready to use: `PageMetadata`, `MetadataResult`
-(`Success`/`Partial`/`Fallback`/`Failed`/`Pending` with a `state` mapping),
-`FailureCause`, and `FailureCause.userMessage()` carrying the spec §8.6 strings.
+- **Redirects are followed by hand.** OkHttp's limit is hardcoded at 20 and the
+  spec caps it at 5. The manual loop is also how the post-redirect URL becomes
+  available for resolving relative images, and how each hop gets upgraded off
+  cleartext — `usesCleartextTraffic="false"` means an `http://` hop fails at the
+  socket, so upgrading only the URL the user typed is not enough.
+- **`RequestUrls` is separate from `HtmlFetcher`** so the scheme and redirect
+  arithmetic is testable without a socket. `HtmlFetcher` takes an
+  `upgradeCleartext` flag purely so MockWebServer, which speaks http, can drive
+  the rest of the policy. It is a secondary constructor rather than a default
+  argument: **Dagger does not read Kotlin default values**, and a defaulted
+  `Boolean` asks it for a `Boolean` binding that nothing provides.
+- **Suffix stripping runs on every title source, not just `<title>`.** Spec §7.3
+  attaches it to step 4 on the assumption that the social tags omit it. The
+  fixtures disagree — MDN and Wikipedia both ship the full "Title | Site" string
+  in `og:title`. `TitleSuffix` only strips a tail that demonstrably names the
+  site, so running it more often costs nothing.
+- **`MetadataParser` falls back to `TitleFallback.fromDomain`, not the bare
+  registrable domain**, for `siteName`. Using the raw domain regressed `ogp.me`
+  from "Open Graph Protocol" to "ogp.me" on the first fetch — caught by driving
+  the app, not by the tests.
+- **YouTube still loads the watch page.** Spec §7.5 says to skip it entirely,
+  but `/watch` is a noise segment, so skipping it titles every video "YouTube".
+  The `i.ytimg.com` URLs are instead *prepended* to the candidates, so the
+  thumbnail is guaranteed whether or not the page parses — and §7.2's early
+  abort at `</head>` means the page read is tens of KB, not the multi-megabyte
+  document the spec was avoiding.
+- **The manual-field lock is enforced in SQL**, in `BookmarkDao.applyMetadata`.
+  A read-check-write in Kotlin has a real race: the user can edit the title in
+  the sheet between the read and the write. Doing the `manualFields & n` check
+  inside the `UPDATE` makes the lock atomic with the write, which is what makes
+  design principle 3 actually hold. `updatedAt` is deliberately not bumped — a
+  background fetch is not a user edit.
+- **`delete()` no longer removes the thumbnail file.** It cannot: `restore()`
+  re-inserts the row with the same `thumbnailPath`, so deleting the file made
+  undo silently downgrade the bookmark to a monogram tile. The file is now
+  reclaimed by `HomeViewModel.clearUndo()` when the Snackbar resolves, and by
+  `sweepOrphanThumbnails()` on next launch if the process dies first.
+- **Thumbnail filenames stay flat** (`{bookmarkId}.webp`). `sweepOrphanThumbnails()`
+  diffs `file.name` against `dao.allThumbnailPaths()`, so any nested scheme would
+  make every file look orphaned and delete the lot. Commented at both ends.
+- **`ThumbnailPolicy` is split out from `ThumbnailPipeline`** because Robolectric's
+  Bitmap shadows are fakes and cannot validate real decoding or WebP encoding.
+  The arithmetic and the accept/reject rules are plain-JUnit tested; the platform
+  calls are covered on a device.
+- **The privacy toggle is enforced in three places**, and needs all three:
+  `MetadataEnqueuer` does not enqueue, `MetadataWorker` re-checks on entry (the
+  toggle can flip in between), and turning it off cancels work already queued.
+  Spec §11 promises the app is *100% network-silent*, not merely that it stops
+  scheduling. A **manual** fetch deliberately ignores the toggle — §11 says
+  bookmarks use fallbacks "until the user taps fetch manually".
+- **`RefreshAllWorker` includes `PENDING`** in its eligible states, which spec
+  §5.6 does not name. Without it, a bookmark saved while previews were off would
+  sit in `PENDING` forever with no route back — the spec did not consider that
+  combination.
+- **No favicons.** The design uses a category-colour dot in all seven contexts
+  and never a site icon, so the parser does not extract one and nothing writes
+  `filesDir/favicons/`. `faviconPath` remains in the schema, unused.
 
-### What M3 must honour
+### Schema v2
 
-- **`manualFields`** — the bitmask in `core/model/Models.kt` (`TITLE=1`,
-  `DESCRIPTION=2`, `THUMBNAIL=4`). Any bit set means the user edited that field
-  and the worker must skip it. The add/edit and quick-save sheets already set
-  these bits as the user types.
-- **The thumbnail contract** — `BookmarkRepository.thumbnailDir()` is
-  `filesDir/thumbnails/`, files are named `{bookmarkId}.webp`, and
-  `thumbnailPath` stores the relative name.
-  `BookmarkRepository.sweepOrphanThumbnails()` already runs on app start and
-  `delete()` already removes the file with the row.
-- **The privacy toggle** — `UserPreferences.fetchPreviewsAutomatically` is
-  wired to the Settings switch and defaults on. With it off, the app must be
-  100% network-silent (spec §11).
-- **Backup exclusion** — `thumbnails/` and `favicons/` are already excluded from
-  Auto Backup in `backup_rules.xml` / `data_extraction_rules.xml`.
+`failureCause`, `thumbnailWidth`, `thumbnailHeight`, `imageCandidates`, plus an
+index on `metadataState`. All additive and nullable, so `MIGRATION_1_2` is four
+`ALTER TABLE`s and a `CREATE INDEX`; the FTS table is untouched. `2.json` is
+committed and `MigrationTest` validates against it.
 
-Build the engine as a self-contained module with no Android UI dependencies
-(spec §7), and **build the fixture suite first** — 30–40 saved HTML heads from
-real sites. Spec §12 flags M3/M4 as the milestones likely to overrun, and
-parsing real-world HTML is where the surprises live. The fixtures make the
-parser testable without the network.
+`app/build.gradle.kts` adds the schema directory as an **androidTest asset
+source** — `MigrationTestHelper` loads the exported JSON from the test APK's
+assets, and without that every migration test fails with `FileNotFoundException`.
 
-The HTTP policy (§7.2), parsing precedence (§7.3), thumbnail pipeline (§7.4) and
-special cases (§7.5) are specified in enough detail to implement directly. The
-two-User-Agent strategy matters more than anything else in that section: desktop
-Chrome first, `facebookexternalhit/1.1` on 403/429 or when no OG tags are
-present, never a third.
+The thumbnail dimensions exist so `BookmarkGridCard` can lay a card out at the
+image's real aspect ratio. Before M3 it used a domain-hash height even when a
+real image existed, which cropped every thumbnail into the wrong box.
 
-### Retry queue
+### The fixture corpus
 
-`BookmarkApp` already implements `Configuration.Provider` with `HiltWorkerFactory`,
-and `hilt-work` is on the classpath. `BookmarkDao.findByStates` exists to feed
-both the retry queue and Settings' "Refresh all metadata". Spec §8.5 has the
-policy: unique work per bookmark id, `ExistingWorkPolicy.KEEP`,
-`NetworkType.CONNECTED`, exponential backoff from 30s, max 3 attempts, then
-terminal `FAILED` with no further automatic retries.
+`app/src/test/resources/fixtures/` holds 41 saved `<head>` blocks: 28 fetched
+from real sites, 13 hand-written for edge cases the wild does not reliably
+serve (base href, ISO-8859-1, malformed JSON-LD, `@graph`, seven `og:image`
+tags, over-long fields, icons-only). Inline CSS and non-JSON-LD script bodies
+were stripped — 2.4MB down to 356KB — which changes nothing the parser reads.
+
+Regenerating them is a deliberate act, not a build step: they are the record of
+what the web looked like, and a test that silently re-fetches is a test that
+cannot fail.
 
 ### Search (M5)
 
@@ -271,19 +322,27 @@ Settled with the spec's own leanings, confirmed by the user:
 
 ```bash
 export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
-./gradlew :app:testDebugUnitTest          # 35 tests
-./gradlew :app:connectedDebugAndroidTest  # 9 tests, needs a device
+./gradlew :app:testDebugUnitTest          # 135 tests
+./gradlew :app:connectedDebugAndroidTest  # 20 tests, needs a device
 ./gradlew :app:assembleDebug
 ```
 
 Unit tests cover `UrlNormalizer`, `TitleFallback`, `UrlExtractor` and
 `DomainColor`, including both worked examples from the spec
 (`…/how-to-build-an-app-1234` → "How To Build An App";
-`news.ycombinator.com` → "Hacker News").
+`news.ycombinator.com` → "Hacker News"), plus everything M3 added: the parser
+against all 41 fixtures, `TitleSuffix`, `JsonLd`, `YouTube`, `ThumbnailPolicy`,
+`RequestUrls`, and the whole spec §7.2 request policy over MockWebServer —
+redirect cap, both UA switches, the two-attempt ceiling, `Range`, the
+content-type gate, early abort at `</head>` (including mixed case and an
+unterminated head), and the §8.6 status mapping.
 
 Instrumented tests cover the seeded category, the unique-URL constraint,
 case-insensitive category names, both category-delete strategies, the FK
-fallback, FTS search and FTS delete-sync, and the movable default flag.
+fallback, FTS search and FTS delete-sync, the movable default flag, the 1→2
+migration validated against the committed schemas (rows, the manual-field mask
+and FTS all survive), and the manual-field lock in `applyMetadata` — one test
+per bit plus the combined case.
 
 **There is no emulator configured on this machine** — no system images are
 installed and no AVD exists. The instrumented tests above were run against a
@@ -343,6 +402,34 @@ missed. All are fixed, and each fix carries a comment at the point of the fix:
 10. Minor: the overflow menu anchored to the screen edge; the delete dialog said
     "1 bookmarks are"; an empty Add sheet rendered a meaningless "?" preview.
 
+### What was verified on a real device for M3
+
+Same device (Xiaomi 2201117TI, Android 16). Eight links shared in via the Direct
+Share path — which saves with no sheet, so it drives the flow without blind
+taps. Confirmed: real titles, descriptions, site names and thumbnails, with the
+staggered grid laying cards out at each image's real aspect ratio; `| MDN` and
+`| Kotlin Documentation` suffixes stripped; x.com served Open Graph tags to the
+crawler UA, so the two-UA strategy is doing real work; an unreachable host
+retried three times and went terminal, dropping the "Preview pending" pill.
+
+The three checks that matter most all pass:
+
+- **Offline.** Airplane mode, save a link: persisted instantly with a monogram
+  tile and a "Preview pending" pill, browsing and filtering fully functional.
+  Network back on, and the queued fetch drained into a real preview.
+- **Privacy.** With "Fetch link previews automatically" off, a save made no
+  request at all and stayed `PENDING`.
+- **Undo.** `delete()` keeps the thumbnail file, so undo restores the bookmark
+  intact rather than downgrading it to a monogram.
+
+Driving it found two defects the tests missed: the `siteName` regression on
+known hosts described above, and the `PENDING` rows stranded by the privacy
+toggle. Both are fixed.
+
+One cosmetic issue was noted and left for M7's dark-theme pass: the `DesignSwitch`
+off-state knob renders near-black on the dark surface and is hard to see. The
+design only specifies the light palette, which is exactly the gap M7 covers.
+
 Two things worth knowing that are not bugs:
 
 - Reading the clipboard for the suggestion chip trips Android 12+'s
@@ -354,7 +441,7 @@ Two things worth knowing that are not bugs:
 Still unverified: text scaling to 200%, TalkBack traversal, and predictive back
 (all M7), and the true-black OLED variant.
 
-### The offline check that matters### The offline check that matters
+### The offline check that matters
 
 Turn on airplane mode, save a link, and confirm it persists instantly with a
 `Preview pending` pill and a monogram tile, and that browsing, filtering and

@@ -110,8 +110,15 @@ class HomeViewModel @Inject constructor(
         _undo.value = null
     }
 
+    /**
+     * The Snackbar expired without an undo, so the delete is now final and the
+     * thumbnail file can go. `delete` deliberately leaves the file behind so
+     * that undo restores a complete bookmark rather than a monogram tile.
+     */
     fun clearUndo() {
+        val pending = _undo.value ?: return
         _undo.value = null
+        viewModelScope.launch { bookmarkRepository.discardDeleted(pending.bookmark) }
     }
 
     fun thumbnailFile(bookmark: Bookmark): File? =

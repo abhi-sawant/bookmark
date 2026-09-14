@@ -57,22 +57,14 @@ fun PreviewCard(
                     .size(Dimens.previewThumbnail)
                     .clip(BookmarkShapes.thumbnailLarge),
             ) {
-                when {
-                    fetching -> ShimmerBox(modifier = Modifier.fillMaxSize())
-                    thumbnailFile != null && thumbnailFile.exists() -> coil3.compose.AsyncImage(
-                        model = thumbnailFile,
-                        contentDescription = null,
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-
-                    else -> MonogramTile(
-                        url = url,
-                        fontSize = 26.sp,
-                        accentColor = accentColor,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
+                ThumbnailSurface(
+                    url = url,
+                    thumbnailFile = thumbnailFile,
+                    accentColor = accentColor,
+                    modifier = Modifier.fillMaxSize(),
+                    monogramFontSize = 26.sp,
+                    fetching = fetching,
+                )
             }
 
             Column(modifier = Modifier.weight(1f)) {

@@ -186,20 +186,12 @@ fun BookmarkDetailSheet(
                 .fillMaxWidth()
                 .height(Dimens.detailHeroHeight),
         ) {
-            if (thumbnailFile != null && thumbnailFile.exists()) {
-                BookmarkThumbnail(
-                    bookmark = bookmark,
-                    thumbnailFile = thumbnailFile,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            } else {
-                MonogramTile(
-                    url = bookmark.url,
-                    fontSize = 56.sp,
-                    accentColor = bookmark.accentColor?.let { Color(it) },
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
+            BookmarkThumbnail(
+                bookmark = bookmark,
+                thumbnailFile = thumbnailFile,
+                modifier = Modifier.fillMaxSize(),
+                monogramFontSize = 56.sp,
+            )
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)

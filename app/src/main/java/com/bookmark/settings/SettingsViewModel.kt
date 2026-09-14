@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bookmark.core.model.ThemeMode
 import com.bookmark.core.model.UserPreferences
+import com.bookmark.metadata.work.MetadataEnqueuer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -14,6 +15,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
+    private val metadataEnqueuer: MetadataEnqueuer,
 ) : ViewModel() {
 
     val preferences: StateFlow<UserPreferences> = settingsRepository.preferences
@@ -33,5 +35,9 @@ class SettingsViewModel @Inject constructor(
 
     fun setFetchPreviews(enabled: Boolean) = viewModelScope.launch {
         settingsRepository.setFetchPreviews(enabled)
+        // Spec 11 promises the app is *100% network-silent* with this off, not
+        // merely that it stops scheduling new work -- anything already queued
+        // would otherwise still run the next time there is a network.
+        if (!enabled) metadataEnqueuer.cancelAllAutomatic()
     }
 }
