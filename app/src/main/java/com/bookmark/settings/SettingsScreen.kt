@@ -1,32 +1,37 @@
 package com.bookmark.settings
 
 import android.os.Build
+import android.text.format.Formatter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.FileUpload
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.bookmark.core.model.ThemeMode
 import com.bookmark.core.model.UserPreferences
 import com.bookmark.core.ui.components.DesignSwitch
 import com.bookmark.core.ui.components.MonoSectionHeader
+import com.bookmark.core.ui.components.RowDivider
 import com.bookmark.core.ui.components.ScreenHeader
 import com.bookmark.core.ui.components.SegmentedControl
-import com.bookmark.core.ui.theme.BookmarkShapes
+import com.bookmark.core.ui.components.SettingsGroup
 import com.bookmark.core.ui.theme.BookmarkTheme
 
 /**
@@ -34,23 +39,26 @@ import com.bookmark.core.ui.theme.BookmarkTheme
  * export is the only disaster-recovery path and should not be buried), then
  * Previews, then Appearance.
  *
- * The Appearance controls and the privacy toggle are live. Export, import,
- * refresh-all and clear-thumbnails are rendered disabled rather than hidden so
- * the shape of the screen is already right; M5 wires them up, together with the
- * live counts the design shows in their summaries. The engine behind
- * refresh-all and clear-thumbnails already exists as of M3.
+ * Every row is live: Appearance, the privacy toggle, refresh-all,
+ * clear-thumbnails, and export/import (backed by [com.bookmark.backup.BackupRepository]).
  */
 @Composable
 fun SettingsScreen(
     preferences: UserPreferences,
+    summary: BackupSummary,
     onThemeModeChange: (ThemeMode) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
     onTrueBlackChange: (Boolean) -> Unit,
     onFetchPreviewsChange: (Boolean) -> Unit,
+    onRefreshAll: () -> Unit,
+    onClearThumbnails: () -> Unit,
+    onExportBackup: () -> Unit,
+    onImportBackup: () -> Unit,
     onSearch: () -> Unit,
     onOverflow: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     Column(modifier = modifier.fillMaxSize()) {
         ScreenHeader(
             title = "Settings",
@@ -65,22 +73,28 @@ fun SettingsScreen(
                 .padding(bottom = 120.dp),
         ) {
             MonoSectionHeader("Backup", modifier = Modifier.padding(top = 8.dp))
-            SettingsGroup {
+            SettingsGroup(modifier = Modifier.padding(horizontal = 14.dp)) {
                 SettingsRow(
+                    leadingIcon = Icons.Outlined.FileDownload,
                     title = "Export backup",
-                    subtitle = "A single .zip via the system file picker",
-                    enabled = false,
+                    subtitle = "${plural(summary.bookmarkCount, "bookmark")} · " +
+                        "${plural(summary.categoryCount, "category", "categories")} · " +
+                        "${Formatter.formatShortFileSize(context, summary.estimatedZipBytes)} zip",
+                    enabled = true,
+                    onClick = onExportBackup,
                 )
                 RowDivider()
                 SettingsRow(
+                    leadingIcon = Icons.Outlined.FileUpload,
                     title = "Import backup",
                     subtitle = "Merge or replace, with a preview first",
-                    enabled = false,
+                    enabled = true,
+                    onClick = onImportBackup,
                 )
             }
 
             MonoSectionHeader("Previews")
-            SettingsGroup {
+            SettingsGroup(modifier = Modifier.padding(horizontal = 14.dp)) {
                 SettingsRow(
                     title = "Fetch link previews automatically",
                     subtitle = "Requests go straight to the saved site, which sees your IP. " +
@@ -95,19 +109,22 @@ fun SettingsScreen(
                 RowDivider()
                 SettingsRow(
                     title = "Refresh all metadata",
-                    subtitle = "Re-fetches previews that are missing or failed",
-                    enabled = false,
+                    subtitle = "${plural(summary.eligibleRefreshCount, "bookmark")} eligible",
+                    enabled = true,
+                    onClick = onRefreshAll,
                 )
                 RowDivider()
                 SettingsRow(
                     title = "Clear thumbnails",
-                    subtitle = "Re-fetchable, bookmarks untouched",
-                    enabled = false,
+                    subtitle = "${Formatter.formatShortFileSize(context, summary.thumbnailBytes)} · " +
+                        "re-fetchable, bookmarks untouched",
+                    enabled = true,
+                    onClick = onClearThumbnails,
                 )
             }
 
             MonoSectionHeader("Appearance")
-            SettingsGroup {
+            SettingsGroup(modifier = Modifier.padding(horizontal = 14.dp)) {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
                     Text(
                         text = "Theme",
@@ -152,25 +169,15 @@ fun SettingsScreen(
     }
 }
 
-@Composable
-private fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 14.dp),
-        shape = BookmarkShapes.settingsGroup,
-        color = BookmarkTheme.colors.cardSurface,
-        shadowElevation = 1.dp,
-    ) {
-        Column(content = content)
-    }
-}
+private fun plural(count: Int, singular: String, plural: String = "${singular}s") =
+    "$count ${if (count == 1) singular else plural}"
 
 @Composable
 private fun SettingsRow(
     title: String,
     subtitle: String? = null,
     enabled: Boolean = true,
+    leadingIcon: ImageVector? = null,
     onClick: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
@@ -185,6 +192,13 @@ private fun SettingsRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
+        if (leadingIcon != null) {
+            Icon(
+                imageVector = leadingIcon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = alpha),
+            )
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
@@ -202,9 +216,4 @@ private fun SettingsRow(
         }
         if (trailing != null && enabled) trailing()
     }
-}
-
-@Composable
-private fun RowDivider() {
-    HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
 }

@@ -101,6 +101,18 @@ interface BookmarkDao {
     @Query("SELECT id FROM bookmarks")
     suspend fun allIds(): List<String>
 
+    /** Settings, "Export backup" -- the full table, for the backup zip's bookmarks.json. */
+    @Query("SELECT * FROM bookmarks")
+    suspend fun getAll(): List<BookmarkEntity>
+
+    /** Import's merge-preview diff: which URLs in the file are already saved. */
+    @Query("SELECT url FROM bookmarks")
+    suspend fun allUrls(): List<String>
+
+    /** Import, "Replace everything" -- wiped before the file's rows are restored. */
+    @Query("DELETE FROM bookmarks")
+    suspend fun deleteAll()
+
     /** Feeds the M3 retry queue and Settings' "Refresh all metadata". */
     @Query("SELECT * FROM bookmarks WHERE metadataState IN (:states)")
     suspend fun findByStates(states: List<MetadataState>): List<BookmarkEntity>

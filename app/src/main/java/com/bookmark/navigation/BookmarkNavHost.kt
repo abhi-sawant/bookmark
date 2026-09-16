@@ -1,5 +1,7 @@
 package com.bookmark.navigation
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -18,6 +20,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.bookmark.backup.ImportPreviewSheet
 import com.bookmark.bookmarks.detail.BookmarkContextSheet
 import com.bookmark.bookmarks.detail.BookmarkDetailSheet
 import com.bookmark.bookmarks.detail.DuplicateBookmarkSheet
@@ -38,8 +45,14 @@ import com.bookmark.core.ui.components.BottomDestination
 import com.bookmark.core.util.LinkActions
 import com.bookmark.metadata.FailureCause
 import com.bookmark.metadata.userMessage
+import com.bookmark.search.SearchScreen
+import com.bookmark.search.SearchViewModel
+import com.bookmark.settings.ImportSheetState
 import com.bookmark.settings.SettingsScreen
 import com.bookmark.settings.SettingsViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /** Which sheet, if any, is open over the current screen. */
 private sealed interface SheetState {
@@ -49,17 +62,46 @@ private sealed interface SheetState {
     data class Detail(val bookmark: Bookmark) : SheetState
 }
 
+/** [TopLevelDestination] <-> the route object driving [NavHost]. */
+private fun routeFor(destination: TopLevelDestination): Any = when (destination) {
+    TopLevelDestination.HOME -> HomeRoute
+    TopLevelDestination.CATEGORIES -> CategoriesRoute
+    TopLevelDestination.SETTINGS -> SettingsRoute
+}
+
+/** The suggested filename for "Export backup", e.g. `bookmarks-2026-09-14.zip`. */
+private fun backupDateStamp(): String =
+    SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+
 @Composable
 fun BookmarkNavHost() {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
-    var selectedTab by remember { mutableStateOf(TopLevelDestination.HOME) }
+    val navController = rememberNavController()
     var sheet by remember { mutableStateOf<SheetState>(SheetState.None) }
 
     val homeViewModel: HomeViewModel = hiltViewModel()
     val addEditViewModel: AddEditViewModel = hiltViewModel()
     val categoriesViewModel: CategoriesViewModel = hiltViewModel()
     val settingsViewModel: SettingsViewModel = hiltViewModel()
+
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    // Route-checking by KClass (NavDestination.hasRoute) is the more idiomatic
+    // API, but the destination's `route` string is already the route class's
+    // qualified name (how composable<T>() registers it), and comparing that
+    // directly sidesteps an overload-resolution ambiguity between the
+    // KClass-based extension and the older String-based member function.
+    val currentRoute = backStackEntry?.destination?.route
+    val currentTopLevel = when (currentRoute) {
+        CategoriesRoute::class.qualifiedName -> TopLevelDestination.CATEGORIES
+        SettingsRoute::class.qualifiedName -> TopLevelDestination.SETTINGS
+        else -> TopLevelDestination.HOME
+    }
+    // Search is a full-screen destination pushed on top of Home, not one of
+    // the three tabs -- the bottom bar has nothing sensible to highlight
+    // while it's open, so it hides instead (matches the design's full-screen
+    // search mock, which shows no bottom bar).
+    val onSearchRoute = currentRoute == SearchRoute::class.qualifiedName
 
     val homeState by homeViewModel.uiState.collectAsStateWithLifecycle()
     val addEditState by addEditViewModel.state.collectAsStateWithLifecycle()
@@ -70,6 +112,19 @@ fun BookmarkNavHost() {
     val categoryUndo by categoriesViewModel.undo.collectAsStateWithLifecycle()
     val bookmarkUndo by homeViewModel.undo.collectAsStateWithLifecycle()
     val preferences by settingsViewModel.preferences.collectAsStateWithLifecycle()
+    val settingsSummary by settingsViewModel.summary.collectAsStateWithLifecycle()
+    val importSheetState by settingsViewModel.importSheetState.collectAsStateWithLifecycle()
+    val backupMessage by settingsViewModel.message.collectAsStateWithLifecycle()
+
+    // SAF pickers: the launcher must live on an Activity-scoped Compose host,
+    // which a plain ViewModel cannot be -- it hands the resulting Uri straight
+    // to the ViewModel once the user has actually picked a location/file.
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/zip"),
+    ) { uri -> uri?.let(settingsViewModel::onExportUriPicked) }
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri -> uri?.let(settingsViewModel::onImportUriPicked) }
 
     // A deleted bookmark is held until the Snackbar resolves (spec 14 Q2).
     LaunchedEffect(bookmarkUndo) {
@@ -106,6 +161,12 @@ fun BookmarkNavHost() {
         categoriesViewModel.clearError()
     }
 
+    LaunchedEffect(backupMessage) {
+        val message = backupMessage ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message)
+        settingsViewModel.clearMessage()
+    }
+
     // Saving closes the sheet; the bookmark is already persisted by this point.
     LaunchedEffect(addEditState.savedBookmark) {
         if (addEditState.savedBookmark != null) {
@@ -118,22 +179,36 @@ fun BookmarkNavHost() {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            BookmarkBottomBar(
-                destinations = TopLevelDestination.entries.map {
-                    BottomDestination(it.label, it.icon)
-                },
-                selectedIndex = TopLevelDestination.entries.indexOf(selectedTab),
-                onSelect = { index -> selectedTab = TopLevelDestination.entries[index] },
-            )
+            if (!onSearchRoute) {
+                BookmarkBottomBar(
+                    destinations = TopLevelDestination.entries.map {
+                        BottomDestination(it.label, it.icon)
+                    },
+                    selectedIndex = TopLevelDestination.entries.indexOf(currentTopLevel),
+                    onSelect = { index ->
+                        val target = routeFor(TopLevelDestination.entries[index])
+                        navController.navigate(target) {
+                            // Keeps the back stack flat -- switching tabs
+                            // never grows a Home -> Categories -> Settings
+                            // chain the system back button would have to
+                            // unwind one tap at a time.
+                            popUpTo(HomeRoute) { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    },
+                )
+            }
         },
     ) { innerPadding ->
-        Box(
+        NavHost(
+            navController = navController,
+            startDestination = HomeRoute,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            when (selectedTab) {
-                TopLevelDestination.HOME -> HomeScreen(
+            composable<HomeRoute> {
+                HomeScreen(
                     state = homeState,
                     thumbnailFor = homeViewModel::thumbnailFile,
                     onSelectCategory = homeViewModel::selectCategory,
@@ -149,15 +224,17 @@ fun BookmarkNavHost() {
                         }
                     },
                     onBookmarkLongPress = { sheet = SheetState.Context(it) },
-                    onSearch = { /* Search screen arrives in M5 */ },
+                    onSearch = { navController.navigate(SearchRoute) },
                     onAdd = {
                         addEditViewModel.startAdd()
                         addEditViewModel.offerClipboard(LinkActions.clipboardUrl(context))
                         sheet = SheetState.AddEdit
                     },
                 )
+            }
 
-                TopLevelDestination.CATEGORIES -> CategoriesScreen(
+            composable<CategoriesRoute> {
+                CategoriesScreen(
                     categories = categoryDraftOrder ?: categoriesState.categories,
                     onSearch = { },
                     onOverflow = { },
@@ -166,15 +243,46 @@ fun BookmarkNavHost() {
                     onMove = categoriesViewModel::moveDraft,
                     onMoveCommitted = categoriesViewModel::commitOrder,
                 )
+            }
 
-                TopLevelDestination.SETTINGS -> SettingsScreen(
+            composable<SettingsRoute> {
+                SettingsScreen(
                     preferences = preferences,
+                    summary = settingsSummary,
                     onThemeModeChange = settingsViewModel::setThemeMode,
                     onDynamicColorChange = settingsViewModel::setDynamicColor,
                     onTrueBlackChange = settingsViewModel::setTrueBlack,
                     onFetchPreviewsChange = settingsViewModel::setFetchPreviews,
+                    onRefreshAll = settingsViewModel::refreshAll,
+                    onClearThumbnails = settingsViewModel::clearThumbnails,
+                    onExportBackup = { exportLauncher.launch("bookmarks-${backupDateStamp()}.zip") },
+                    onImportBackup = { importLauncher.launch(arrayOf("application/zip")) },
                     onSearch = { },
                     onOverflow = { },
+                )
+            }
+
+            composable<SearchRoute> {
+                // Scoped to this back-stack entry (not hoisted like the four
+                // tab view models above) so it resets -- a fresh, empty query
+                // -- every time Search is reopened from Home.
+                val searchViewModel: SearchViewModel = hiltViewModel()
+                val searchState by searchViewModel.uiState.collectAsStateWithLifecycle()
+                SearchScreen(
+                    state = searchState,
+                    thumbnailFor = searchViewModel::thumbnailFile,
+                    onQueryChange = searchViewModel::onQueryChange,
+                    onClearQuery = searchViewModel::clearQuery,
+                    onSelectCategory = searchViewModel::selectCategory,
+                    onBack = { navController.popBackStack() },
+                    onOpenBookmark = {
+                        if (it.metadataState == MetadataState.FAILED) {
+                            sheet = SheetState.Detail(it)
+                        } else {
+                            LinkActions.open(context, it.url)
+                        }
+                    },
+                    onBookmarkLongPress = { sheet = SheetState.Context(it) },
                 )
             }
         }
@@ -273,6 +381,16 @@ fun BookmarkNavHost() {
                 addEditViewModel.reset()
                 sheet = SheetState.Detail(existing)
             },
+        )
+    }
+
+    (importSheetState as? ImportSheetState.Preview)?.let { preview ->
+        ImportPreviewSheet(
+            preview = preview.preview,
+            selectedMode = preview.mode,
+            onModeChange = settingsViewModel::setImportMode,
+            onDismiss = settingsViewModel::dismissImportSheet,
+            onImport = settingsViewModel::confirmImport,
         )
     }
 

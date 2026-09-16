@@ -1,6 +1,6 @@
 # Bookmarks — handover
 
-**State:** M0–M4 complete. M5–M7 not started.
+**State:** M0–M5 complete. M6–M7 not started.
 **Date:** 14 September 2026
 
 This is the working document for picking the project up. It records what M0–M2
@@ -18,7 +18,7 @@ are not obvious from the code.
 | M2 — share target, URL extraction, quick-save sheet, Direct Share shortcuts | Done |
 | M3 — metadata engine | Done |
 | M4 — fallback system | Done |
-| M5 — search, sort/filter, settings, export/import | Sort and filter done; FTS table exists but no search UI; Settings is a shell |
+| M5 — search, sort/filter, settings, export/import | Done |
 | M6 — performance pass | Not started |
 | M7 — polish | Not started |
 
@@ -323,21 +323,48 @@ Same device (Xiaomi 2201117TI, Android 16). Confirmed working end to end:
   sheet -- unlike a `FALLBACK` bookmark's -- correctly showed no "Retry
   fetch" row.
 
-### Search (M5)
+### Search (M5) — done
 
-Everything below the UI is done. `BookmarkRepository.search` applies a prefix
-match to every term so results appear while typing. The screen needs: full-screen
-presentation, keyboard up on open, 150ms debounce, matched-term highlighting,
-and category filtering from within search. `SearchRoute` is already declared in
-`navigation/Routes.kt`; `HomeScreen`'s `onSearch` is a no-op waiting for it.
+`com.bookmark.search` (`SearchScreen`, `SearchViewModel`, `HighlightSpans.kt`)
+is a real `SearchRoute` destination now, which is also why `BookmarkNavHost`
+switched from a plain `when (selectedTab)` to an actual
+`androidx.navigation.compose.NavHost` — `navigation-compose` and
+`hilt-navigation-compose` were already dependencies, so this cost nothing new.
+The bottom bar hides while Search is open (a full-screen destination, not one
+of the three tabs) and reappears on pop.
 
-### Settings (M5)
+`SearchViewModel` re-invokes `BookmarkRepository.search` imperatively (150ms
+debounced, `immediate = true` on a category-chip tap) since that call is
+`suspend`, not `Flow`, unlike Home's `observe()`. It's scoped inside
+`composable<SearchRoute> { }` rather than hoisted with the other four view
+models, so it resets — a fresh query — every time Search reopens. Matched-term
+highlighting is pure client-side substring matching
+(`findHighlightRanges`/`queryTermsFor`, unit-tested) over the already-fetched
+results, since the DAO returns no FTS offsets; it renders as a rectangular
+`SpanStyle.background`, not the design mock's rounded inline chip — Compose
+has no built-in primitive for the latter, and the rectangle already satisfies
+the spec's highlighting requirement.
 
-`SettingsScreen` has the full layout with the design's grouping and ordering —
-Backup first, as spec §5.6 asks, since with no backend export is the only
-disaster-recovery path. Appearance and the privacy toggle are wired. Export,
-import, refresh-all and clear-thumbnails are rendered **disabled rather than
-hidden**, so the shape of the screen is already right and M5 only fills them in.
+### Settings (M5) — done
+
+Refresh-all-metadata and clear-thumbnails just needed wiring — the engine
+(`RefreshAllWorker`, `MetadataEnqueuer.enqueueRefreshAll()`,
+`BookmarkRepository.clearThumbnails()`/`thumbnailBytes()`) already existed
+since M3 with zero callers.
+
+Export/import (`com.bookmark.backup`) is new: `BackupRepository` zips
+`manifest.json`/`bookmarks.json`/`categories.json`/`thumbnails/` via the
+Storage Access Framework (`ActivityResultContracts.CreateDocument`/
+`OpenDocument`, launchers registered in `BookmarkNavHost` since a ViewModel
+can't own one). Runs as plain suspend calls, not a `CoroutineWorker` — SAF's
+picker needs an Activity-scoped launcher regardless, and the JSON is small
+(thumbnails are streamed, never buffered in memory). Merge skips a bookmark
+whose URL is already saved (the same dedupe rule `BookmarkRepository.save()`
+uses); Replace wipes everything except the seeded `Unsorted` category (its
+colour/icon are updated from the file instead of being deleted-and-reinserted
+— the FK safety net needs that row to always exist) and restores the file
+verbatim inside one transaction. `ImportPreviewSheet` shows the merge/replace
+counts before anything commits.
 
 ---
 

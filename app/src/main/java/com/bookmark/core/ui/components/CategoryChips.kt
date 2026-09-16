@@ -99,6 +99,9 @@ fun CategoryFilterRow(
     modifier: Modifier = Modifier,
     contentPadding: androidx.compose.foundation.layout.PaddingValues =
         androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp),
+    // Search's chip row shows no counts at all (they'd describe category
+    // totals, not matches for the current query, which would mislead).
+    showCounts: Boolean = true,
 ) {
     LazyRow(
         modifier = modifier,
@@ -110,7 +113,7 @@ fun CategoryFilterRow(
                 label = "All",
                 selected = selectedCategoryId == null,
                 onClick = { onSelect(null) },
-                trailingCount = totalCount,
+                trailingCount = if (showCounts) totalCount else null,
             )
         }
         items(categories, key = { it.category.id }) { entry ->

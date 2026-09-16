@@ -9,6 +9,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,7 +21,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -185,4 +189,26 @@ fun MonoSectionHeader(text: String, modifier: Modifier = Modifier) {
         color = BookmarkTheme.colors.monoLabel,
         modifier = modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 6.dp),
     )
+}
+
+/**
+ * The rounded card Settings groups its rows into. Shared with the import
+ * preview sheet, which shows the same kind of grouped-row list.
+ */
+@Composable
+fun SettingsGroup(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = BookmarkShapes.settingsGroup,
+        color = BookmarkTheme.colors.cardSurface,
+        shadowElevation = 1.dp,
+    ) {
+        Column(content = content)
+    }
+}
+
+/** Hairline divider between rows inside a [SettingsGroup]. */
+@Composable
+fun RowDivider(modifier: Modifier = Modifier) {
+    HorizontalDivider(modifier = modifier, thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
 }

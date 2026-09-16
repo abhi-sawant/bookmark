@@ -28,6 +28,18 @@ interface CategoryDao {
     @Query("SELECT * FROM categories WHERE id = :id")
     suspend fun findById(id: String): CategoryEntity?
 
+    /** Settings, "Export backup" -- the full table, for the backup zip's categories.json. */
+    @Query("SELECT * FROM categories")
+    suspend fun getAll(): List<CategoryEntity>
+
+    /**
+     * Import, "Replace everything". Never blanket-deletes: the seeded
+     * [com.bookmark.core.model.Category.UNSORTED_ID] row must always survive,
+     * since `bookmarks.categoryId`'s `ON DELETE SET DEFAULT` falls back to it.
+     */
+    @Query("DELETE FROM categories WHERE id != :keepId")
+    suspend fun deleteAllExcept(keepId: String)
+
     @Query("SELECT * FROM categories WHERE name = :name COLLATE NOCASE LIMIT 1")
     suspend fun findByName(name: String): CategoryEntity?
 
