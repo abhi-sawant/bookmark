@@ -77,6 +77,10 @@ interface BookmarkDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(bookmark: BookmarkEntity)
 
+    /** Room runs a list-parameter @Insert as one transaction -- for M6's scroll-benchmark seed. */
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertAll(bookmarks: List<BookmarkEntity>)
+
     @Update
     suspend fun update(bookmark: BookmarkEntity)
 

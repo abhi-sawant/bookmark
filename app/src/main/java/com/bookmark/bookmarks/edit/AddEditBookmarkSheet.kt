@@ -124,7 +124,7 @@ fun AddEditBookmarkSheet(
                     description = state.description.ifBlank { null },
                     siteName = state.siteName,
                     url = state.url,
-                    thumbnailFile = null,
+                    thumbnailPath = null,
                     fetching = state.fetching,
                     previewModel = state.previewThumbnailModel,
                     modifier = Modifier.padding(top = 16.dp),

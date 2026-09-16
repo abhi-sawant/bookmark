@@ -17,6 +17,11 @@
         android:theme="@style/Theme.Bookmark"
         android:usesCleartextTraffic="false">
 
+        <!-- Lets Macrobenchmark (M6) measure startup/frame timing on a release
+             build. Safe in shipped builds: this exposes nothing beyond what
+             `adb shell` can already read on a non-rooted device. -->
+        <profileable android:shell="true" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

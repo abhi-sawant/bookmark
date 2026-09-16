@@ -29,10 +29,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.Dimens
+
+/** Kept in sync with `macrobenchmark/.../BaselineProfileGenerator.kt` (M6). */
+const val SEARCH_BUTTON_TEST_TAG = "search_button"
 
 /**
  * The single-line header the 2a design uses on every top-level screen: title,
@@ -77,7 +81,7 @@ fun ScreenHeader(
         IconButton(
             onClick = onSearch,
             enabled = searchEnabled,
-            modifier = Modifier.size(Dimens.iconSlot),
+            modifier = Modifier.size(Dimens.iconSlot).testTag(SEARCH_BUTTON_TEST_TAG),
         ) {
             Icon(
                 imageVector = Icons.Outlined.Search,

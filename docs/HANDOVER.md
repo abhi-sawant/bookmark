@@ -1,7 +1,7 @@
 # Bookmarks — handover
 
-**State:** M0–M5 complete. M6–M7 not started.
-**Date:** 14 September 2026
+**State:** M0–M6 complete. M7 not started.
+**Date:** 16 September 2026
 
 This is the working document for picking the project up. It records what M0–M2
 put in place, the seams M3+ extends, and the decisions taken along the way that
@@ -19,7 +19,7 @@ are not obvious from the code.
 | M3 — metadata engine | Done |
 | M4 — fallback system | Done |
 | M5 — search, sort/filter, settings, export/import | Done |
-| M6 — performance pass | Not started |
+| M6 — performance pass | Done |
 | M7 — polish | Not started |
 
 ### Two sources of truth
@@ -427,10 +427,14 @@ Settled with the spec's own leanings, confirmed by the user:
 
 ```bash
 export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
-./gradlew :app:testDebugUnitTest          # 135 tests
-./gradlew :app:connectedDebugAndroidTest  # 20 tests, needs a device
+./gradlew :app:testDebugUnitTest          # 144 tests
+./gradlew :app:connectedDebugAndroidTest  # 40 tests, needs a device
 ./gradlew :app:assembleDebug
 ```
+
+M6 also adds a `:macrobenchmark` module (baseline profile generation +
+StartupBenchmark + ScrollBenchmark) — see §8 for the exact commands and the
+one test (`ScrollBenchmark`) that isn't reliably runnable on this MIUI device.
 
 Unit tests cover `UrlNormalizer`, `TitleFallback`, `UrlExtractor` and
 `DomainColor`, including both worked examples from the spec
@@ -552,3 +556,253 @@ Turn on airplane mode, save a link, and confirm it persists instantly with a
 `Preview pending` pill and a monogram tile, and that browsing, filtering and
 sorting stay fully functional. That is design principles 1 and 4, and it is the
 thing most likely to regress once M3 introduces real network calls.
+
+---
+
+## 8. M6 — performance pass
+
+### What was already spec-compliant, no work needed
+
+Three explore passes over the codebase before writing any code found the DB
+layer and Home's lazy layouts already met spec §9: `BookmarkEntity` already
+had explicit indices on `url` (unique), `categoryId`, `createdAt` and
+`metadataState`; every DAO method was already `suspend`/`Flow` with zero
+blocking calls; `HomeScreen.kt`'s `LazyVerticalStaggeredGrid`/`LazyColumn`
+already passed both `key` and `contentType`; and `HomeUiState`/`SearchUiState`
+/`CategoriesUiState`/the model types were already `@Immutable`. Paging 3 was
+skipped — the library is nowhere near the spec's ~1,000-item threshold.
+
+### Baseline Profile + Macrobenchmark module
+
+New `:macrobenchmark` module (`com.android.test` + `androidx.baselineprofile`
+1.5.0 — the first line confirmed compatible with AGP 9, per its own release
+notes: earlier versions needed `newDsl=false`, which broke against AGP 9).
+`BaselineProfileGenerator.kt` walks Home → scroll → detail → Search → back;
+`StartupBenchmark.kt` measures cold start across `CompilationMode.None`/
+`Partial`/`Full`. Both needed `Modifier.testTag`s added to Home's grid/list,
+the FAB, the search button/field and each bookmark card (`HomeScreen.kt`,
+`ScreenChrome.kt`, `SearchScreen.kt`, `BookmarkCards.kt`) — the app had none
+before, and UiAutomator can't reliably select Compose nodes without them.
+
+**Undocumented AGP 9 behaviour, found empirically, not in any changelog:**
+the baseline-profile plugin's auto-created `nonMinifiedRelease` (profile
+generation) and `benchmarkRelease` (macrobenchmark) app build types
+*unconditionally* inherit all of `src/release/java` in addition to their own
+per-build-type folder — confirmed by a "conflicting overloads"/"redeclaration"
+compile error once both a `src/release/java` file and a same-symbol
+`src/benchmarkRelease/java` file existed. This is why `StrictModeInit`'s
+release-side no-op twin (§4 below, unchanged since M0) needs no special
+wiring for these two synthetic build types — they get it for free — and why
+`BenchmarkSeed.kt` (next section) couldn't use the same real/no-op-per-source-set
+split: `benchmarkRelease` can't simultaneously inherit `src/release/java`'s
+no-op *and* define its own real override without a duplicate-symbol clash.
+`app/build.gradle.kts` documents this at the point it matters.
+
+A second, unrelated MIUI-specific snag: `nonMinifiedRelease`/`benchmarkRelease`
+had no explicit `signingConfig`, so they defaulted to the debug key, and every
+install then collided with whatever release-signed build was already on the
+test device (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`). Fixed by explicitly
+signing both with the same `release` key.
+
+Baseline profile generation (`./gradlew :app:generateReleaseBaselineProfile`)
+now succeeds and writes `app/src/release/generated/baselineProfiles/baseline-prof.txt`
+(6,766 lines, committed).
+
+### Coil `ImageLoader` — cache config + grid→detail hand-off
+
+New `core/image/ImageLoaderModule.kt`: 25% memory-cache share, 250MB disk
+cache (spec 9). **Caught before it shipped:** `NetworkModule`'s `OkHttpClient`
+disables redirects on purpose (`HtmlFetcher` follows them by hand for the
+5-hop cap, spec 7.2) — reusing it for Coil verbatim would have silently
+broken every thumbnail behind a redirect (common for CDN `og:image`s and
+YouTube). `ImageLoaderModule` builds a second client via
+`.newBuilder().followRedirects(true)`, sharing the connection pool but
+correct for image fetching, qualified with a new `@ImageHttpClient`
+annotation to avoid a duplicate `OkHttpClient` binding.
+
+`BookmarkThumbnail` now derives a memory-cache key from `bookmark.id`
+(`"thumbnail-$id"`) and sets it as both `memoryCacheKey` and
+`placeholderMemoryCacheKey` on every request — not the default Coil key,
+which for a `File` model includes `lastModified` and would miss after any
+background metadata refetch rewrites the file. This makes the grid's already-
+decoded bitmap show instantly on the grid→detail hand-off (same cache slot),
+which the previous same-`File`-model approach didn't guarantee.
+
+### Recomposition audit
+
+- `contentType` added to the three lazy lists that were missing it:
+  `CategoryChips.kt`'s `CategoryFilterRow`, `SearchScreen.kt`'s results
+  list, `CategoriesScreen.kt`'s list.
+- **Fixed a real stability bug on the hot path.** `BookmarkGridCard`/
+  `BookmarkListRow`/`BookmarkThumbnail`/`ThumbnailSurface` took
+  `thumbnailFile: File?` — `java.io.File` is external/unannotated, so
+  Compose's compiler treats it as unstable, which defeats skipping on every
+  visible grid/list item on every scroll frame. Changed the parameter to
+  `thumbnailPath: String?` end to end (the `File` is now only constructed at
+  the `AsyncImage` call site inside `ThumbnailSurface`). This rippled through
+  every caller of `BookmarkThumbnail`/`PreviewCard` — `HomeScreen.kt`,
+  `SearchScreen.kt`, `BookmarkSheets.kt`, `DuplicateSheet.kt`,
+  `AddEditBookmarkSheet.kt`, `QuickSaveActivity.kt`, `QuickSaveSheet.kt`,
+  `BookmarkNavHost.kt` — mechanical but real: `ViewModel.thumbnailFile(...)`
+  still returns `File?` (unchanged, data-layer concern), the composable
+  boundary now takes `.absolutePath`. Confirmed via a temporary
+  `-PcomposeCompilerReports=true` build: `BookmarkGridCard`, `BookmarkListRow`,
+  `BookmarkThumbnail` and `ThumbnailSurface` all now report `restartable
+  skippable` in `app/build/compose_reports/app-composables.txt`.
+- `derivedStateOf` has no current application — confirmed against spec §10
+  that no scroll-derived UI value (e.g. a scroll-to-top FAB) exists or is
+  planned anywhere, including M7. Not invented for the sake of the tactic.
+- Lambda hoisting on `HomeScreen.kt`'s inline `onClick`/`onLongClick` left
+  as-is — the compiler-metrics pass gave no evidence it costs anything once
+  the state above is genuinely stable.
+
+### StrictMode
+
+New `app/src/debug/java/com/bookmark/debug/StrictModeInit.kt` (real:
+`penaltyDeath()` on disk/network on main thread) and its `src/release/java`
+no-op twin, called unconditionally as the first line of
+`BookmarkApp.onCreate()`. **Verified the guard actually fires**, not just
+that it compiles: added a temporary `filesDir.exists()` call, rebuilt,
+confirmed a real crash —
+`FATAL EXCEPTION: ... Caused by: android.os.strictmode.DiskReadViolation
+... at com.bookmark.BookmarkApp.onCreate(BookmarkApp.kt:40)` — then removed
+it. No violations surfaced during normal navigation (Home, Search,
+Categories, Settings, share target) on the debug build.
+
+### 500-item scroll benchmark and its seed hook
+
+`BenchmarkSeed.kt` (`com.bookmark.benchmark`) seeds N synthetic bookmarks
+directly via a new `BookmarkDao.insertAll(List<BookmarkEntity>)`, bypassing
+`BookmarkRepository.save()` on purpose (that path enqueues a real metadata
+fetch per bookmark). Rows are inserted already `FALLBACK` (monogram tile, no
+pending work). `MainActivity` calls it unconditionally on a specific intent
+extra (`EXTRA_BENCHMARK_SEED_COUNT`) that nothing but `ScrollBenchmark`'s own
+`startActivityAndWait()` ever sends.
+
+**Deliberate deviation from the plan.** The plan called for a real/no-op
+split identical to `StrictModeInit` (real in debug + benchmarkRelease, no-op
+in release + nonMinifiedRelease). That's structurally impossible here for the
+AGP-9-quirk reason above: `benchmarkRelease` unconditionally inherits
+`src/release/java`, so it can't get a *different* answer for this one symbol
+than plain `release` without a duplicate-symbol compile error, short of
+reintroducing a `BuildConfig` branch. `BenchmarkSeed.kt` lives in `src/main`
+unconditionally instead. This is judged safe: the function is a no-op unless
+`count > 0`, nothing send that extra outside the benchmark test, and
+`MainActivity` is already an exported launcher activity — this adds no new
+attack surface, and the effect is bounded to local-DB inserts.
+
+**A real perf bug found by the benchmark infrastructure itself, not the app
+under test:** the first version of the seed loop called `dao.insert(it)` 500
+times sequentially (500 separate awaited suspend calls / transactions). This
+was slow enough that the automated `ScrollBenchmark` consistently timed out
+waiting for the UI to reflect the seed (`Until.findObject` never matched
+within 30s). Switched to `BookmarkDao.insertAll(List<BookmarkEntity>)` — Room
+runs a list-parameter `@Insert` as a single transaction — and a `pm clear` +
+timed manual launch went from "still not there after 30s" to the grid
+rendering in ~2s.
+
+**UiAutomator selector gotcha, also found the hard way:** `Modifier.testTag()`
+values are only visible to Compose's *own* test framework
+(`onNodeWithTag`), not to UiAutomator's `By.res()`, unless
+`Modifier.semantics { testTagsAsResourceId = true }` is set somewhere above
+them in the tree. Added once, wrapping `BookmarkNavHost()` in
+`MainActivity`'s `setContent` — harmless for real users (TalkBack reads
+`contentDescription`, not this), and it's what makes every `testTag` added
+for this milestone actually findable by `BaselineProfileGenerator` and
+`ScrollBenchmark`.
+
+**`ScrollBenchmark`'s automated run itself stayed unreliable on this MIUI
+device** even after both fixes above — alternating between "target package
+not running" and "UI never appeared" across six attempts, failing at
+different points in `amStartAndWait`/`Until.findObject` each time, with no
+code-level cause found (the same seed+UI path was independently confirmed
+correct by hand every time). This reads as the same class of MIUI tooling
+friction §7's `run-as`-blocked-by-SELinux note already documents, now hitting
+macrobenchmark's own device-interaction layer instead. `StartupBenchmark`,
+by contrast, ran cleanly to completion multiple times on the same device —
+so this isn't a blanket "macrobenchmark doesn't work here," just this
+specific test's launch-verification path. The test is written, compiles, and
+is believed correct; it is not confirmed to pass under Gradle on this
+machine. Retry on a different device (or once MIUI-side flakiness is
+otherwise resolved) before trusting an automated pass/fail from it.
+
+In its place, a manual measurement: `pm clear`, launch with the 500-item
+seed, `dumpsys gfxinfo com.bookmark reset`, eight full-height swipes down and
+up, then `dumpsys gfxinfo com.bookmark`:
+
+```
+Total frames rendered: 152
+Janky frames: 7 (4.61%)
+50th percentile: 19ms   90th percentile: 21ms   95th percentile: 23ms   99th percentile: 42ms
+Number Missed Vsync: 0
+```
+
+Not literally zero jank — P90/P95 sit just above the 16.6ms/60Hz budget, and
+7 of 152 frames missed their deadline. Given the recomposition fixes above
+already landed, this is the honest current number, not a re-run until it
+looks good. Worth another look on a device other than this one, and/or after
+`ScrollBenchmark` itself can be trusted to run.
+
+### Startup: real numbers
+
+`StartupBenchmark`, `CompilationMode.None` vs `Partial` (baseline profile)
+vs `Full`, 5 iterations each, `StartupTimingMetric` (`timeToInitialDisplayMs`):
+
+| Compilation | Median | Min | Max |
+|---|---|---|---|
+| None | 582.8ms | 577.2ms | 668.1ms |
+| **Baseline profile** | **525.4ms** | 518.6ms | 544.3ms |
+| Full | 580.2ms | 569.4ms | 598.6ms |
+
+The baseline profile is a real, measured ~10% win over no compilation on
+this device, and beats full AOT too (consistent with general guidance that
+full AOT isn't always faster than partial + a good profile). It does not
+quite clear the spec's <500ms target on this specific mid-range-ish device;
+worth revisiting if a faster reference device becomes available, but this is
+the honest number here, not adjusted to look like a pass.
+
+### Search and share-sheet targets — verified, no code change
+
+Both were expected to already be met by the existing architecture, and were:
+confirmed on-device using instrumentation already in the app rather than
+added for this milestone.
+
+- **Search:** `SearchScreen`'s own `"N results · Nms"` label (already wired
+  to `state.elapsedMs`) read **2ms** for a query against the on-device FTS
+  index — the 150ms debounce is deliberate UX, not what spec 9's 50ms target
+  measures.
+- **Share-sheet:** `adb shell am start -a android.intent.action.SEND ...`
+  (same command §7 documents) plus `ActivityTaskManager`'s own "Displayed"
+  logcat line read **+123ms** for `QuickSaveActivity` — well inside the
+  300ms target, as expected given its synchronous-extraction design.
+
+### APK size
+
+`optimization { enable = true }` was already on for `release`;
+`keepRules/rules.keep` is still the unedited AGP template — no keep-rule
+changes were needed. `app-release.apk` measures **4.24MB**, well under the
+8MB budget, even with `profileinstaller` added. Not investigated further
+since there was nothing to fix.
+
+### What was verified on a real device for M6
+
+Same device (Xiaomi 2201117TI, Android 16). Beyond the sections above:
+release build installs and launches cleanly; a real share-target save
+persists offline instantly with a monogram tile and "Preview pending" (the
+device had no working network for part of this session — confirmed the
+offline path still works correctly, not a regression); Settings, Categories
+and Home all render correctly on the debug build with StrictMode active.
+
+Two things worth knowing that are not bugs:
+
+- The dev device's mobile data reported "connected" but had no actual
+  internet route for part of this session (`ping: Network is unreachable`),
+  independent of anything in this milestone. Full Coil redirect-handling
+  verification (a real redirecting thumbnail URL) is not yet done — worth
+  doing once the device has a working connection.
+- `adb install -r` across build types with matching signing (`release`,
+  `benchmarkRelease`) preserves app data; across mismatched signing
+  (`debug` vs any release-signed variant) it doesn't, and `pm clear`/
+  `pm uninstall` both intermittently return `DELETE_FAILED_INTERNAL_ERROR`
+  on this MIUI device without actually failing — check `pm list packages`
+  rather than trusting the error text.

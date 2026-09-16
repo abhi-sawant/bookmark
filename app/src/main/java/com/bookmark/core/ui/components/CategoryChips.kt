@@ -108,7 +108,7 @@ fun CategoryFilterRow(
         horizontalArrangement = Arrangement.spacedBy(Dimens.chipGap),
         contentPadding = contentPadding,
     ) {
-        item(key = "all") {
+        item(key = "all", contentType = "categoryChip") {
             CategoryChip(
                 label = "All",
                 selected = selectedCategoryId == null,
@@ -116,7 +116,7 @@ fun CategoryFilterRow(
                 trailingCount = if (showCounts) totalCount else null,
             )
         }
-        items(categories, key = { it.category.id }) { entry ->
+        items(categories, key = { it.category.id }, contentType = { "categoryChip" }) { entry ->
             CategoryChip(
                 label = entry.category.name,
                 selected = selectedCategoryId == entry.category.id,

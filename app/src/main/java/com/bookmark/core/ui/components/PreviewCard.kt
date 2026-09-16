@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.sp
 import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.Dimens
-import java.io.File
 
 /**
  * The live preview card in the add and quick-save sheets. It renders exactly as
@@ -37,7 +36,7 @@ fun PreviewCard(
     description: String?,
     siteName: String?,
     url: String,
-    thumbnailFile: File?,
+    thumbnailPath: String?,
     fetching: Boolean,
     modifier: Modifier = Modifier,
     accentColor: Color? = null,
@@ -61,7 +60,7 @@ fun PreviewCard(
             ) {
                 ThumbnailSurface(
                     url = url,
-                    thumbnailFile = thumbnailFile,
+                    thumbnailPath = thumbnailPath,
                     accentColor = accentColor,
                     modifier = Modifier.fillMaxSize(),
                     monogramFontSize = 26.sp,

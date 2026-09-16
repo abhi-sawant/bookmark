@@ -81,7 +81,7 @@ fun QuickSaveSheet(
                 description = null,
                 siteName = state.siteName,
                 url = state.url,
-                thumbnailFile = null,
+                thumbnailPath = null,
                 fetching = state.fetching,
                 previewModel = state.imageCandidates.firstOrNull(),
                 modifier = Modifier.padding(top = 14.dp),

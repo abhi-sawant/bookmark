@@ -74,7 +74,11 @@ fun CategoriesScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                itemsIndexed(categories, key = { _, entry -> entry.category.id }) { index, entry ->
+                itemsIndexed(
+                    categories,
+                    key = { _, entry -> entry.category.id },
+                    contentType = { _, _ -> "categoryRow" },
+                ) { index, entry ->
                     CategoryRow(
                         entry = entry,
                         onClick = { onEdit(entry.category) },

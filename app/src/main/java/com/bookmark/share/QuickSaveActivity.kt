@@ -85,7 +85,7 @@ class QuickSaveActivity : ComponentActivity() {
                     com.bookmark.bookmarks.detail.DuplicateBookmarkSheet(
                         existing = existing,
                         category = null,
-                        thumbnailFile = null,
+                        thumbnailPath = null,
                         onDismiss = viewModel::dismissDuplicate,
                         onRefreshPreview = viewModel::dismissDuplicate,
                         onViewBookmark = {

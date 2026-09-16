@@ -25,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -33,6 +35,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
 import com.bookmark.core.model.Bookmark
 import com.bookmark.core.model.Category
 import com.bookmark.core.model.MetadataState
@@ -41,6 +44,9 @@ import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.Dimens
 import com.bookmark.core.ui.theme.parseCategoryColor
 import java.io.File
+
+/** Kept in sync with `macrobenchmark/.../BaselineProfileGenerator.kt` (M6). */
+const val BOOKMARK_ITEM_TEST_TAG = "bookmark_item"
 
 /**
  * Image-forward grid card. Height is driven by the thumbnail, so the staggered
@@ -52,7 +58,7 @@ import java.io.File
 fun BookmarkGridCard(
     bookmark: Bookmark,
     category: Category?,
-    thumbnailFile: File?,
+    thumbnailPath: String?,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -62,6 +68,7 @@ fun BookmarkGridCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(BookmarkShapes.card)
+            .testTag(BOOKMARK_ITEM_TEST_TAG)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,
@@ -90,7 +97,7 @@ fun BookmarkGridCard(
             ) {
                 BookmarkThumbnail(
                     bookmark = bookmark,
-                    thumbnailFile = thumbnailFile,
+                    thumbnailPath = thumbnailPath,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -141,7 +148,7 @@ fun BookmarkGridCard(
 fun BookmarkListRow(
     bookmark: Bookmark,
     category: Category?,
-    thumbnailFile: File?,
+    thumbnailPath: String?,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -150,6 +157,7 @@ fun BookmarkListRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .testTag(BOOKMARK_ITEM_TEST_TAG)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,
@@ -165,7 +173,7 @@ fun BookmarkListRow(
     ) {
         BookmarkThumbnail(
             bookmark = bookmark,
-            thumbnailFile = thumbnailFile,
+            thumbnailPath = thumbnailPath,
             monogramFontSize = androidx.compose.ui.unit.TextUnit(22f, androidx.compose.ui.unit.TextUnitType.Sp),
             modifier = Modifier
                 .size(Dimens.listThumbnail)
@@ -218,16 +226,20 @@ fun BookmarkListRow(
 @Composable
 fun BookmarkThumbnail(
     bookmark: Bookmark,
-    thumbnailFile: File?,
+    thumbnailPath: String?,
     modifier: Modifier = Modifier,
     monogramFontSize: TextUnit = 34.sp,
 ) {
     ThumbnailSurface(
         url = bookmark.url,
-        thumbnailFile = thumbnailFile,
+        thumbnailPath = thumbnailPath,
         accentColor = bookmark.accentColor?.let { Color(it) },
         modifier = modifier,
         monogramFontSize = monogramFontSize,
+        // Stable across the grid card, the search row and the detail sheet,
+        // so the grid's already-decoded bitmap shows instantly on the
+        // grid->detail hand-off instead of a blank/shimmer flash (spec 9).
+        cacheKey = "thumbnail-${bookmark.id}",
     )
 }
 
@@ -252,12 +264,14 @@ fun BookmarkThumbnail(
 @Composable
 fun ThumbnailSurface(
     url: String,
-    thumbnailFile: File?,
+    thumbnailPath: String?,
     accentColor: Color?,
     modifier: Modifier = Modifier,
     monogramFontSize: TextUnit = 34.sp,
     fetching: Boolean = false,
     previewModel: Any? = null,
+    /** Null for the pre-save preview path, which has no bookmark id yet. */
+    cacheKey: String? = null,
 ) {
     when {
         fetching -> ShimmerBox(modifier = modifier)
@@ -265,8 +279,21 @@ fun ThumbnailSurface(
         // Deliberately not File.exists(): this runs on the composition thread for
         // every visible card. thumbnailPath is only ever set once the file is on
         // disk, and Coil degrades to the background tint if it has since gone.
-        thumbnailFile != null -> AsyncImage(
-            model = thumbnailFile,
+        thumbnailPath != null -> AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(File(thumbnailPath))
+                .apply {
+                    // Keyed on the bookmark, not the file (whose default Coil key
+                    // includes lastModified and would miss after any background
+                    // metadata refetch rewrites the file). Doubles as the
+                    // placeholder key so a later request for the same bookmark
+                    // (e.g. the detail sheet) shows this decoded bitmap instantly.
+                    cacheKey?.let {
+                        memoryCacheKey(it)
+                        placeholderMemoryCacheKey(it)
+                    }
+                }
+                .build(),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = modifier

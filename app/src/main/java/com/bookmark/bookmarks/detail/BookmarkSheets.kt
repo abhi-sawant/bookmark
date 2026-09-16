@@ -48,7 +48,6 @@ import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.Dimens
 import com.bookmark.core.ui.theme.parseCategoryColor
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -59,7 +58,7 @@ import java.util.Locale
 fun BookmarkContextSheet(
     bookmark: Bookmark,
     category: Category?,
-    thumbnailFile: File?,
+    thumbnailPath: String?,
     onDismiss: () -> Unit,
     onEdit: () -> Unit,
     onChangeCategory: () -> Unit,
@@ -91,7 +90,7 @@ fun BookmarkContextSheet(
         ) {
             BookmarkThumbnail(
                 bookmark = bookmark,
-                thumbnailFile = thumbnailFile,
+                thumbnailPath = thumbnailPath,
                 monogramFontSize = 17.sp,
                 modifier = Modifier
                     .size(48.dp)
@@ -176,7 +175,7 @@ private fun ContextRow(
 fun BookmarkDetailSheet(
     bookmark: Bookmark,
     category: Category?,
-    thumbnailFile: File?,
+    thumbnailPath: String?,
     failureMessage: String?,
     onDismiss: () -> Unit,
     onOpen: () -> Unit,
@@ -199,7 +198,7 @@ fun BookmarkDetailSheet(
         ) {
             BookmarkThumbnail(
                 bookmark = bookmark,
-                thumbnailFile = thumbnailFile,
+                thumbnailPath = thumbnailPath,
                 modifier = Modifier.fillMaxSize(),
                 monogramFontSize = 56.sp,
             )

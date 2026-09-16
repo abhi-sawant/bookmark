@@ -35,6 +35,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.ImeAction
@@ -45,12 +46,11 @@ import com.bookmark.core.ui.components.BookmarkThumbnail
 import com.bookmark.core.ui.components.CategoryFilterRow
 import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.theme.BookmarkTheme
-import java.io.File
 
 @Composable
 fun SearchScreen(
     state: SearchUiState,
-    thumbnailFor: (Bookmark) -> File?,
+    thumbnailFor: (Bookmark) -> String?,
     onQueryChange: (String) -> Unit,
     onClearQuery: () -> Unit,
     onSelectCategory: (String?) -> Unit,
@@ -129,13 +129,13 @@ fun SearchScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 24.dp),
                 ) {
-                    items(state.results, key = { it.id }) { bookmark ->
+                    items(state.results, key = { it.id }, contentType = { "searchResultRow" }) { bookmark ->
                         SearchResultRow(
                             bookmark = bookmark,
                             categoryName = state.categories
                                 .find { it.category.id == bookmark.categoryId }
                                 ?.category?.name,
-                            thumbnailFile = thumbnailFor(bookmark),
+                            thumbnailPath = thumbnailFor(bookmark),
                             queryTerms = state.queryTerms,
                             onClick = { onOpenBookmark(bookmark) },
                             onLongClick = { onBookmarkLongPress(bookmark) },
@@ -178,17 +178,21 @@ private fun SearchField(
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Search),
             modifier = Modifier
                 .fillMaxWidth()
-                .focusRequester(focusRequester),
+                .focusRequester(focusRequester)
+                .testTag(SEARCH_FIELD_TEST_TAG),
         )
     }
 }
+
+/** Kept in sync with `macrobenchmark/.../BaselineProfileGenerator.kt` (M6). */
+const val SEARCH_FIELD_TEST_TAG = "search_field"
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SearchResultRow(
     bookmark: Bookmark,
     categoryName: String?,
-    thumbnailFile: File?,
+    thumbnailPath: String?,
     queryTerms: List<String>,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -208,7 +212,7 @@ private fun SearchResultRow(
     ) {
         BookmarkThumbnail(
             bookmark = bookmark,
-            thumbnailFile = thumbnailFile,
+            thumbnailPath = thumbnailPath,
             modifier = Modifier
                 .size(56.dp)
                 .clip(BookmarkShapes.thumbnailMedium),

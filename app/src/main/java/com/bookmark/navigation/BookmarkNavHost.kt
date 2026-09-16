@@ -210,7 +210,7 @@ fun BookmarkNavHost() {
             composable<HomeRoute> {
                 HomeScreen(
                     state = homeState,
-                    thumbnailFor = homeViewModel::thumbnailFile,
+                    thumbnailFor = { homeViewModel.thumbnailFile(it)?.absolutePath },
                     onSelectCategory = homeViewModel::selectCategory,
                     onSetViewMode = homeViewModel::setViewMode,
                     onSetSortOrder = homeViewModel::setSortOrder,
@@ -270,7 +270,7 @@ fun BookmarkNavHost() {
                 val searchState by searchViewModel.uiState.collectAsStateWithLifecycle()
                 SearchScreen(
                     state = searchState,
-                    thumbnailFor = searchViewModel::thumbnailFile,
+                    thumbnailFor = { searchViewModel.thumbnailFile(it)?.absolutePath },
                     onQueryChange = searchViewModel::onQueryChange,
                     onClearQuery = searchViewModel::clearQuery,
                     onSelectCategory = searchViewModel::selectCategory,
@@ -314,7 +314,7 @@ fun BookmarkNavHost() {
         is SheetState.Context -> BookmarkContextSheet(
             bookmark = current.bookmark,
             category = homeState.categoriesById[current.bookmark.categoryId],
-            thumbnailFile = homeViewModel.thumbnailFile(current.bookmark),
+            thumbnailPath = homeViewModel.thumbnailFile(current.bookmark)?.absolutePath,
             onDismiss = { sheet = SheetState.None },
             onEdit = {
                 addEditViewModel.startEdit(current.bookmark)
@@ -353,7 +353,7 @@ fun BookmarkNavHost() {
         is SheetState.Detail -> BookmarkDetailSheet(
             bookmark = current.bookmark,
             category = homeState.categoriesById[current.bookmark.categoryId],
-            thumbnailFile = homeViewModel.thumbnailFile(current.bookmark),
+            thumbnailPath = homeViewModel.thumbnailFile(current.bookmark)?.absolutePath,
             failureMessage = current.bookmark.failureCause
                 ?.let { runCatching { FailureCause.valueOf(it) }.getOrNull() }
                 .userMessage(),
@@ -373,7 +373,7 @@ fun BookmarkNavHost() {
         DuplicateBookmarkSheet(
             existing = existing,
             category = homeState.categoriesById[existing.categoryId],
-            thumbnailFile = homeViewModel.thumbnailFile(existing),
+            thumbnailPath = homeViewModel.thumbnailFile(existing)?.absolutePath,
             onDismiss = addEditViewModel::dismissDuplicate,
             onRefreshPreview = addEditViewModel::refreshDuplicatePreview,
             onViewBookmark = {

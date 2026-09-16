@@ -21,7 +21,6 @@ import com.bookmark.core.ui.components.SecondaryButton
 import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.Dimens
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -36,7 +35,7 @@ import java.util.Locale
 fun DuplicateBookmarkSheet(
     existing: Bookmark,
     category: Category?,
-    thumbnailFile: File?,
+    thumbnailPath: String?,
     onDismiss: () -> Unit,
     onRefreshPreview: () -> Unit,
     onViewBookmark: () -> Unit,
@@ -70,7 +69,7 @@ fun DuplicateBookmarkSheet(
                 description = existing.description,
                 siteName = listOfNotNull(existing.siteName, category?.name).joinToString(" · "),
                 url = existing.url,
-                thumbnailFile = thumbnailFile,
+                thumbnailPath = thumbnailPath,
                 fetching = false,
                 modifier = Modifier.padding(top = 16.dp),
             )

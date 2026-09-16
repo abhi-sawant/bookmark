@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.bookmark.core.model.Bookmark
@@ -42,12 +43,22 @@ import com.bookmark.core.ui.components.PrimaryButton
 import com.bookmark.core.ui.components.ScreenHeader
 import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.Dimens
-import java.io.File
+
+/**
+ * Stable UiAutomator selectors for the :macrobenchmark module (M6), which
+ * black-box-drives the app and has no compile-time access to these
+ * composables. Keep in sync with `macrobenchmark/.../BaselineProfileGenerator.kt`.
+ */
+object HomeTestTags {
+    const val GRID = "home_grid"
+    const val LIST = "home_list"
+    const val ADD_FAB = "add_fab"
+}
 
 @Composable
 fun HomeScreen(
     state: HomeUiState,
-    thumbnailFor: (Bookmark) -> File?,
+    thumbnailFor: (Bookmark) -> String?,
     onSelectCategory: (String?) -> Unit,
     onSetViewMode: (ViewMode) -> Unit,
     onSetSortOrder: (SortOrder) -> Unit,
@@ -138,14 +149,14 @@ fun HomeScreen(
 @Composable
 private fun BookmarkGrid(
     state: HomeUiState,
-    thumbnailFor: (Bookmark) -> File?,
+    thumbnailFor: (Bookmark) -> String?,
     onOpen: (Bookmark) -> Unit,
     onLongPress: (Bookmark) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(2),
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize().testTag(HomeTestTags.GRID),
         contentPadding = PaddingValues(
             start = Dimens.gridOuterPadding,
             end = Dimens.gridOuterPadding,
@@ -162,7 +173,7 @@ private fun BookmarkGrid(
             BookmarkGridCard(
                 bookmark = bookmark,
                 category = state.categoriesById[bookmark.categoryId],
-                thumbnailFile = thumbnailFor(bookmark),
+                thumbnailPath = thumbnailFor(bookmark),
                 onClick = { onOpen(bookmark) },
                 onLongClick = { onLongPress(bookmark) },
             )
@@ -173,13 +184,13 @@ private fun BookmarkGrid(
 @Composable
 private fun BookmarkList(
     state: HomeUiState,
-    thumbnailFor: (Bookmark) -> File?,
+    thumbnailFor: (Bookmark) -> String?,
     onOpen: (Bookmark) -> Unit,
     onLongPress: (Bookmark) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize().testTag(HomeTestTags.LIST),
         contentPadding = PaddingValues(bottom = 120.dp),
     ) {
         items(
@@ -190,7 +201,7 @@ private fun BookmarkList(
             BookmarkListRow(
                 bookmark = bookmark,
                 category = state.categoriesById[bookmark.categoryId],
-                thumbnailFile = thumbnailFor(bookmark),
+                thumbnailPath = thumbnailFor(bookmark),
                 onClick = { onOpen(bookmark) },
                 onLongClick = { onLongPress(bookmark) },
             )
@@ -284,7 +295,7 @@ private fun EmptyHome(onAdd: () -> Unit, modifier: Modifier = Modifier) {
 private fun AddFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
     androidx.compose.material3.FloatingActionButton(
         onClick = onClick,
-        modifier = modifier.size(Dimens.fabSize),
+        modifier = modifier.size(Dimens.fabSize).testTag(HomeTestTags.ADD_FAB),
         shape = com.bookmark.core.ui.theme.BookmarkShapes.fab,
         containerColor = MaterialTheme.colorScheme.primary,
         contentColor = MaterialTheme.colorScheme.onPrimary,
