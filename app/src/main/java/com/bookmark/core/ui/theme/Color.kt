@@ -170,6 +170,20 @@ val DarkBookmarkColors = BookmarkColors(
     skeletonHighlight = Color(0xFF303634),
 )
 
+/** True-black counterpart to [DarkBookmarkColors], scaled down against [TrueBlackColors]'s ramp. */
+val TrueBlackBookmarkColors = BookmarkColors(
+    cardSurface = TrueBlackColors.surfaceContainer,
+    pendingPillContainer = TrueBlackColors.surfaceContainerHigh,
+    onPendingPillContainer = Color(0xFFBEC9C6),
+    monoLabel = Color(0xFF7FA9A1),
+    failureContainer = Color(0xFF3A2A22),
+    onFailureContainer = Color(0xFFF0C8B4),
+    onFailureContainerVariant = Color(0xFFD4AE9B),
+    selectedOptionContainer = TrueBlackColors.surfaceContainerLow,
+    skeleton = TrueBlackColors.surfaceContainerHigh,
+    skeletonHighlight = TrueBlackColors.surfaceContainerHighest,
+)
+
 val LocalBookmarkColors = staticCompositionLocalOf { LightBookmarkColors }
 
 /**

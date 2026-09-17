@@ -13,9 +13,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.PlayCircle
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -46,6 +54,12 @@ import com.bookmark.core.ui.theme.Dimens
 import com.bookmark.core.ui.theme.parseCategoryColor
 
 private val ICON_KEYS = listOf("play", "edit", "star", "home")
+private val ICON_GLYPHS: Map<String, ImageVector> = mapOf(
+    "play" to Icons.Outlined.PlayCircle,
+    "edit" to Icons.Outlined.Edit,
+    "star" to Icons.Outlined.Star,
+    "home" to Icons.Outlined.Home,
+)
 
 @Composable
 fun CategoryEditDialog(
@@ -135,14 +149,14 @@ fun CategoryEditDialog(
                 ) {
                     ICON_KEYS.forEach { key ->
                         IconTile(
-                            label = key.take(1).uppercase(),
+                            icon = ICON_GLYPHS.getValue(key),
                             description = key,
                             selected = iconKey == key,
                             onClick = { iconKey = if (iconKey == key) null else key },
                         )
                     }
                     IconTile(
-                        label = "None",
+                        icon = Icons.Outlined.Block,
                         description = "No icon",
                         selected = iconKey == null,
                         onClick = { iconKey = null },
@@ -175,7 +189,7 @@ fun CategoryEditDialog(
 
 @Composable
 private fun IconTile(
-    label: String,
+    icon: ImageVector,
     description: String,
     selected: Boolean,
     onClick: () -> Unit,
@@ -198,10 +212,10 @@ private fun IconTile(
             .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = label,
-            style = BookmarkTheme.text.rowSubtitle,
-            color = if (selected) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (selected) {
                 MaterialTheme.colorScheme.onSecondaryContainer
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
@@ -271,7 +285,7 @@ fun DeleteCategoryDialog(
                                     .fillMaxWidth()
                                     .height(Dimens.secondaryButtonHeight)
                                     .clip(BookmarkShapes.field)
-                                    .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                                    .background(BookmarkTheme.colors.cardSurface)
                                     .border(1.dp, MaterialTheme.colorScheme.outline, BookmarkShapes.field)
                                     .clickable { pickerOpen = true }
                                     .padding(horizontal = 13.dp),

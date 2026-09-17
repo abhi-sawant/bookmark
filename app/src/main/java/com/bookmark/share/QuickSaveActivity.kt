@@ -9,12 +9,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.bookmark.MainActivity
 import com.bookmark.bookmarks.data.SaveResult
-import com.bookmark.core.model.ThemeMode
+import com.bookmark.core.model.UserPreferences
 import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.settings.SettingsRepository
 import dagger.hilt.android.AndroidEntryPoint
@@ -51,17 +53,25 @@ class QuickSaveActivity : ComponentActivity() {
         setContent {
             val viewModel: QuickSaveViewModel = viewModel()
             val state by viewModel.state.collectAsStateWithLifecycle()
+            val preferences by settingsRepository.preferences
+                .collectAsStateWithLifecycle(initialValue = UserPreferences())
+            val haptics = LocalHapticFeedback.current
 
             LaunchedEffect(Unit) { viewModel.start(extracted, presetCategoryId) }
 
             LaunchedEffect(state.savedBookmark) {
                 if (state.savedBookmark != null) {
+                    haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                     Toast.makeText(this@QuickSaveActivity, "Saved", Toast.LENGTH_SHORT).show()
                     finish()
                 }
             }
 
-            BookmarkTheme(themeMode = ThemeMode.SYSTEM) {
+            BookmarkTheme(
+                themeMode = preferences.themeMode,
+                dynamicColor = preferences.dynamicColor,
+                trueBlack = preferences.trueBlack,
+            ) {
                 QuickSaveSheet(
                     state = state,
                     onDismiss = ::finish,

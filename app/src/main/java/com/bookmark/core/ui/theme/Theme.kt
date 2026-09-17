@@ -9,7 +9,6 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -32,18 +31,37 @@ fun BookmarkTheme(
     // Dynamic colour is on by default (spec 10); the hand-picked palette from the
     // design is the fallback, and the only thing shown below Android 12.
     val supportsDynamic = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-    var scheme = when {
-        dynamicColor && supportsDynamic && dark -> dynamicDarkColorScheme(context)
-        dynamicColor && supportsDynamic -> dynamicLightColorScheme(context)
+    val useDynamic = dynamicColor && supportsDynamic
+
+    // True black wins over dynamic colour: OLED power-saving is a deliberate,
+    // strong preference, so the surface family always collapses to pure black
+    // when both are on. Dynamic's wallpaper-derived accent roles (primary/
+    // secondary/tertiary and their containers) are kept on top of that, rather
+    // than losing them entirely to the hand-picked TrueBlackColors accents.
+    val scheme = when {
+        dark && trueBlack && useDynamic -> {
+            val dynamic = dynamicDarkColorScheme(context)
+            TrueBlackColors.copy(
+                primary = dynamic.primary,
+                onPrimary = dynamic.onPrimary,
+                primaryContainer = dynamic.primaryContainer,
+                onPrimaryContainer = dynamic.onPrimaryContainer,
+                inversePrimary = dynamic.inversePrimary,
+                secondary = dynamic.secondary,
+                onSecondary = dynamic.onSecondary,
+                secondaryContainer = dynamic.secondaryContainer,
+                onSecondaryContainer = dynamic.onSecondaryContainer,
+                tertiary = dynamic.tertiary,
+                onTertiary = dynamic.onTertiary,
+                tertiaryContainer = dynamic.tertiaryContainer,
+                onTertiaryContainer = dynamic.onTertiaryContainer,
+            )
+        }
+        dark && trueBlack -> TrueBlackColors
+        dark && useDynamic -> dynamicDarkColorScheme(context)
+        useDynamic -> dynamicLightColorScheme(context)
         dark -> DarkColors
         else -> LightColors
-    }
-    if (dark && trueBlack) {
-        scheme = scheme.copy(
-            background = Color.Black,
-            surface = Color.Black,
-            surfaceContainerLowest = Color.Black,
-        )
     }
 
     // The app theme can disagree with the system one (the user picks Light/Dark
@@ -62,8 +80,14 @@ fun BookmarkTheme(
         }
     }
 
+    val bookmarkColors = when {
+        dark && trueBlack -> TrueBlackBookmarkColors
+        dark -> DarkBookmarkColors
+        else -> LightBookmarkColors
+    }
+
     CompositionLocalProvider(
-        LocalBookmarkColors provides if (dark) DarkBookmarkColors else LightBookmarkColors,
+        LocalBookmarkColors provides bookmarkColors,
         LocalBookmarkTextStyles provides DesignTextStyles,
     ) {
         MaterialTheme(

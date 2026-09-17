@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -197,7 +197,7 @@ private fun ClipboardChip(
 ) {
     Row(
         modifier = modifier
-            .height(Dimens.chipHeight)
+            .heightIn(min = Dimens.chipHeight)
             .clip(BookmarkShapes.chip)
             .background(MaterialTheme.colorScheme.secondaryContainer)
             .padding(start = 12.dp, end = 6.dp),
@@ -235,7 +235,7 @@ private fun OutlinedPicker(
 ) {
     Row(
         modifier = modifier
-            .height(Dimens.secondaryButtonHeight)
+            .heightIn(min = Dimens.secondaryButtonHeight)
             .clip(BookmarkShapes.field)
             .border(1.dp, MaterialTheme.colorScheme.outline, BookmarkShapes.field)
             .clickable(enabled = enabled, onClick = onClick)

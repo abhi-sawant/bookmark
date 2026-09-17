@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FileDownload
@@ -23,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.bookmark.core.model.ThemeMode
 import com.bookmark.core.model.UserPreferences
@@ -99,12 +101,8 @@ fun SettingsScreen(
                     title = "Fetch link previews automatically",
                     subtitle = "Requests go straight to the saved site, which sees your IP. " +
                         "No servers of ours are involved.",
-                    trailing = {
-                        DesignSwitch(
-                            checked = preferences.fetchPreviewsAutomatically,
-                            onCheckedChange = onFetchPreviewsChange,
-                        )
-                    },
+                    switchChecked = preferences.fetchPreviewsAutomatically,
+                    onSwitchCheckedChange = onFetchPreviewsChange,
                 )
                 RowDivider()
                 SettingsRow(
@@ -147,22 +145,14 @@ fun SettingsScreen(
                         "Needs Android 12 or newer"
                     },
                     enabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S,
-                    trailing = {
-                        DesignSwitch(
-                            checked = preferences.dynamicColor,
-                            onCheckedChange = onDynamicColorChange,
-                        )
-                    },
+                    switchChecked = preferences.dynamicColor,
+                    onSwitchCheckedChange = onDynamicColorChange,
                 )
                 RowDivider()
                 SettingsRow(
                     title = "True black for OLED",
-                    trailing = {
-                        DesignSwitch(
-                            checked = preferences.trueBlack,
-                            onCheckedChange = onTrueBlackChange,
-                        )
-                    },
+                    switchChecked = preferences.trueBlack,
+                    onSwitchCheckedChange = onTrueBlackChange,
                 )
             }
         }
@@ -172,6 +162,13 @@ fun SettingsScreen(
 private fun plural(count: Int, singular: String, plural: String = "${singular}s") =
     "$count ${if (count == 1) singular else plural}"
 
+/**
+ * A settings row is either a plain tappable row ([onClick]) or a switch row
+ * ([switchChecked]/[onSwitchCheckedChange]) -- never both. The switch row owns
+ * its own [androidx.compose.foundation.selection.toggleable] at the row level
+ * so title+subtitle+switch merge into one accessible node and the full row,
+ * not just the 52x32dp switch, is the touch target.
+ */
 @Composable
 private fun SettingsRow(
     title: String,
@@ -179,14 +176,23 @@ private fun SettingsRow(
     enabled: Boolean = true,
     leadingIcon: ImageVector? = null,
     onClick: (() -> Unit)? = null,
-    trailing: (@Composable () -> Unit)? = null,
+    switchChecked: Boolean? = null,
+    onSwitchCheckedChange: ((Boolean) -> Unit)? = null,
 ) {
     val alpha = if (enabled) 1f else 0.38f
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .then(
-                if (onClick != null && enabled) Modifier.clickable(onClick = onClick) else Modifier,
+                when {
+                    switchChecked != null && enabled -> Modifier.toggleable(
+                        value = switchChecked,
+                        role = Role.Switch,
+                        onValueChange = { onSwitchCheckedChange?.invoke(it) },
+                    )
+                    onClick != null && enabled -> Modifier.clickable(onClick = onClick)
+                    else -> Modifier
+                },
             )
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -214,6 +220,12 @@ private fun SettingsRow(
                 )
             }
         }
-        if (trailing != null && enabled) trailing()
+        if (switchChecked != null && enabled) {
+            DesignSwitch(
+                checked = switchChecked,
+                onCheckedChange = { onSwitchCheckedChange?.invoke(it) },
+                interactive = false,
+            )
+        }
     }
 }

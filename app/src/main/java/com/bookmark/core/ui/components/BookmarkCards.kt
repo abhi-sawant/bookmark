@@ -1,5 +1,9 @@
 package com.bookmark.core.ui.components
 
+import androidx.compose.animation.BoundsTransform
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -48,12 +52,15 @@ import java.io.File
 /** Kept in sync with `macrobenchmark/.../BaselineProfileGenerator.kt` (M6). */
 const val BOOKMARK_ITEM_TEST_TAG = "bookmark_item"
 
+/** Shared-element key for the grid-card-to-detail-hero thumbnail morph (spec 10). */
+data class ThumbnailSharedElementKey(val bookmarkId: String)
+
 /**
  * Image-forward grid card. Height is driven by the thumbnail, so the staggered
  * grid falls out naturally; fallback tiles borrow a deterministic height so a
  * grid of them still staggers.
  */
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun BookmarkGridCard(
     bookmark: Bookmark,
@@ -62,6 +69,12 @@ fun BookmarkGridCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Grid-to-detail thumbnail morph (spec 10). Null outside a shared-transition layout. */
+    sharedTransitionScope: SharedTransitionScope? = null,
+    /** False while this bookmark's detail sheet is open -- its hero image is the
+     *  visible half of the shared element then, not this card's thumbnail. */
+    isSharedThumbnailVisible: Boolean = true,
+    reducedMotion: Boolean = false,
 ) {
     val categoryColor = parseCategoryColor(category?.colorHex)
     Surface(
@@ -98,7 +111,23 @@ fun BookmarkGridCard(
                 BookmarkThumbnail(
                     bookmark = bookmark,
                     thumbnailPath = thumbnailPath,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().let { base ->
+                        if (sharedTransitionScope == null) {
+                            base
+                        } else {
+                            with(sharedTransitionScope) {
+                                base.sharedElementWithCallerManagedVisibility(
+                                    sharedContentState = rememberSharedContentState(
+                                        key = ThumbnailSharedElementKey(bookmark.id),
+                                    ),
+                                    visible = isSharedThumbnailVisible,
+                                    boundsTransform = BoundsTransform { _, _ ->
+                                        tween(if (reducedMotion) 0 else 300)
+                                    },
+                                )
+                            }
+                        }
+                    },
                 )
             }
             Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 11.dp, bottom = 13.dp)) {

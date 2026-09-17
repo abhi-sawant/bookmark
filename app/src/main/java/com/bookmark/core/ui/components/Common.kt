@@ -12,10 +12,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -34,6 +36,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.theme.BookmarkTheme
@@ -72,7 +75,7 @@ fun CategoryDot(
 fun PendingPill(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .height(22.dp)
+            .heightIn(min = 22.dp)
             .clip(RoundedCornerShape(6.dp))
             .background(BookmarkTheme.colors.pendingPillContainer)
             .padding(horizontal = 9.dp),
@@ -82,8 +85,8 @@ fun PendingPill(modifier: Modifier = Modifier) {
             text = "Preview pending",
             style = BookmarkTheme.text.siteLine,
             color = BookmarkTheme.colors.onPendingPillContainer,
-            maxLines = 1,
-            softWrap = false,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -139,9 +142,15 @@ fun SegmentedControl(
     height: androidx.compose.ui.unit.Dp = 38.dp,
 ) {
     Row(
+        // IntrinsicSize.Min alongside heightIn(min=) lets the row (and its
+        // fillMaxHeight/fillMaxSize children below) grow past `height` at
+        // large font scale instead of a fixed height clipping the text --
+        // a plain heightIn() here would hand those children an unbounded
+        // max-height constraint and crash.
         modifier = modifier
             .fillMaxWidth()
-            .height(height)
+            .heightIn(min = height)
+            .height(IntrinsicSize.Min)
             .clip(BookmarkShapes.field)
             .border(1.dp, MaterialTheme.colorScheme.outline, BookmarkShapes.field),
     ) {

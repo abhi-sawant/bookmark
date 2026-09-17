@@ -1,5 +1,7 @@
 package com.bookmark.bookmarks.home
 
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,6 +57,7 @@ object HomeTestTags {
     const val ADD_FAB = "add_fab"
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun HomeScreen(
     state: HomeUiState,
@@ -67,6 +70,12 @@ fun HomeScreen(
     onSearch: () -> Unit,
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Grid-to-detail thumbnail morph (spec 10). Null outside a shared-transition layout. */
+    sharedTransitionScope: SharedTransitionScope? = null,
+    /** The bookmark currently shown in the detail sheet, if any -- its grid card hides its own
+     *  thumbnail while the shared element renders it at the detail sheet's hero position. */
+    openDetailBookmarkId: String? = null,
+    reducedMotion: Boolean = false,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
 
@@ -121,6 +130,9 @@ fun HomeScreen(
                         thumbnailFor = thumbnailFor,
                         onOpen = onOpenBookmark,
                         onLongPress = onBookmarkLongPress,
+                        sharedTransitionScope = sharedTransitionScope,
+                        openDetailBookmarkId = openDetailBookmarkId,
+                        reducedMotion = reducedMotion,
                         modifier = Modifier.weight(1f),
                     )
 
@@ -146,6 +158,7 @@ fun HomeScreen(
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun BookmarkGrid(
     state: HomeUiState,
@@ -153,6 +166,9 @@ private fun BookmarkGrid(
     onOpen: (Bookmark) -> Unit,
     onLongPress: (Bookmark) -> Unit,
     modifier: Modifier = Modifier,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    openDetailBookmarkId: String? = null,
+    reducedMotion: Boolean = false,
 ) {
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Fixed(2),
@@ -176,6 +192,9 @@ private fun BookmarkGrid(
                 thumbnailPath = thumbnailFor(bookmark),
                 onClick = { onOpen(bookmark) },
                 onLongClick = { onLongPress(bookmark) },
+                sharedTransitionScope = sharedTransitionScope,
+                isSharedThumbnailVisible = bookmark.id != openDetailBookmarkId,
+                reducedMotion = reducedMotion,
             )
         }
     }

@@ -2,6 +2,8 @@ package com.bookmark.navigation
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -17,7 +19,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
@@ -42,6 +46,7 @@ import com.bookmark.core.model.Category
 import com.bookmark.core.model.MetadataState
 import com.bookmark.core.ui.components.BookmarkBottomBar
 import com.bookmark.core.ui.components.BottomDestination
+import com.bookmark.core.ui.motion.rememberReducedMotionEnabled
 import com.bookmark.core.util.LinkActions
 import com.bookmark.metadata.FailureCause
 import com.bookmark.metadata.userMessage
@@ -73,9 +78,14 @@ private fun routeFor(destination: TopLevelDestination): Any = when (destination)
 private fun backupDateStamp(): String =
     SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun BookmarkNavHost() {
     val context = LocalContext.current
+    val haptics = LocalHapticFeedback.current
+    // Computed once here (not per-card) since it registers a ContentObserver;
+    // threaded down to both the grid and the detail sheet's shared element.
+    val reducedMotion = rememberReducedMotionEnabled()
     val snackbarHostState = remember { SnackbarHostState() }
     val navController = rememberNavController()
     var sheet by remember { mutableStateOf<SheetState>(SheetState.None) }
@@ -170,11 +180,23 @@ fun BookmarkNavHost() {
     // Saving closes the sheet; the bookmark is already persisted by this point.
     LaunchedEffect(addEditState.savedBookmark) {
         if (addEditState.savedBookmark != null) {
+            haptics.performHapticFeedback(HapticFeedbackType.Confirm)
             addEditViewModel.consumeSaved()
             addEditViewModel.reset()
             sheet = SheetState.None
         }
     }
+
+    // The grid card and the detail sheet's hero image are both composed
+    // simultaneously (the sheet overlays the grid, it doesn't replace it),
+    // which is exactly what SharedTransitionLayout needs -- sheets were kept
+    // sheet-state-driven rather than real nav destinations specifically to
+    // keep this available (see HANDOVER.md). Wraps everything below so the
+    // scope is available to both the grid (inside NavHost) and the sheets
+    // (in the `when` blocks after it).
+    SharedTransitionLayout(modifier = Modifier.fillMaxSize()) {
+        val sharedTransitionScope = this
+        val openDetailBookmarkId = (sheet as? SheetState.Detail)?.bookmark?.id
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -210,6 +232,9 @@ fun BookmarkNavHost() {
             composable<HomeRoute> {
                 HomeScreen(
                     state = homeState,
+                    sharedTransitionScope = sharedTransitionScope,
+                    openDetailBookmarkId = openDetailBookmarkId,
+                    reducedMotion = reducedMotion,
                     thumbnailFor = { homeViewModel.thumbnailFile(it)?.absolutePath },
                     onSelectCategory = homeViewModel::selectCategory,
                     onSetViewMode = homeViewModel::setViewMode,
@@ -345,6 +370,7 @@ fun BookmarkNavHost() {
                 null
             },
             onDelete = {
+                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                 homeViewModel.delete(current.bookmark)
                 sheet = SheetState.None
             },
@@ -354,6 +380,8 @@ fun BookmarkNavHost() {
             bookmark = current.bookmark,
             category = homeState.categoriesById[current.bookmark.categoryId],
             thumbnailPath = homeViewModel.thumbnailFile(current.bookmark)?.absolutePath,
+            sharedTransitionScope = sharedTransitionScope,
+            reducedMotion = reducedMotion,
             failureMessage = current.bookmark.failureCause
                 ?.let { runCatching { FailureCause.valueOf(it) }.getOrNull() }
                 .userMessage(),
@@ -429,5 +457,6 @@ fun BookmarkNavHost() {
             onDismiss = categoriesViewModel::dismissDialog,
             onConfirm = { strategy -> categoriesViewModel.delete(dialog.category, strategy) },
         )
+    }
     }
 }

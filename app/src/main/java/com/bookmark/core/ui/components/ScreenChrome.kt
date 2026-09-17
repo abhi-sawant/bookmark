@@ -1,19 +1,19 @@
 package com.bookmark.core.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
@@ -30,6 +30,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.bookmark.core.ui.theme.BookmarkTheme
@@ -52,13 +54,15 @@ fun ScreenHeader(
     modifier: Modifier = Modifier,
     searchEnabled: Boolean = true,
     overflowHighlighted: Boolean = false,
+    /** What [count] counts, for TalkBack (e.g. "bookmarks", "categories"). */
+    countItemName: String = title.lowercase(),
     /** Rendered anchored to the overflow button, so menus open beside it. */
     overflowMenu: @Composable () -> Unit = {},
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(Dimens.screenHeaderHeight)
+            .heightIn(min = Dimens.screenHeaderHeight)
             .padding(start = Dimens.headerStartPadding, end = Dimens.headerEndPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -73,7 +77,9 @@ fun ScreenHeader(
                 text = count.toString(),
                 style = BookmarkTheme.text.screenCount,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.semantics { },
+                modifier = Modifier.semantics {
+                    contentDescription = "$count $countItemName"
+                },
             )
         }
         Spacer(modifier = Modifier.weight(1f))
@@ -159,9 +165,12 @@ fun BookmarkBottomBar(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .semantics(mergeDescendants = true) { }
                         .clip(RoundedCornerShape(16.dp))
-                        .clickable(onClick = { onSelect(index) }),
+                        .selectable(
+                            selected = selected,
+                            role = Role.Tab,
+                            onClick = { onSelect(index) },
+                        ),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {

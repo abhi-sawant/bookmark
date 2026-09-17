@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
@@ -130,7 +134,7 @@ fun PrimaryButton(
 ) {
     Box(
         modifier = modifier
-            .height(height)
+            .heightIn(min = height)
             .clip(BookmarkShapes.primaryButton)
             .background(
                 if (enabled) {
@@ -165,7 +169,7 @@ fun SecondaryButton(
 ) {
     Box(
         modifier = modifier
-            .height(height)
+            .heightIn(min = height)
             .clip(BookmarkShapes.primaryButton)
             .border(1.dp, MaterialTheme.colorScheme.outline, BookmarkShapes.primaryButton)
             .clickable(onClick = onClick)
@@ -190,7 +194,7 @@ fun TextActionButton(
 ) {
     Box(
         modifier = modifier
-            .height(Dimens.secondaryButtonHeight)
+            .heightIn(min = Dimens.secondaryButtonHeight)
             .clip(BookmarkShapes.categoryRow)
             .clickable(onClick = onClick)
             .padding(horizontal = 18.dp),
@@ -204,9 +208,18 @@ fun TextActionButton(
     }
 }
 
-/** The 52x32 switch drawn in Settings. */
+/**
+ * The 52x32 switch drawn in Settings. [interactive] is false when a parent row
+ * (e.g. `SettingsRow`) already owns the toggle semantics and touch target, so
+ * this doesn't end up as a second, disconnected accessibility node.
+ */
 @Composable
-fun DesignSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+fun DesignSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    interactive: Boolean = true,
+) {
     Box(
         modifier = modifier
             .size(width = 52.dp, height = 32.dp)
@@ -218,7 +231,17 @@ fun DesignSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifier:
                     MaterialTheme.colorScheme.surfaceVariant
                 },
             )
-            .clickable { onCheckedChange(!checked) }
+            .then(
+                if (interactive) {
+                    Modifier.toggleable(
+                        value = checked,
+                        role = Role.Switch,
+                        onValueChange = onCheckedChange,
+                    )
+                } else {
+                    Modifier.clearAndSetSemantics { }
+                },
+            )
             .padding(horizontal = 4.dp),
         contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,
     ) {
@@ -226,7 +249,7 @@ fun DesignSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifier:
             modifier = Modifier
                 .size(24.dp)
                 .clip(androidx.compose.foundation.shape.CircleShape)
-                .background(if (checked) Color.White else MaterialTheme.colorScheme.surfaceContainerLowest),
+                .background(if (checked) Color.White else MaterialTheme.colorScheme.onSurfaceVariant),
         )
     }
 }

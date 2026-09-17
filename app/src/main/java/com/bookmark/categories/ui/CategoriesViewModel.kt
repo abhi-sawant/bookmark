@@ -11,6 +11,7 @@ import com.bookmark.categories.data.DeletedCategory
 import com.bookmark.core.model.Category
 import com.bookmark.core.model.CategoryWithCount
 import com.bookmark.core.ui.theme.CategorySwatchHex
+import com.bookmark.share.DirectShareShortcuts
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +38,7 @@ sealed interface CategoryDialogState {
 @HiltViewModel
 class CategoriesViewModel @Inject constructor(
     private val repository: CategoryRepository,
+    private val shortcuts: DirectShareShortcuts,
 ) : ViewModel() {
 
     val uiState: StateFlow<CategoriesUiState> = repository.observeAllWithCounts()
@@ -113,6 +115,7 @@ class CategoriesViewModel @Inject constructor(
         try {
             _undo.value = repository.delete(category, strategy)
             dismissDialog()
+            shortcuts.publish()
         } catch (e: CategoryException) {
             _error.value = e.error.message()
         }
@@ -121,6 +124,7 @@ class CategoriesViewModel @Inject constructor(
     fun undoDelete() = viewModelScope.launch {
         _undo.value?.let { repository.restore(it) }
         _undo.value = null
+        shortcuts.publish()
     }
 
     fun clearUndo() {

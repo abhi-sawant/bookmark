@@ -11,7 +11,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 
 /**
  * Minimal drag-to-reorder for a [androidx.compose.foundation.lazy.LazyColumn].
@@ -100,9 +102,13 @@ fun Modifier.dragHandle(
 ): Modifier {
     val currentIndex by rememberUpdatedState(index)
     val currentOnDragEnd by rememberUpdatedState(onDragEnd)
+    val haptics = LocalHapticFeedback.current
     return this.pointerInput(state) {
         detectDragGestures(
-            onDragStart = { state.onDragStart(currentIndex) },
+            onDragStart = {
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                state.onDragStart(currentIndex)
+            },
             onDrag = { change, dragAmount ->
                 change.consume()
                 state.onDrag(dragAmount.y)

@@ -5,7 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -42,7 +42,7 @@ fun CategoryChip(
 ) {
     Row(
         modifier = modifier
-            .height(height)
+            .heightIn(min = height)
             .clip(BookmarkShapes.chip)
             .background(
                 if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,

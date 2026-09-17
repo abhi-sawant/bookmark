@@ -1,7 +1,7 @@
 # Bookmarks — handover
 
-**State:** M0–M6 complete. M7 not started.
-**Date:** 16 September 2026
+**State:** M0–M7 complete. Spec fully implemented.
+**Date:** 17 September 2026
 
 This is the working document for picking the project up. It records what M0–M2
 put in place, the seams M3+ extends, and the decisions taken along the way that
@@ -20,7 +20,7 @@ are not obvious from the code.
 | M4 — fallback system | Done |
 | M5 — search, sort/filter, settings, export/import | Done |
 | M6 — performance pass | Done |
-| M7 — polish | Not started |
+| M7 — polish | Done |
 
 ### Two sources of truth
 
@@ -806,3 +806,252 @@ Two things worth knowing that are not bugs:
   `pm uninstall` both intermittently return `DELETE_FAILED_INTERNAL_ERROR`
   on this MIUI device without actually failing — check `pm list packages`
   rather than trusting the error text.
+
+---
+
+## 9. M7 — polish
+
+Nine phases: independent bug fixes, category icons, true-black theming,
+an accessibility pass, haptics, an empty/error-state audit, a reduced-motion
+utility, predictive back, and shared-element transitions. The last two were
+the real risk in this milestone; everything else was small and additive.
+
+### Bug fixes carried over from M0–M6
+
+- **`QuickSaveActivity` ignored the user's saved theme.** It called
+  `BookmarkTheme(themeMode = ThemeMode.SYSTEM)` with no `dynamicColor`/
+  `trueBlack` args, so the share-target sheet silently used the composable's
+  defaults regardless of what Settings said. Fixed by collecting
+  `SettingsRepository.preferences` there too, mirroring `MainActivity`.
+- **`DirectShareShortcuts` now reacts to category deletion.**
+  `CategoriesViewModel.delete`/`undoDelete` call `shortcuts.publish()` after
+  the repository call succeeds, so a deleted category's shortcut drops out
+  (and a restored one's reappears) without waiting for the next save.
+- **`DesignSwitch`'s off-state knob** now uses `onSurfaceVariant` instead of
+  `surfaceContainerLowest` — the latter is near-black in dark mode (worse
+  once true-black landed, since that branch collapses it to literal black)
+  against a `surfaceVariant` track. `onSurfaceVariant` is M3's own paired
+  "content on this surface" role, so it's contrast-correct in every scheme
+  by construction rather than by a hand-picked value.
+
+### Category icons (spec §4.2)
+
+`CategoryDialogs.kt`'s icon picker rendered `iconKey.take(1).uppercase()` as
+plain text — "P", "E", "S", "H" instead of glyphs. Added an
+`ICON_GLYPHS: Map<String, ImageVector>` (`Icons.Outlined.PlayCircle`/`Edit`/
+`Star`/`Home`, plus `Block` for "None") and changed `IconTile` to render
+`Icon(...)` instead of `Text(...)`. `iconKey` itself stays a persisted plain
+`String` — turning it into an enum wasn't worth a schema-adjacent change for
+a polish pass. Confirmed on-device: the picker shows real glyphs now.
+
+### True-black theming, done properly
+
+`Theme.kt` previously ran a post-hoc `scheme.copy(background = Black, surface
+= Black, surfaceContainerLowest = Black)` on top of *whatever* scheme
+(including a dynamic one) had already been picked, and never touched the
+custom `BookmarkColors` tokens — so `cardSurface`/`skeleton`/etc. kept their
+normal-dark-mode tint even with true-black on. `TrueBlackColors` in
+`Color.kt` existed but was never referenced by anything.
+
+Resolved with an explicit product decision (confirmed with the user): **true
+black wins over dynamic colour.** The scheme-selection `when` in `Theme.kt`
+now has `dark && trueBlack` as its own branch built from `TrueBlackColors`
+(the previously-dead val), and when dynamic colour is *also* on, only the
+accent roles (primary/secondary/tertiary and their containers) are copied
+from the dynamic scheme onto it — the surface family always collapses to
+pure black. A new `TrueBlackBookmarkColors` (in `Color.kt`) does the same
+for the custom tokens, derived from `TrueBlackColors`' own surface ramp
+(`cardSurface = TrueBlackColors.surfaceContainer`, etc.) rather than
+duplicating hand-picked hex values.
+
+**Verified on-device by sampling actual pixels**, not just eyeballing it:
+with true-black + dynamic colour both on, background reads `(0,0,0)`, card
+surfaces read `(16,22,20)` (`#101614`, exactly `TrueBlackColors
+.surfaceContainer`), and the Settings switches' "on" track reads a
+wallpaper-derived blue — confirming the surface family is pure black while
+accents stay dynamic, as decided.
+
+### Accessibility pass (spec §10)
+
+- **Text scaling to 200%.** Systemic `Modifier.height(fixedDp)` around
+  `sp`-sized text was converted to `Modifier.heightIn(min = fixedDp)` across
+  `Fields.kt` (`PrimaryButton`/`SecondaryButton`/`TextActionButton`),
+  `Common.kt` (`SegmentedControl`, `PendingPill`), `CategoryChips.kt`
+  (`CategoryChip`), `ScreenChrome.kt` (`ScreenHeader`), `BookmarkSheets.kt`
+  (`ContextRow`, `FailureCard`'s retry button), `SearchScreen.kt`
+  (`SearchField`), `AddEditBookmarkSheet.kt` (`ClipboardChip`,
+  `OutlinedPicker`), and `CategoriesScreen.kt` (`NewCategoryFab`). One site
+  needed more than the mechanical swap: `SegmentedControl`'s children use
+  `fillMaxSize()`/`fillMaxHeight()`, which would ask for an unbounded height
+  and crash once the parent `Row` stopped being a fixed `height()` — fixed by
+  adding `Modifier.height(IntrinsicSize.Min)` alongside `heightIn(min = )` so
+  the row's height comes from its children's intrinsic size (with a floor),
+  not an unresolved max.
+- **Found and fixed a real 200%-scale bug while verifying on-device**:
+  `PendingPill`'s text was `maxLines = 1, softWrap = false` with no
+  `overflow`, so at 200% scale inside a fixed-width grid card it clipped
+  mid-word with no ellipsis ("Preview pend"). Changed to `maxLines = 2` +
+  `TextOverflow.Ellipsis`, so it wraps first and only truncates in the
+  genuinely-out-of-room case. (This pill's history already has one M1 fix in
+  the other direction — HANDOVER's own defect #3 — for a *narrow-space*
+  wrapping/clipping bug; this is the same failure family surfacing again
+  under different constraints, now handled by growing instead of by forcing
+  a single line.)
+- **`DesignSwitch`** now uses `Modifier.toggleable(role = Role.Switch)`
+  instead of a bare `.clickable`, so TalkBack announces role and on/off
+  state.
+- **`SettingsRow`** moved the `toggleable` up to the row itself for the
+  three switch rows (Fetch previews / Dynamic colour / True black) — title,
+  subtitle and switch now merge into one accessible node, and the touch
+  target is the full row rather than the 52×32dp switch alone. Verified by
+  tapping the row's title text directly and confirming it toggles.
+- **Bottom nav tabs** switched from `.clickable` to
+  `Modifier.selectable(selected, role = Role.Tab)`, matching the pattern
+  `CategoryChip` already used for its own selected-state announcement —
+  TalkBack now gets role and selection state on Home/Categories/Settings.
+- **`ScreenHeader`'s count** had an empty `Modifier.semantics {}` (read as a
+  bare number). Now takes a `countItemName: String = title.lowercase()`
+  param and announces `"$count $countItemName"` — "12 bookmarks" / "6
+  categories" — without needing either call site to pass anything extra.
+- **Staggered-grid traversal order** (`BookmarkGrid`'s
+  `LazyVerticalStaggeredGrid`) is left as a known, accepted limitation —
+  there's no reliable Compose-level fix for masonry traversal order, and
+  it's non-ideal ordering, not skipped/duplicated content.
+
+### Haptics (spec §10: "save, delete, drag-reorder pickup")
+
+`LocalHapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)` on:
+the `LaunchedEffect(addEditState.savedBookmark)` save-success path in
+`BookmarkNavHost` (covers the Add/Edit sheet), the same pattern added to
+`QuickSaveActivity`'s save-success `LaunchedEffect` (the share-target path,
+which didn't share code with the main sheet), and the bookmark-delete
+`onDelete` callback in `BookmarkNavHost`'s context-sheet branch. Drag-reorder
+pickup uses `HapticFeedbackType.LongPress` on `onDragStart` inside
+`DragToReorder.kt`'s `Modifier.dragHandle` — once per pickup, not per frame.
+`QuickSaveActivity.saveDirectly()` (the no-sheet Direct-Share-shortcut path)
+was left without a haptic: it's a plain `lifecycleScope.launch` with no
+Compose context, so `LocalHapticFeedback` isn't reachable there without
+reaching for `View.performHapticFeedback` on the decor view — judged not
+worth it for a path that already confirms via Toast.
+
+### Empty/error-state audit — no gaps found
+
+Home's first-run empty state (M1) and Search's "No matches" state (M5)
+already exist. Categories can structurally never be empty — `Unsorted` is a
+permanent, undeletable seeded row — so there's no empty-categories state to
+build. Grepped for one-off error `Text(...)` outside `FailureCard`/
+`PendingPill`: none found: errors already route through the existing
+`_error`/Snackbar mechanism consistently.
+
+### Reduced motion (spec §10: "Reduced-motion setting respected")
+
+New `core/ui/motion/ReducedMotion.kt`: `rememberReducedMotionEnabled()`
+reads `Settings.Global.ANIMATOR_DURATION_SCALE` via a `ContentObserver`
+(Compose's own animation APIs don't consult this the way View animators
+do, so it has to be checked explicitly). Computed **once**, in
+`BookmarkNavHost`, and threaded down as a plain `Boolean` — not recomputed
+per grid card, which would otherwise register one `ContentObserver` per
+visible item. Consumed by the shared-element `BoundsTransform` and the
+detail sheet's `AnimatedVisibility` enter/exit specs (see below): `300ms`
+normally, `0ms` (an instant snap, not a skip) when the system-wide "Remove
+animations" setting is on.
+
+### Predictive back (spec §10)
+
+`android:enableOnBackInvokedCallback="true"` added to the manifest
+`<application>` tag — required for the OS to deliver progress-based back
+callbacks at all; without it every `PredictiveBackHandler` degrades to
+plain immediate-back. The four `ModalBottomSheet`-based sheets (Add/Edit,
+Context, Duplicate, Import) needed no code changes — Material3 1.4.0
+already implements predictive-back scaling for `ModalBottomSheet`
+internally (confirmed by finding `calculatePredictiveBackScaleX/Y` in the
+compiled `material3.aar`), and none of the `NavHost` destinations override
+their transitions, so `navigation-compose` 2.10.1's default predictive-back
+support applies there too. The detail sheet is the one exception — see
+below, since it isn't `ModalBottomSheet` anymore.
+
+### Shared-element transitions (spec §10) — and the blocker that reshaped this sheet
+
+**The finding that mattered most this milestone**: `ModalBottomSheet` in
+this project's pinned Material3 version (1.4.0) renders its content inside
+a separate Android `Dialog` window — confirmed by decompiling the actual
+`material3.aar` in the Gradle cache and finding
+`ModalBottomSheetDialogWrapper`/`ModalBottomSheetDialogLayout`, not by
+guessing from a changelog. `SharedTransitionLayout` can only animate
+between two composables in the *same* window/Owner, so a `ModalBottomSheet`
+hero image can never participate in a shared-element transition with
+content in the main window, no matter how the modifiers are wired. There is
+no property on `ModalBottomSheetProperties` to opt out of the Dialog.
+
+Confirmed with the user before proceeding (this changes the detail sheet's
+gesture/insets implementation, which is more than a pure "polish" change):
+**`BookmarkDetailSheet` is no longer `ModalBottomSheet`.** It's a hand-built
+overlay in `BookmarkSheets.kt` — a `Box` scrim + a bottom-anchored `Column`,
+both driven by one `MutableTransitionState<Boolean>` so a dismissal (scrim
+tap, system back) plays the same exit animation before the real `onDismiss`
+callback clears `BookmarkNavHost`'s `sheet` state, rather than cutting
+instantly. This is the only sheet that changed — Add/Edit, Context,
+Duplicate and Import all keep `ModalBottomSheet` untouched, since only the
+detail sheet's hero image needs to be in the same tree as the grid card.
+
+Mechanism, in `BookmarkNavHost.kt`:
+1. `BookmarkNavHost`'s whole body (the `Scaffold`/`NavHost` plus the sheet
+   `when` blocks that already sat outside it) is wrapped in a single
+   `SharedTransitionLayout`. This is exactly why sheets were kept
+   sheet-state-driven rather than migrated to `NavHost` destinations back in
+   M5 — HANDOVER §6 said as much at the time.
+2. `val openDetailBookmarkId = (sheet as? SheetState.Detail)?.bookmark?.id`
+   and the `SharedTransitionScope` receiver are threaded down two paths:
+   `HomeScreen → BookmarkGrid → BookmarkGridCard` (source), and the
+   `SheetState.Detail` branch → `BookmarkDetailSheet` (target). Both
+   ultimately apply the modifier inside `BookmarkThumbnail`
+   (`BookmarkCards.kt`), which both call sites already shared before this
+   milestone.
+3. Each element is keyed by a `ThumbnailSharedElementKey(bookmarkId)` data
+   class (not a raw string) via `rememberSharedContentState`, and uses
+   `sharedElementWithCallerManagedVisibility` — not `sharedElement` — because
+   the grid card and the hero aren't wrapped in a shared `AnimatedVisibility`
+   (the grid never unmounts; the sheet's `Box` overlay isn't `NavHost`-based
+   either), and this specific API variant takes a plain `visible: Boolean`
+   instead of an `AnimatedVisibilityScope`. The grid card passes
+   `visible = bookmark.id != openDetailBookmarkId` (hides its own thumbnail
+   exactly while that bookmark's detail is open); the hero passes
+   `visible = true` unconditionally (it's only composed when it should be
+   visible at all).
+4. Scoped to **grid view only** (confirmed with the user) — matches spec
+   §10's literal "grid item and detail sheet" wording. `BookmarkListRow`'s
+   thumbnail is untouched.
+
+Every API used here (`SharedTransitionLayout`, `sharedElementWithCallerManagedVisibility`,
+`rememberSharedContentState`, `PredictiveBackHandler`, `BackEventCompat
+.progress`) was checked against the actual compiled `.aar`/`.jar` for this
+project's pinned versions (`animation-android` 1.12.1, `activity-compose`
+1.13.0) before writing code against it, not assumed from general Compose
+knowledge — none of it turned out to require `@OptIn` at the version
+actually in use, despite `ExperimentalSharedTransitionApi` still existing as
+a class.
+
+### What was verified on a real device for M7
+
+Same device (Xiaomi 2201117TI, Android 16/API 36). Confirmed working
+end to end: the true-black pixel sampling described above; the category
+icon picker showing real glyphs; a full row tap toggling a Settings switch
+(confirms the touch-target fix); 200% font scale across Home, Settings and
+the category dialog (caught and fixed the `PendingPill` clipping bug in the
+process); tapping a `FAILED` bookmark opens the new custom detail sheet with
+the hero image, failure card and action row all rendering correctly, with
+no crash from the shared-element wiring; dismissing via scrim tap correctly
+plays the exit animation and the grid card's thumbnail reappears afterward
+(confirming `isSharedThumbnailVisible` flips back correctly — no permanent
+blank-thumbnail regression); a mid-transition screenshot caught the sheet
+actually mid-slide-and-fade, confirming the enter animation genuinely plays
+rather than cutting instantly; the system back button correctly dismisses
+the custom sheet via `PredictiveBackHandler`'s gesture-completion path.
+
+**Not verified live**: TalkBack traversal (the semantics changes are
+verified by code inspection and by the on-device touch-target/toggle
+behavior they enable, but not by actually running TalkBack), and a real
+edge-swipe predictive-back gesture on the custom detail sheet specifically
+(system back button was verified, which exercises the same
+`PredictiveBackHandler` completion path, but not the progress-scaling
+branch). Worth doing both on a future pass.
