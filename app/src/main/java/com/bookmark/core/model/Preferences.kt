@@ -25,7 +25,10 @@ enum class SortOrder {
 @Immutable
 data class UserPreferences(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val dynamicColor: Boolean = true,
+    // Off by default: the design specs an exact hand-picked palette (see
+    // Color.kt), and Material You's wallpaper-derived scheme replaces it
+    // wholesale on Android 12+. Users who want Material You can opt in.
+    val dynamicColor: Boolean = false,
     val trueBlack: Boolean = false,
     val viewMode: ViewMode = ViewMode.GRID,
     val sortOrder: SortOrder = SortOrder.NEWEST,

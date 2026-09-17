@@ -36,7 +36,7 @@ class SettingsRepository @Inject constructor(
     val preferences: Flow<UserPreferences> = context.dataStore.data.map { prefs ->
         UserPreferences(
             themeMode = prefs[Keys.themeMode]?.toEnum(ThemeMode.entries) ?: ThemeMode.SYSTEM,
-            dynamicColor = prefs[Keys.dynamicColor] ?: true,
+            dynamicColor = prefs[Keys.dynamicColor] ?: false,
             trueBlack = prefs[Keys.trueBlack] ?: false,
             viewMode = prefs[Keys.viewMode]?.toEnum(ViewMode.entries) ?: ViewMode.GRID,
             sortOrder = prefs[Keys.sortOrder]?.toEnum(SortOrder.entries) ?: SortOrder.NEWEST,

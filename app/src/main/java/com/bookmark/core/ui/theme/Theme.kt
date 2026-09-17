@@ -17,7 +17,7 @@ import com.bookmark.core.model.ThemeMode
 @Composable
 fun BookmarkTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     trueBlack: Boolean = false,
     content: @Composable () -> Unit,
 ) {

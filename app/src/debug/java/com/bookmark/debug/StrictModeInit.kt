@@ -12,6 +12,12 @@ import android.os.StrictMode
  * startup as this app controls -- some framework/library init (Hilt's own
  * `attachBaseContext`-time work, for one) unavoidably runs earlier than
  * that and is outside this app's reach either way.
+ *
+ * Thread policy is penaltyLog()-only (no penaltyDeath()): on Samsung/One UI
+ * devices, `android.graphics.Typeface`'s OEM "flip font" lookup does its own
+ * disk read from inside this process's startup, outside app code, which
+ * would otherwise hard-crash every debug launch on those devices. Violations
+ * still show up in Logcat.
  */
 object StrictModeInit {
     fun install() {
@@ -21,7 +27,6 @@ object StrictModeInit {
                 .detectDiskWrites()
                 .detectNetwork()
                 .penaltyLog()
-                .penaltyDeath()
                 .build(),
         )
         StrictMode.setVmPolicy(

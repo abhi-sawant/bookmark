@@ -8,15 +8,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bookmark.core.ui.theme.CategorySwatches
 import com.bookmark.core.ui.theme.DmSans
 import com.bookmark.core.util.DomainColor
 import com.bookmark.core.util.TitleFallback
+import kotlin.math.sqrt
 
 /**
  * The generated fallback thumbnail (spec 8.3).
@@ -39,6 +47,7 @@ fun MonogramTile(
     Box(
         modifier = modifier
             .background(background)
+            .diagonalStripes()
             // The title beside it already names the bookmark; a screen reader
             // announcing two letters of the domain adds nothing.
             .clearAndSetSemantics { },
@@ -72,4 +81,37 @@ fun MonogramTileFullSize(url: String, accentColor: Color? = null, fontSize: Text
         fontSize = fontSize,
         accentColor = accentColor,
     )
+}
+
+/**
+ * The diagonal hairline texture the design draws behind every no-thumbnail
+ * tile: `repeating-linear-gradient(135deg, rgba(0,0,0,.05) 0 5px, transparent
+ * 5px 11px)`. Drawn on top of the solid monogram fill rather than the CSS's
+ * literal stacking (tint + stripe, fully covered by an opaque monogram layer)
+ * so the texture is actually visible instead of hidden under solid colour.
+ */
+private fun Modifier.diagonalStripes(
+    stripeColor: Color = Color.Black.copy(alpha = 0.05f),
+    stripeWidth: Dp = 5.dp,
+    period: Dp = 11.dp,
+): Modifier = drawWithCache {
+    val stripeWidthPx = stripeWidth.toPx()
+    val periodPx = period.toPx()
+    val diagonal = sqrt(size.width * size.width + size.height * size.height)
+    onDrawWithContent {
+        drawContent()
+        clipRect {
+            rotate(135f) {
+                var x = -diagonal
+                while (x < diagonal) {
+                    drawRect(
+                        color = stripeColor,
+                        topLeft = Offset(x, -diagonal),
+                        size = Size(stripeWidthPx, diagonal * 2),
+                    )
+                    x += periodPx
+                }
+            }
+        }
+    }
 }

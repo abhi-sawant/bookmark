@@ -2,6 +2,8 @@ package com.bookmark.navigation
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.layout.Box
@@ -228,6 +230,12 @@ fun BookmarkNavHost() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
+            // No animated transition between destinations (tabs, Search) --
+            // the switch is instant rather than a slide/fade.
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None },
         ) {
             composable<HomeRoute> {
                 HomeScreen(
