@@ -20,6 +20,14 @@ data object SettingsRoute
 @Serializable
 data object SearchRoute
 
+/**
+ * A single destination for the whole sign-in flow (Login/SignUp/ForgotPassword)
+ * -- which of the three shows is in-screen state (see `BookmarkNavHost`), not a
+ * separate route each, since none of them needs its own back-stack entry.
+ */
+@Serializable
+data object AccountRoute
+
 /** The three bottom-bar destinations, in the order the design lays them out. */
 enum class TopLevelDestination(val label: String, val icon: ImageVector) {
     HOME("Home", Icons.Outlined.Home),

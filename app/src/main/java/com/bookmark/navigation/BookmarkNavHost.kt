@@ -24,12 +24,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.bookmark.account.AccountViewModel
+import com.bookmark.account.ui.ForgotPasswordScreen
+import com.bookmark.account.ui.LoginScreen
+import com.bookmark.account.ui.SignUpScreen
 import com.bookmark.backup.ImportPreviewSheet
 import com.bookmark.bookmarks.detail.BookmarkContextSheet
 import com.bookmark.bookmarks.detail.BookmarkDetailSheet
@@ -60,6 +65,9 @@ import com.bookmark.settings.SettingsViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+/** Which of the sign-in flow's three screens [AccountRoute] currently shows. */
+private enum class AccountScreenKind { LOGIN, SIGN_UP, FORGOT_PASSWORD }
 
 /** Which sheet, if any, is open over the current screen. */
 private sealed interface SheetState {
@@ -127,6 +135,8 @@ fun BookmarkNavHost() {
     val settingsSummary by settingsViewModel.summary.collectAsStateWithLifecycle()
     val importSheetState by settingsViewModel.importSheetState.collectAsStateWithLifecycle()
     val backupMessage by settingsViewModel.message.collectAsStateWithLifecycle()
+    val settingsAuthState by settingsViewModel.authState.collectAsStateWithLifecycle()
+    val lastSyncedAt by settingsViewModel.lastSyncedAt.collectAsStateWithLifecycle()
 
     // SAF pickers: the launcher must live on an Activity-scoped Compose host,
     // which a plain ViewModel cannot be -- it hands the resulting Uri straight
@@ -282,6 +292,8 @@ fun BookmarkNavHost() {
                 SettingsScreen(
                     preferences = preferences,
                     summary = settingsSummary,
+                    authState = settingsAuthState,
+                    lastSyncedAt = lastSyncedAt,
                     onThemeModeChange = settingsViewModel::setThemeMode,
                     onDynamicColorChange = settingsViewModel::setDynamicColor,
                     onTrueBlackChange = settingsViewModel::setTrueBlack,
@@ -290,9 +302,62 @@ fun BookmarkNavHost() {
                     onClearThumbnails = settingsViewModel::clearThumbnails,
                     onExportBackup = { exportLauncher.launch("bookmarks-${backupDateStamp()}.zip") },
                     onImportBackup = { importLauncher.launch(arrayOf("application/zip")) },
+                    onSignIn = { navController.navigate(AccountRoute) },
+                    onSyncNow = settingsViewModel::syncNow,
+                    onSignOut = settingsViewModel::signOut,
                     onSearch = { },
                     onOverflow = { },
                 )
+            }
+
+            composable<AccountRoute> {
+                val accountViewModel: AccountViewModel = hiltViewModel()
+                val accountState by accountViewModel.uiState.collectAsStateWithLifecycle()
+                var screen by rememberSaveable { mutableStateOf(AccountScreenKind.LOGIN) }
+                val onSignedIn: () -> Unit = { navController.popBackStack() }
+
+                when (screen) {
+                    AccountScreenKind.LOGIN -> LoginScreen(
+                        state = accountState,
+                        onEmailChange = accountViewModel::onEmailChange,
+                        onPasswordChange = accountViewModel::onPasswordChange,
+                        onLogin = { accountViewModel.login(onSignedIn) },
+                        onNavigateToSignUp = {
+                            accountViewModel.resetForm()
+                            screen = AccountScreenKind.SIGN_UP
+                        },
+                        onNavigateToForgotPassword = {
+                            accountViewModel.resetForm()
+                            screen = AccountScreenKind.FORGOT_PASSWORD
+                        },
+                    )
+
+                    AccountScreenKind.SIGN_UP -> SignUpScreen(
+                        state = accountState,
+                        onEmailChange = accountViewModel::onEmailChange,
+                        onPasswordChange = accountViewModel::onPasswordChange,
+                        onConfirmPasswordChange = accountViewModel::onConfirmPasswordChange,
+                        onSignUp = { accountViewModel.register(onSignedIn) },
+                        onNavigateToLogin = {
+                            accountViewModel.resetForm()
+                            screen = AccountScreenKind.LOGIN
+                        },
+                        onNavigateToForgotPassword = {
+                            accountViewModel.resetForm()
+                            screen = AccountScreenKind.FORGOT_PASSWORD
+                        },
+                    )
+
+                    AccountScreenKind.FORGOT_PASSWORD -> ForgotPasswordScreen(
+                        state = accountState,
+                        onEmailChange = accountViewModel::onEmailChange,
+                        onSubmit = accountViewModel::forgotPassword,
+                        onNavigateToLogin = {
+                            accountViewModel.resetForm()
+                            screen = AccountScreenKind.LOGIN
+                        },
+                    )
+                }
             }
 
             composable<SearchRoute> {

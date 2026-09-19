@@ -1,0 +1,17 @@
+# Uploaded thumbnails are served as static files. Disable PHP execution here
+# in case an attacker manages to upload something with a .php-like name.
+
+<FilesMatch "\.(php|phtml|phar|php[0-9]?)$">
+    Require all denied
+</FilesMatch>
+
+# Some hosts run PHP via a handler rather than mod_php, where "php_flag" is
+# unsupported and would cause a 500. Guard it so it degrades gracefully.
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+
+Options -Indexes

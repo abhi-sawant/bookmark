@@ -1,6 +1,7 @@
 package com.bookmark.settings
 
 import android.os.Build
+import android.text.format.DateUtils
 import android.text.format.Formatter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
+import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,6 +28,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.bookmark.account.data.AuthState
 import com.bookmark.core.model.ThemeMode
 import com.bookmark.core.model.UserPreferences
 import com.bookmark.core.ui.components.DesignSwitch
@@ -48,6 +51,8 @@ import com.bookmark.core.ui.theme.BookmarkTheme
 fun SettingsScreen(
     preferences: UserPreferences,
     summary: BackupSummary,
+    authState: AuthState,
+    lastSyncedAt: Long?,
     onThemeModeChange: (ThemeMode) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
     onTrueBlackChange: (Boolean) -> Unit,
@@ -56,6 +61,9 @@ fun SettingsScreen(
     onClearThumbnails: () -> Unit,
     onExportBackup: () -> Unit,
     onImportBackup: () -> Unit,
+    onSignIn: () -> Unit,
+    onSyncNow: () -> Unit,
+    onSignOut: () -> Unit,
     onSearch: () -> Unit,
     onOverflow: () -> Unit,
     modifier: Modifier = Modifier,
@@ -74,7 +82,40 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 120.dp),
         ) {
-            MonoSectionHeader("Backup", modifier = Modifier.padding(top = 8.dp))
+            MonoSectionHeader("Sync", modifier = Modifier.padding(top = 8.dp))
+            SettingsGroup(modifier = Modifier.padding(horizontal = 14.dp)) {
+                when (authState) {
+                    AuthState.SignedOut -> SettingsRow(
+                        leadingIcon = Icons.Outlined.Sync,
+                        title = "Sign in to sync across devices",
+                        subtitle = "Bookmarks and categories stay in sync. Fully optional.",
+                        enabled = true,
+                        onClick = onSignIn,
+                    )
+                    is AuthState.SignedIn -> {
+                        SettingsRow(
+                            leadingIcon = Icons.Outlined.Sync,
+                            title = authState.email,
+                            subtitle = lastSyncedText(lastSyncedAt),
+                            enabled = true,
+                        )
+                        RowDivider()
+                        SettingsRow(
+                            title = "Sync now",
+                            enabled = true,
+                            onClick = onSyncNow,
+                        )
+                        RowDivider()
+                        SettingsRow(
+                            title = "Sign out",
+                            enabled = true,
+                            onClick = onSignOut,
+                        )
+                    }
+                }
+            }
+
+            MonoSectionHeader("Backup")
             SettingsGroup(modifier = Modifier.padding(horizontal = 14.dp)) {
                 SettingsRow(
                     leadingIcon = Icons.Outlined.FileDownload,
@@ -161,6 +202,16 @@ fun SettingsScreen(
 
 private fun plural(count: Int, singular: String, plural: String = "${singular}s") =
     "$count ${if (count == 1) singular else plural}"
+
+private fun lastSyncedText(lastSyncedAt: Long?): String {
+    if (lastSyncedAt == null) return "Not synced yet"
+    val relative = DateUtils.getRelativeTimeSpanString(
+        lastSyncedAt,
+        System.currentTimeMillis(),
+        DateUtils.MINUTE_IN_MILLIS,
+    )
+    return "Last synced $relative"
+}
 
 /**
  * A settings row is either a plain tappable row ([onClick]) or a switch row

@@ -78,6 +78,20 @@ data class BookmarkEntity(
     @ColumnInfo(defaultValue = "0") val isPinned: Boolean,
     val createdAt: Long,
     val updatedAt: Long,
+    /**
+     * Public URL of this bookmark's thumbnail on the sync backend, once
+     * uploaded. Null until uploaded, and reset to null whenever [thumbnailPath]
+     * changes (see [BookmarkDao.applyMetadata]/[BookmarkDao.setManualThumbnail])
+     * so a stale image is never served to another device under the old URL.
+     */
+    val remoteThumbnailUrl: String? = null,
+    /**
+     * The [updatedAt] value as of this row's last successful sync push/pull.
+     * A row needs pushing iff `updatedAt > (syncedUpdatedAt ?: 0)` -- no
+     * separate dirty flag is needed because [updatedAt] is already bumped only
+     * on real user edits, never by an automatic metadata fetch.
+     */
+    val syncedUpdatedAt: Long? = null,
 ) {
     fun toDomain() = Bookmark(
         id = id,
@@ -104,7 +118,15 @@ data class BookmarkEntity(
     )
 }
 
-fun Bookmark.toEntity() = BookmarkEntity(
+/**
+ * [remoteThumbnailUrl]/[syncedUpdatedAt] are sync-only bookkeeping absent from
+ * the domain [Bookmark] model (mirroring how [com.bookmark.backup.BackupRepository]
+ * already goes around the domain layer for full entity-level access). Callers
+ * writing back a full entity from a domain object -- e.g.
+ * [com.bookmark.bookmarks.data.BookmarkRepository.update] -- must pass the
+ * current values through explicitly or they'll be reset to "never synced".
+ */
+fun Bookmark.toEntity(remoteThumbnailUrl: String? = null, syncedUpdatedAt: Long? = null) = BookmarkEntity(
     id = id,
     url = url,
     originalUrl = originalUrl,
@@ -126,6 +148,8 @@ fun Bookmark.toEntity() = BookmarkEntity(
     isPinned = isPinned,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    remoteThumbnailUrl = remoteThumbnailUrl,
+    syncedUpdatedAt = syncedUpdatedAt,
 )
 
 /**

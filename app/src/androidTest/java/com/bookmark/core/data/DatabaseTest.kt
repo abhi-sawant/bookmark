@@ -138,11 +138,58 @@ class DatabaseTest {
         val reading = category(name = "Reading")
         categoryDao.insert(reading)
 
-        categoryDao.clearDefaultFlag()
-        categoryDao.setDefaultFlag(reading.id)
+        categoryDao.clearDefaultFlag(System.currentTimeMillis())
+        categoryDao.setDefaultFlag(reading.id, System.currentTimeMillis())
 
         assertEquals(reading.id, categoryDao.findDefault()?.id)
         assertTrue(categoryDao.findById(Category.UNSORTED_ID)!!.isDefault.not())
+    }
+
+    @Test
+    fun findDirtyReturnsOnlyNeverSyncedOrEditedSinceRows() = runBlocking {
+        val fresh = bookmark(url = "https://example.com/fresh") // syncedUpdatedAt null: never synced
+        bookmarkDao.insert(fresh)
+        val synced = bookmark(url = "https://example.com/synced").copy(updatedAt = 100L)
+        bookmarkDao.insert(synced)
+        bookmarkDao.markSynced(synced.id, 100L)
+
+        val dirty = bookmarkDao.findDirty().map { it.id }
+        assertTrue(fresh.id in dirty)
+        assertTrue(synced.id !in dirty)
+
+        // Editing the already-synced row past its syncedUpdatedAt makes it dirty again.
+        bookmarkDao.update(synced.copy(title = "Edited", updatedAt = 200L))
+        assertTrue(synced.id in bookmarkDao.findDirty().map { it.id })
+    }
+
+    @Test
+    fun upsertFromServerBypassesTheManualFieldLock() = runBlocking {
+        // Bit 1 = TITLE locked, as if the user had edited it on this device.
+        val locked = bookmark(url = "https://example.com/locked").copy(manualFields = 1, title = "Local title")
+        bookmarkDao.insert(locked)
+
+        // applyMetadata must respect the lock...
+        bookmarkDao.applyMetadata(
+            id = locked.id, title = "Fetched title", description = null, siteName = null,
+            thumbnailPath = null, thumbnailWidth = null, thumbnailHeight = null, accentColor = null,
+            imageCandidates = null, state = MetadataState.SUCCESS, failureCause = null, attempts = 1,
+            now = 1L,
+        )
+        assertEquals("Local title", bookmarkDao.findById(locked.id)?.title)
+
+        // ...but a pulled row from another device is a full-row replace regardless.
+        bookmarkDao.upsertFromServer(locked.copy(title = "Title from device B", updatedAt = 300L))
+        assertEquals("Title from device B", bookmarkDao.findById(locked.id)?.title)
+    }
+
+    @Test
+    fun categoryFindDirtyAndMarkSyncedRoundTrip() = runBlocking {
+        val reading = category(name = "Reading")
+        categoryDao.insert(reading)
+        assertTrue(reading.id in categoryDao.findDirty().map { it.id })
+
+        categoryDao.markSynced(reading.id, reading.updatedAt)
+        assertTrue(reading.id !in categoryDao.findDirty().map { it.id })
     }
 
     private fun category(name: String) = CategoryEntity(
@@ -153,6 +200,7 @@ class DatabaseTest {
         sortOrder = 1,
         isDefault = false,
         createdAt = 0L,
+        updatedAt = 0L,
     )
 
     private fun bookmark(

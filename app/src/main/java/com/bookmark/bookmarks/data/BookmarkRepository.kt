@@ -14,6 +14,10 @@ import com.bookmark.metadata.FailureCause
 import com.bookmark.metadata.PageMetadata
 import com.bookmark.metadata.image.StoredThumbnail
 import com.bookmark.metadata.work.MetadataEnqueuer
+import com.bookmark.sync.data.SyncTombstoneDao
+import com.bookmark.sync.data.SyncTombstoneEntity
+import com.bookmark.sync.data.TombstoneType
+import com.bookmark.sync.work.SyncEnqueuer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.util.UUID
@@ -33,9 +37,11 @@ sealed interface SaveResult {
 @Singleton
 class BookmarkRepository @Inject constructor(
     private val dao: BookmarkDao,
+    private val syncTombstoneDao: SyncTombstoneDao,
     @ApplicationContext private val context: Context,
     @IoDispatcher private val io: CoroutineDispatcher,
     private val metadataEnqueuer: MetadataEnqueuer,
+    private val syncEnqueuer: SyncEnqueuer,
 ) {
 
     fun observe(categoryId: String?, sort: SortOrder): Flow<List<Bookmark>> {
@@ -113,6 +119,7 @@ class BookmarkRepository @Inject constructor(
             // scheduled. The enqueue is a no-op when previews are off (spec 11),
             // and the row is already durable either way (design principle 1).
             metadataEnqueuer.enqueueAutomatic(entity.id)
+            syncEnqueuer.scheduleDebounced()
             SaveResult.Saved(entity.toDomain())
         } catch (e: SQLiteConstraintException) {
             // Lost a race against another save of the same URL.
@@ -197,10 +204,23 @@ class BookmarkRepository @Inject constructor(
             accentColor = thumbnail?.accentColor,
             now = System.currentTimeMillis(),
         )
+        syncEnqueuer.scheduleDebounced()
     }
 
+    /**
+     * [remoteThumbnailUrl] is preserved when [Bookmark.thumbnailPath] hasn't
+     * changed -- otherwise every plain title/description edit would wipe a
+     * perfectly valid uploaded thumbnail URL and force a pointless re-upload
+     * on the next sync.
+     */
     suspend fun update(bookmark: Bookmark) = withContext(io) {
-        dao.update(bookmark.copy(updatedAt = System.currentTimeMillis()).toEntity())
+        val current = dao.findById(bookmark.id)
+        val remoteThumbnailUrl = current?.remoteThumbnailUrl?.takeIf { current.thumbnailPath == bookmark.thumbnailPath }
+        dao.update(
+            bookmark.copy(updatedAt = System.currentTimeMillis())
+                .toEntity(remoteThumbnailUrl = remoteThumbnailUrl, syncedUpdatedAt = current?.syncedUpdatedAt),
+        )
+        syncEnqueuer.scheduleDebounced()
     }
 
     /**
@@ -218,20 +238,31 @@ class BookmarkRepository @Inject constructor(
     /** Re-inserts a deleted bookmark verbatim, for Snackbar undo (spec 14 Q2). */
     suspend fun restore(bookmark: Bookmark) = withContext(io) {
         dao.insert(bookmark.toEntity())
+        syncEnqueuer.scheduleDebounced()
     }
 
-    /** The undo window has closed: the files can go now. */
+    /**
+     * The undo window has closed: the files can go now, and the delete is
+     * irreversible -- exactly the moment a sync tombstone is recorded (nothing
+     * changes if the user hit Undo first: no tombstone is ever created).
+     */
     suspend fun discardDeleted(bookmark: Bookmark) = withContext(io) {
         bookmark.thumbnailPath?.let { deleteThumbnail(it) }
         bookmark.faviconPath?.let { deleteFavicon(it) }
+        syncTombstoneDao.insert(
+            SyncTombstoneEntity(bookmark.id, TombstoneType.BOOKMARK.name, System.currentTimeMillis()),
+        )
+        syncEnqueuer.scheduleDebounced()
     }
 
     suspend fun setPinned(id: String, pinned: Boolean) = withContext(io) {
         dao.setPinned(id, pinned, System.currentTimeMillis())
+        syncEnqueuer.scheduleDebounced()
     }
 
     suspend fun setCategory(id: String, categoryId: String) = withContext(io) {
         dao.setCategory(id, categoryId, System.currentTimeMillis())
+        syncEnqueuer.scheduleDebounced()
     }
 
     suspend fun search(query: String, categoryId: String?): List<Bookmark> = withContext(io) {

@@ -3,10 +3,14 @@
   Allowlist, not a blocklist: only these paths are backed up. The Room database
   is small and worth keeping; thumbnails live in filesDir/thumbnails/ and are
   deliberately absent, because they are re-fetchable and would blow the 25MB
-  Auto Backup quota (spec 5.6).
+  Auto Backup quota (spec 5.6). The "account" DataStore file (bearer token) is
+  also excluded, same as in data_extraction_rules.xml. This file only governs
+  pre-Android 12 devices, below this app's API 33 floor, but is kept in sync
+  for safety.
 -->
 <full-backup-content>
     <include domain="database" path="." />
     <include domain="sharedpref" path="." />
     <include domain="file" path="datastore" />
+    <exclude domain="file" path="datastore/account.preferences_pb" />
 </full-backup-content>

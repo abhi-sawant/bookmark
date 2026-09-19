@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.bookmark.core.ui.theme.BookmarkShapes
@@ -55,6 +56,7 @@ fun OutlinedField(
     placeholder: String? = null,
     keyboardType: KeyboardType = KeyboardType.Text,
     imeAction: ImeAction = ImeAction.Next,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
@@ -108,6 +110,7 @@ fun OutlinedField(
                         keyboardType = keyboardType,
                         imeAction = imeAction,
                     ),
+                    visualTransformation = visualTransformation,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

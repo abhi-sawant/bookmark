@@ -21,6 +21,13 @@ data class CategoryEntity(
     val sortOrder: Int,
     val isDefault: Boolean,
     val createdAt: Long,
+    /**
+     * Sync bookkeeping, absent from the domain [Category] model -- didn't exist
+     * before schema v3 (backfilled from [createdAt] on migration). `sortOrder`
+     * is deliberately not synced (device-local), so it never needs to bump this.
+     */
+    @ColumnInfo(defaultValue = "0") val updatedAt: Long,
+    val syncedUpdatedAt: Long? = null,
 ) {
     fun toDomain() = Category(
         id = id,
@@ -33,7 +40,12 @@ data class CategoryEntity(
     )
 }
 
-fun Category.toEntity() = CategoryEntity(
+/**
+ * [updatedAt] defaults to now (a fresh write always needs pushing);
+ * [syncedUpdatedAt] defaults to null ("never synced"). Pass both explicitly
+ * when carrying an existing entity's sync state forward.
+ */
+fun Category.toEntity(updatedAt: Long = System.currentTimeMillis(), syncedUpdatedAt: Long? = null) = CategoryEntity(
     id = id,
     name = name,
     colorHex = colorHex,
@@ -41,6 +53,8 @@ fun Category.toEntity() = CategoryEntity(
     sortOrder = sortOrder,
     isDefault = isDefault,
     createdAt = createdAt,
+    updatedAt = updatedAt,
+    syncedUpdatedAt = syncedUpdatedAt,
 )
 
 /** Projection for the filter row and the Categories screen. */

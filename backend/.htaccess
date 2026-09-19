@@ -1,0 +1,15 @@
+# Bookmark sync API - backend root .htaccess
+
+# Force HTTPS
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteCond %{HTTP:X-Forwarded-Proto} !https
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Defense in depth: config.php should never be served directly even though
+# it already lives outside any intended public path.
+<Files "config.php">
+    Require all denied
+</Files>
+
+Options -Indexes

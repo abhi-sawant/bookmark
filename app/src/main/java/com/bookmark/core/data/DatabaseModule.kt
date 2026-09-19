@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.bookmark.bookmarks.data.BookmarkDao
 import com.bookmark.categories.data.CategoryDao
+import com.bookmark.sync.data.SyncTombstoneDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,7 +34,7 @@ object DatabaseModule {
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.NAME)
             .addCallback(SeedCallback())
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
 
     @Provides
@@ -41,6 +42,9 @@ object DatabaseModule {
 
     @Provides
     fun provideCategoryDao(database: AppDatabase): CategoryDao = database.categoryDao()
+
+    @Provides
+    fun provideSyncTombstoneDao(database: AppDatabase): SyncTombstoneDao = database.syncTombstoneDao()
 
     @Provides
     @IoDispatcher

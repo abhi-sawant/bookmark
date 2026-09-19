@@ -1,0 +1,3 @@
+# PHPMailer source files are only ever require_once'd by PHP scripts here,
+# never requested directly over HTTP. Deny direct access as defense in depth.
+Require all denied

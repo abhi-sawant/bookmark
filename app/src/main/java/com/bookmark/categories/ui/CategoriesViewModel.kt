@@ -127,8 +127,14 @@ class CategoriesViewModel @Inject constructor(
         shortcuts.publish()
     }
 
+    /**
+     * The Snackbar expired without an undo, so the delete is now final and the
+     * sync tombstone(s) can be recorded. Mirrors `HomeViewModel.clearUndo()`.
+     */
     fun clearUndo() {
+        val pending = _undo.value ?: return
         _undo.value = null
+        viewModelScope.launch { repository.discardDeleted(pending) }
     }
 
     /** Live reorder while dragging; nothing is written until [commitOrder]. */

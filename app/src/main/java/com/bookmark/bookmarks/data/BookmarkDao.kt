@@ -143,6 +143,11 @@ interface BookmarkDao {
      *
      * `updatedAt` is deliberately left alone: a background fetch is not a user
      * edit, and bumping it would misreport when the bookmark last changed.
+     *
+     * `remoteThumbnailUrl` resets to null in lockstep with `thumbnailPath`
+     * (both guarded by the same CASE): whatever was previously uploaded is for
+     * a file this fetch just replaced, so it needs re-uploading before another
+     * device can be pointed at it.
      */
     @Query(
         """
@@ -165,6 +170,9 @@ interface BookmarkDao {
             accentColor = CASE
                 WHEN (manualFields & 4) = 0 THEN COALESCE(:accentColor, accentColor)
                 ELSE accentColor END,
+            remoteThumbnailUrl = CASE
+                WHEN (manualFields & 4) = 0 THEN NULL
+                ELSE remoteThumbnailUrl END,
             siteName = COALESCE(:siteName, siteName),
             imageCandidates = :imageCandidates,
             metadataState = :state,
@@ -227,6 +235,7 @@ interface BookmarkDao {
             thumbnailWidth = :thumbnailWidth,
             thumbnailHeight = :thumbnailHeight,
             accentColor = :accentColor,
+            remoteThumbnailUrl = NULL,
             manualFields = manualFields | 4,
             updatedAt = :now
         WHERE id = :id
@@ -266,4 +275,24 @@ interface BookmarkDao {
         """
     )
     suspend fun search(query: String, categoryId: String?): List<BookmarkEntity>
+
+    /** Rows with unpushed local changes -- never synced, or edited since the last sync. */
+    @Query("SELECT * FROM bookmarks WHERE syncedUpdatedAt IS NULL OR updatedAt > syncedUpdatedAt")
+    suspend fun findDirty(): List<BookmarkEntity>
+
+    @Query("UPDATE bookmarks SET syncedUpdatedAt = :updatedAt WHERE id = :id")
+    suspend fun markSynced(id: String, updatedAt: Long)
+
+    @Query("UPDATE bookmarks SET remoteThumbnailUrl = :url WHERE id = :id")
+    suspend fun setRemoteThumbnailUrl(id: String, url: String?)
+
+    /**
+     * Full-row upsert for a row pulled from another device. Deliberately
+     * bypasses [applyMetadata]'s manualFields CASE guard -- this is the user's
+     * own edit arriving from elsewhere, not an automatic refetch that must
+     * defer to a manual lock (the pulled row's own `manualFields` value is what
+     * makes this device's *own* future automatic fetches respect it).
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertFromServer(bookmark: BookmarkEntity)
 }

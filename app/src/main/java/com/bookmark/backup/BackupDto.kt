@@ -124,4 +124,8 @@ fun CategoryBackupDto.toEntity() = CategoryEntity(
     sortOrder = sortOrder,
     isDefault = isDefault,
     createdAt = createdAt,
+    // The backup format predates sync and carries no updatedAt of its own;
+    // backfilling from createdAt matches MIGRATION_2_3's own backfill and
+    // marks the restored row as needing a push, which is correct.
+    updatedAt = createdAt,
 )

@@ -9,6 +9,10 @@ import com.bookmark.core.data.IoDispatcher
 import com.bookmark.core.model.Bookmark
 import com.bookmark.core.model.Category
 import com.bookmark.core.model.CategoryWithCount
+import com.bookmark.sync.data.SyncTombstoneDao
+import com.bookmark.sync.data.SyncTombstoneEntity
+import com.bookmark.sync.data.TombstoneType
+import com.bookmark.sync.work.SyncEnqueuer
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -45,6 +49,8 @@ class CategoryRepository @Inject constructor(
     private val dao: CategoryDao,
     private val bookmarkDao: BookmarkDao,
     private val database: AppDatabase,
+    private val syncTombstoneDao: SyncTombstoneDao,
+    private val syncEnqueuer: SyncEnqueuer,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) {
 
@@ -67,6 +73,7 @@ class CategoryRepository @Inject constructor(
             if (trimmed.isEmpty()) throw CategoryException(CategoryError.NameEmpty)
             if (dao.findByName(trimmed) != null) throw CategoryException(CategoryError.NameTaken)
 
+            val now = System.currentTimeMillis()
             val entity = CategoryEntity(
                 id = UUID.randomUUID().toString(),
                 name = trimmed,
@@ -74,9 +81,11 @@ class CategoryRepository @Inject constructor(
                 iconKey = iconKey,
                 sortOrder = dao.nextSortOrder(),
                 isDefault = false,
-                createdAt = System.currentTimeMillis(),
+                createdAt = now,
+                updatedAt = now,
             )
             dao.insert(entity)
+            syncEnqueuer.scheduleDebounced()
             entity.toDomain()
         }
 
@@ -91,6 +100,7 @@ class CategoryRepository @Inject constructor(
             dao.update(
                 category.copy(name = trimmed, colorHex = colorHex, iconKey = iconKey).toEntity(),
             )
+            syncEnqueuer.scheduleDebounced()
         }
 
     /** Persists a drag-reorder as a single transaction. */
@@ -102,9 +112,11 @@ class CategoryRepository @Inject constructor(
 
     suspend fun setDefault(id: String) = withContext(io) {
         database.withTransaction {
-            dao.clearDefaultFlag()
-            dao.setDefaultFlag(id)
+            val now = System.currentTimeMillis()
+            dao.clearDefaultFlag(now)
+            dao.setDefaultFlag(id, now)
         }
+        syncEnqueuer.scheduleDebounced()
     }
 
     /**
@@ -169,6 +181,24 @@ class CategoryRepository @Inject constructor(
                 bookmarkDao.insert(bookmark.toEntity())
             }
         }
+        syncEnqueuer.scheduleDebounced()
+    }
+
+    /**
+     * The undo window has closed: the category delete is now irreversible, so
+     * this is where its sync tombstone is recorded -- mirroring
+     * [com.bookmark.bookmarks.data.BookmarkRepository.discardDeleted]. Only the
+     * [DeleteStrategy.DeleteBookmarks] strategy's rows are tombstoned here: a
+     * [DeleteStrategy.MoveTo]'s moved bookmarks were never deleted, they just
+     * sync their new `categoryId` normally via their own dirty-row push.
+     */
+    suspend fun discardDeleted(deleted: DeletedCategory) = withContext(io) {
+        val now = System.currentTimeMillis()
+        syncTombstoneDao.insert(SyncTombstoneEntity(deleted.category.id, TombstoneType.CATEGORY.name, now))
+        deleted.deletedBookmarks.forEach { bookmark ->
+            syncTombstoneDao.insert(SyncTombstoneEntity(bookmark.id, TombstoneType.BOOKMARK.name, now))
+        }
+        syncEnqueuer.scheduleDebounced()
     }
 
     suspend fun countIn(categoryId: String): Int = withContext(io) {

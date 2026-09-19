@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
@@ -58,14 +59,16 @@ interface CategoryDao {
     @Delete
     suspend fun delete(category: CategoryEntity)
 
+    /** Device-local drag-reorder position -- deliberately not synced, so never bumps updatedAt. */
     @Query("UPDATE categories SET sortOrder = :sortOrder WHERE id = :id")
     suspend fun setSortOrder(id: String, sortOrder: Int)
 
-    @Query("UPDATE categories SET isDefault = 0")
-    suspend fun clearDefaultFlag()
+    /** `isDefault` is synced, so both halves of this transactional pair bump `updatedAt`. */
+    @Query("UPDATE categories SET isDefault = 0, updatedAt = :now WHERE isDefault = 1")
+    suspend fun clearDefaultFlag(now: Long)
 
-    @Query("UPDATE categories SET isDefault = 1 WHERE id = :id")
-    suspend fun setDefaultFlag(id: String)
+    @Query("UPDATE categories SET isDefault = 1, updatedAt = :now WHERE id = :id")
+    suspend fun setDefaultFlag(id: String, now: Long)
 
     /** The four most-used categories, for Direct Share shortcuts (spec 6.3). */
     @Query(
@@ -79,4 +82,39 @@ interface CategoryDao {
         """
     )
     suspend fun mostUsed(limit: Int): List<CategoryWithCountEntity>
+
+    /** Rows with unpushed local changes -- never synced, or edited since the last sync. */
+    @Query("SELECT * FROM categories WHERE syncedUpdatedAt IS NULL OR updatedAt > syncedUpdatedAt")
+    suspend fun findDirty(): List<CategoryEntity>
+
+    @Query("UPDATE categories SET syncedUpdatedAt = :updatedAt WHERE id = :id")
+    suspend fun markSynced(id: String, updatedAt: Long)
+
+    /**
+     * Backing half of [upsertFromServer]: an update that touches every synced
+     * column, returning the number of rows affected (0 if the id doesn't
+     * exist locally yet).
+     */
+    @Update
+    suspend fun updateExisting(category: CategoryEntity): Int
+
+    /** The other half of [upsertFromServer], for a row that doesn't exist yet. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertIgnoringConflict(category: CategoryEntity)
+
+    /**
+     * Full-row upsert for a row pulled from another device.
+     *
+     * Deliberately NOT `OnConflictStrategy.REPLACE`: on a primary-key
+     * conflict, REPLACE resolves it as a real `DELETE` followed by an
+     * `INSERT` -- and `bookmarks.categoryId`'s `ON DELETE SET DEFAULT`
+     * foreign key fires on that transient delete, silently reassigning every
+     * bookmark in this category to Unsorted before the row is reinserted.
+     * Try-update-else-insert instead, so an update to an existing category
+     * never deletes the row at all.
+     */
+    @Transaction
+    suspend fun upsertFromServer(category: CategoryEntity) {
+        if (updateExisting(category) == 0) insertIgnoringConflict(category)
+    }
 }

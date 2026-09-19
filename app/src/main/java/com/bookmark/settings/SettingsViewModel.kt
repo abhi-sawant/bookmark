@@ -3,6 +3,8 @@ package com.bookmark.settings
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bookmark.account.AccountRepository
+import com.bookmark.account.data.AuthState
 import com.bookmark.backup.BackupRepository
 import com.bookmark.backup.ExportResult
 import com.bookmark.backup.ImportCommitResult
@@ -15,6 +17,8 @@ import com.bookmark.core.model.ThemeMode
 import com.bookmark.core.model.UserPreferences
 import com.bookmark.metadata.work.MetadataEnqueuer
 import com.bookmark.metadata.work.RefreshAllWorker
+import com.bookmark.sync.data.SyncStateStore
+import com.bookmark.sync.work.SyncEnqueuer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,10 +53,19 @@ class SettingsViewModel @Inject constructor(
     private val bookmarkRepository: BookmarkRepository,
     private val categoryRepository: CategoryRepository,
     private val backupRepository: BackupRepository,
+    private val accountRepository: AccountRepository,
+    private val syncStateStore: SyncStateStore,
+    private val syncEnqueuer: SyncEnqueuer,
 ) : ViewModel() {
 
     val preferences: StateFlow<UserPreferences> = settingsRepository.preferences
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UserPreferences())
+
+    val authState: StateFlow<AuthState> = accountRepository.authState
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AuthState.SignedOut)
+
+    val lastSyncedAt: StateFlow<Long?> = syncStateStore.lastSyncedAtFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     // countByStates/thumbnailBytes are one-shot suspend reads, not Flows, so
     // they're refreshed explicitly (on init, and after any action that could
@@ -161,6 +174,13 @@ class SettingsViewModel @Inject constructor(
 
     fun clearMessage() {
         _message.value = null
+    }
+
+    /** Settings, "Sync now" -- enqueued rather than run inline; [lastSyncedAt] reflects the outcome. */
+    fun syncNow() = syncEnqueuer.syncNow()
+
+    fun signOut() = viewModelScope.launch {
+        accountRepository.logout()
     }
 }
 
