@@ -51,6 +51,7 @@ import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.CategorySwatchHex
 import com.bookmark.core.ui.theme.CategorySwatches
 import com.bookmark.core.ui.theme.Dimens
+import com.bookmark.core.ui.theme.normalizeCategoryHex
 import com.bookmark.core.ui.theme.parseCategoryColor
 
 private val ICON_KEYS = listOf("play", "edit", "star", "home")
@@ -71,7 +72,7 @@ fun CategoryEditDialog(
     onDelete: (() -> Unit)? = null,
 ) {
     var name by remember { mutableStateOf(existing?.name.orEmpty()) }
-    var colorHex by remember { mutableStateOf(existing?.colorHex ?: defaultColorHex) }
+    var colorHex by remember { mutableStateOf(normalizeCategoryHex(existing?.colorHex) ?: defaultColorHex) }
     var iconKey by remember { mutableStateOf(existing?.iconKey) }
 
     AlertDialog(

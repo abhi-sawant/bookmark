@@ -1,6 +1,7 @@
 package com.bookmark.core.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,24 +19,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.Dimens
+import com.bookmark.core.ui.theme.glass
 
 /** Kept in sync with `macrobenchmark/.../BaselineProfileGenerator.kt` (M6). */
 const val SEARCH_BUTTON_TEST_TAG = "search_button"
@@ -65,7 +67,7 @@ fun ScreenHeader(
             .heightIn(min = Dimens.screenHeaderHeight)
             .padding(start = Dimens.headerStartPadding, end = Dimens.headerEndPadding),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
             text = title,
@@ -77,54 +79,57 @@ fun ScreenHeader(
                 text = count.toString(),
                 style = BookmarkTheme.text.screenCount,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.semantics {
-                    contentDescription = "$count $countItemName"
-                },
+                modifier = Modifier
+                    .glass(RoundedCornerShape(percent = 50))
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                    .semantics { contentDescription = "$count $countItemName" },
             )
         }
         Spacer(modifier = Modifier.weight(1f))
 
-        IconButton(
+        GlassIconButton(
             onClick = onSearch,
             enabled = searchEnabled,
-            modifier = Modifier.size(Dimens.iconSlot).testTag(SEARCH_BUTTON_TEST_TAG),
+            modifier = Modifier.testTag(SEARCH_BUTTON_TEST_TAG),
         ) {
             Icon(
                 imageVector = Icons.Outlined.Search,
                 contentDescription = "Search bookmarks",
-                tint = if (searchEnabled) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
-                },
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (searchEnabled) 1f else 0.35f),
             )
         }
-        Box(
-            modifier = Modifier
-                .size(Dimens.iconSlot)
-                .clip(RoundedCornerShape(percent = 50))
-                .background(
-                    if (overflowHighlighted) {
-                        MaterialTheme.colorScheme.secondaryContainer
-                    } else {
-                        Color.Transparent
-                    },
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            IconButton(onClick = onOverflow, modifier = Modifier.size(Dimens.iconSlot)) {
+        Box(contentAlignment = Alignment.Center) {
+            GlassIconButton(onClick = onOverflow, highlighted = overflowHighlighted) {
                 Icon(
                     imageVector = Icons.Outlined.MoreVert,
                     contentDescription = "More options",
-                    tint = if (overflowHighlighted) {
-                        MaterialTheme.colorScheme.onSecondaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
+                    tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
             overflowMenu()
         }
+    }
+}
+
+/** The rounded-square frosted button used for header actions. */
+@Composable
+fun GlassIconButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    highlighted: Boolean = false,
+    content: @Composable () -> Unit,
+) {
+    val shape = RoundedCornerShape(16.dp)
+    Box(
+        modifier = modifier
+            .size(Dimens.iconSlot)
+            .glass(shape)
+            .then(if (highlighted) Modifier.background(BookmarkTheme.colors.glassHover) else Modifier)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        content()
     }
 }
 
@@ -135,9 +140,8 @@ data class BottomDestination(
 )
 
 /**
- * The three-destination bar the design uses in place of FAB-only navigation.
- * Hand-built rather than M3 `NavigationBar` so the 64x32 selection pill, the
- * hairline top border and the exact padding match the mockups.
+ * The three-destination bar: a floating frosted capsule rather than a docked
+ * strip, with the active tab lifted onto a violet glow.
  */
 @Composable
 fun BookmarkBottomBar(
@@ -146,60 +150,64 @@ fun BookmarkBottomBar(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainer),
+            // Edge-to-edge: the bar floats above the system navigation bar.
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 12.dp),
     ) {
-        HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                // Edge-to-edge: the bar sits under the system navigation bar, so
-                // it has to inset its own content rather than let it be covered.
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(top = 10.dp, bottom = 14.dp),
+                .glass(RoundedCornerShape(28.dp), strong = true)
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
         ) {
             destinations.forEachIndexed { index, destination ->
                 val selected = index == selectedIndex
+                val shape = RoundedCornerShape(20.dp)
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(shape)
+                        .then(
+                            if (selected) {
+                                Modifier.background(
+                                    Brush.verticalGradient(
+                                        listOf(
+                                            BookmarkTheme.colors.accentStart.copy(alpha = 0.34f),
+                                            BookmarkTheme.colors.accentStart.copy(alpha = 0.10f),
+                                        ),
+                                    ),
+                                    shape,
+                                )
+                            } else {
+                                Modifier
+                            },
+                        )
                         .selectable(
                             selected = selected,
                             role = Role.Tab,
                             onClick = { onSelect(index) },
-                        ),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(width = 64.dp, height = 32.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(
-                                if (selected) {
-                                    MaterialTheme.colorScheme.secondaryContainer
-                                } else {
-                                    Color.Transparent
-                                },
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = destination.icon,
-                            contentDescription = null,
-                            tint = if (selected) {
-                                MaterialTheme.colorScheme.onSecondaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
                         )
-                    }
+                        .padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    Icon(
+                        imageVector = destination.icon,
+                        contentDescription = null,
+                        tint = if (selected) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        modifier = Modifier.size(24.dp),
+                    )
                     Text(
                         text = destination.label,
-                        style = BookmarkTheme.text.rowSubtitle,
+                        style = BookmarkTheme.text.rowSubtitle.copy(fontWeight = FontWeight.Medium, fontSize = 11.5.sp),
                         color = if (selected) {
                             MaterialTheme.colorScheme.onSurface
                         } else {

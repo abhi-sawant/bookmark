@@ -39,6 +39,8 @@ import com.bookmark.core.ui.components.rememberDragDropState
 import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.Dimens
+import com.bookmark.core.ui.theme.accentFill
+import com.bookmark.core.ui.theme.glass
 import com.bookmark.core.ui.theme.parseCategoryColor
 
 @Composable
@@ -72,7 +74,7 @@ fun CategoriesScreen(
                     top = 4.dp,
                     bottom = 140.dp,
                 ),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 itemsIndexed(
                     categories,
@@ -108,12 +110,7 @@ private fun CategoryRow(
     handleModifier: Modifier,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = BookmarkShapes.categoryRow,
-        color = BookmarkTheme.colors.cardSurface,
-        shadowElevation = 1.dp,
-    ) {
+    Box(modifier = modifier.fillMaxWidth().glass(BookmarkShapes.categoryRow)) {
         Row(
             modifier = Modifier
                 .clickable(onClick = onClick)
@@ -144,14 +141,13 @@ private fun CategoryRow(
             if (entry.category.isDefault) {
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(MaterialTheme.colorScheme.secondaryContainer)
-                        .padding(horizontal = 7.dp, vertical = 3.dp),
+                        .glass(RoundedCornerShape(percent = 50))
+                        .padding(horizontal = 9.dp, vertical = 3.dp),
                 ) {
                     Text(
                         text = "Default",
                         style = BookmarkTheme.text.siteLine,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -169,8 +165,7 @@ private fun NewCategoryFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .heightIn(min = Dimens.extendedFabHeight)
-            .clip(BookmarkShapes.extendedFab)
-            .background(MaterialTheme.colorScheme.primary)
+            .accentFill(BookmarkShapes.extendedFab)
             .clickable(onClick = onClick)
             .padding(horizontal = 22.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -179,13 +174,13 @@ private fun NewCategoryFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
         Icon(
             imageVector = Icons.Outlined.Add,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onPrimary,
+            tint = BookmarkTheme.colors.onAccent,
             modifier = Modifier.size(20.dp),
         )
         Text(
             text = "New category",
             style = BookmarkTheme.text.buttonLabel,
-            color = MaterialTheme.colorScheme.onPrimary,
+            color = BookmarkTheme.colors.onAccent,
         )
     }
 }

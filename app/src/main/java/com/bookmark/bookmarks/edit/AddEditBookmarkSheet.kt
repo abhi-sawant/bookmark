@@ -23,6 +23,18 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import kotlinx.coroutines.delay
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import com.bookmark.core.ui.components.TextActionButton
+import com.bookmark.core.ui.components.CategoryChip
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -52,6 +64,7 @@ import com.bookmark.core.ui.components.SecondaryButton
 import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.Dimens
+import com.bookmark.core.ui.theme.glass
 import com.bookmark.core.ui.theme.parseCategoryColor
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -151,26 +164,22 @@ fun AddEditBookmarkSheet(
                 modifier = Modifier.padding(top = 10.dp),
             )
 
-            Row(
-                modifier = Modifier.padding(top = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                ThumbnailPicker(
-                    state = state,
-                    onSelectCandidate = onSelectThumbnailCandidate,
-                    onPickLocal = onPickLocalThumbnail,
-                    onRemove = onRemoveThumbnail,
-                    onRetry = onRetryLivePreview,
-                    modifier = Modifier.weight(1f),
-                )
-                CategoryPicker(
-                    categories = state.categories,
-                    selectedId = state.categoryId,
-                    onSelect = onCategoryChange,
-                    onCreate = onCreateCategory,
-                    modifier = Modifier.weight(1f),
-                )
-            }
+            CategorySelector(
+                categories = state.categories,
+                selectedId = state.categoryId,
+                onSelect = onCategoryChange,
+                onCreate = onCreateCategory,
+                modifier = Modifier.padding(top = 18.dp),
+            )
+
+            ThumbnailPicker(
+                state = state,
+                onSelectCandidate = onSelectThumbnailCandidate,
+                onPickLocal = onPickLocalThumbnail,
+                onRemove = onRemoveThumbnail,
+                onRetry = onRetryLivePreview,
+                modifier = Modifier.padding(top = 14.dp).fillMaxWidth(),
+            )
 
             Row(
                 modifier = Modifier.padding(top = 20.dp),
@@ -198,16 +207,15 @@ private fun ClipboardChip(
     Row(
         modifier = modifier
             .heightIn(min = Dimens.chipHeight)
-            .clip(BookmarkShapes.chip)
-            .background(MaterialTheme.colorScheme.secondaryContainer)
-            .padding(start = 12.dp, end = 6.dp),
+            .glass(BookmarkShapes.chip)
+            .padding(start = 14.dp, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
             text = "From clipboard · ${url.removePrefix("https://").removePrefix("http://").take(28)}…",
             style = BookmarkTheme.text.rowSubtitle,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
@@ -217,7 +225,7 @@ private fun ClipboardChip(
         Icon(
             imageVector = Icons.Outlined.Close,
             contentDescription = "Dismiss clipboard suggestion",
-            tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
                 .size(18.dp)
                 .clickable(onClick = onDismiss),
@@ -236,8 +244,7 @@ private fun OutlinedPicker(
     Row(
         modifier = modifier
             .heightIn(min = Dimens.secondaryButtonHeight)
-            .clip(BookmarkShapes.field)
-            .border(1.dp, MaterialTheme.colorScheme.outline, BookmarkShapes.field)
+            .glass(BookmarkShapes.field)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -358,71 +365,130 @@ private fun ThumbnailPicker(
     }
 }
 
-/** Category dropdown with the inline "New category" the spec asks for (5.2). */
+/**
+ * Category selection (spec 5.2), laid out as chips instead of a dropdown: every
+ * category is visible and one tap away, and "New" opens an inline creator
+ * right beneath the chips. The new category is selected as soon as it exists.
+ */
+@OptIn(ExperimentalLayoutApi::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-private fun CategoryPicker(
+private fun CategorySelector(
     categories: List<Category>,
     selectedId: String,
     onSelect: (String) -> Unit,
     onCreate: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var expanded by remember { mutableStateOf(false) }
     var creating by remember { mutableStateOf(false) }
     var newName by remember { mutableStateOf("") }
-    val selected = categories.firstOrNull { it.id == selectedId }
+    val focusRequester = remember { FocusRequester() }
+    val bringIntoView = remember { BringIntoViewRequester() }
+    val previousCount = remember { mutableStateOf(categories.size) }
 
-    Box(modifier = modifier) {
-        OutlinedPicker(
-            label = selected?.name ?: "Category",
-            onClick = { expanded = true },
-            leadingDotColor = parseCategoryColor(selected?.colorHex),
-            modifier = Modifier.fillMaxWidth(),
+    // The creator closes itself once the new category lands in the list.
+    LaunchedEffect(categories.size) {
+        if (categories.size > previousCount.value) {
+            creating = false
+            newName = ""
+        }
+        previousCount.value = categories.size
+    }
+    LaunchedEffect(creating) {
+        if (creating) {
+            focusRequester.requestFocus()
+            // Wait for the keyboard, then keep the whole creator above it.
+            delay(350)
+            bringIntoView.bringIntoView()
+        }
+    }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = "Category",
+            style = BookmarkTheme.text.fieldLabel,
+            color = BookmarkTheme.colors.monoLabel,
+            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
         )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             categories.forEach { category ->
-                DropdownMenuItem(
-                    text = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            CategoryDot(parseCategoryColor(category.colorHex), size = 8.dp)
-                            Text(category.name)
-                        }
-                    },
-                    onClick = {
-                        onSelect(category.id)
-                        expanded = false
-                    },
+                CategoryChip(
+                    label = category.name,
+                    selected = category.id == selectedId,
+                    onClick = { onSelect(category.id) },
+                    dotColor = parseCategoryColor(category.colorHex),
+                    height = 36.dp,
                 )
             }
-            if (creating) {
-                Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
-                    OutlinedField(
-                        label = "New category",
-                        value = newName,
-                        onValueChange = { newName = it },
-                        maxLength = Category.NAME_MAX_LENGTH,
-                        imeAction = ImeAction.Done,
-                        modifier = Modifier.fillMaxWidth(),
+            Row(
+                modifier = Modifier
+                    .heightIn(min = 36.dp)
+                    .glass(BookmarkShapes.chip)
+                    .then(
+                        if (creating) {
+                            Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, BookmarkShapes.chip)
+                        } else {
+                            Modifier
+                        },
+                    )
+                    .clickable { creating = !creating }
+                    .padding(start = 11.dp, end = 15.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Add,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = "New",
+                    style = BookmarkTheme.text.chipLabel,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+
+        AnimatedVisibility(visible = creating) {
+            Column(
+                modifier = Modifier
+                    .padding(top = 12.dp)
+                    .bringIntoViewRequester(bringIntoView),
+            ) {
+                OutlinedField(
+                    label = "New category name",
+                    value = newName,
+                    onValueChange = { newName = it },
+                    maxLength = Category.NAME_MAX_LENGTH,
+                    showCounter = true,
+                    imeAction = ImeAction.Done,
+                    onImeAction = { if (newName.isNotBlank()) onCreate(newName.trim()) },
+                    modifier = Modifier.focusRequester(focusRequester),
+                )
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(top = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    TextActionButton(
+                        text = "Cancel",
+                        onClick = {
+                            creating = false
+                            newName = ""
+                        },
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    PrimaryButton(
+                        text = "Create & select",
+                        onClick = { onCreate(newName.trim()) },
+                        enabled = newName.isNotBlank(),
+                        height = 44.dp,
                     )
                 }
-                DropdownMenuItem(
-                    text = { Text("Create \"${newName.trim()}\"") },
-                    enabled = newName.isNotBlank(),
-                    onClick = {
-                        onCreate(newName.trim())
-                        newName = ""
-                        creating = false
-                        expanded = false
-                    },
-                )
-            } else {
-                DropdownMenuItem(
-                    text = { Text("＋ New category") },
-                    onClick = { creating = true },
-                )
             }
         }
     }

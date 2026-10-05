@@ -13,50 +13,47 @@ import androidx.compose.ui.unit.sp
 import com.bookmark.R
 
 /**
- * DM Sans ships as a single variable font, so each weight is the same file with
- * a different `wght` axis value rather than three separate TTFs.
+ * Aurora's three voices, each a single variable font so weights are `wght`
+ * axis values rather than separate files: Bricolage Grotesque for display
+ * (titles, card headlines), Instrument Sans for text, Geist Mono for counters
+ * and labels.
  */
-val DmSans = FontFamily(
-    Font(
-        R.font.dm_sans,
-        weight = FontWeight.Normal,
-        variationSettings = FontVariation.Settings(FontVariation.weight(400)),
-    ),
-    Font(
-        R.font.dm_sans,
-        weight = FontWeight.Medium,
-        variationSettings = FontVariation.Settings(FontVariation.weight(500)),
-    ),
-    Font(
-        R.font.dm_sans,
-        weight = FontWeight.Bold,
-        variationSettings = FontVariation.Settings(FontVariation.weight(700)),
-    ),
+val Bricolage = FontFamily(
+    Font(R.font.bricolage_grotesque, FontWeight.Medium, variationSettings = FontVariation.Settings(FontVariation.weight(500))),
+    Font(R.font.bricolage_grotesque, FontWeight.SemiBold, variationSettings = FontVariation.Settings(FontVariation.weight(600))),
+    Font(R.font.bricolage_grotesque, FontWeight.Bold, variationSettings = FontVariation.Settings(FontVariation.weight(700))),
 )
 
-val PlexMono = FontFamily(
-    Font(R.font.ibm_plex_mono_regular, FontWeight.Normal),
-    Font(R.font.ibm_plex_mono_medium, FontWeight.Medium),
+val InstrumentSans = FontFamily(
+    Font(R.font.instrument_sans, FontWeight.Normal, variationSettings = FontVariation.Settings(FontVariation.weight(400))),
+    Font(R.font.instrument_sans, FontWeight.Medium, variationSettings = FontVariation.Settings(FontVariation.weight(500))),
+    Font(R.font.instrument_sans, FontWeight.SemiBold, variationSettings = FontVariation.Settings(FontVariation.weight(600))),
+    Font(R.font.instrument_sans, FontWeight.Bold, variationSettings = FontVariation.Settings(FontVariation.weight(700))),
+)
+
+val GeistMono = FontFamily(
+    Font(R.font.geist_mono, FontWeight.Normal, variationSettings = FontVariation.Settings(FontVariation.weight(400))),
+    Font(R.font.geist_mono, FontWeight.Medium, variationSettings = FontVariation.Settings(FontVariation.weight(500))),
 )
 
 /** Baseline M3 scale, re-cut in DM Sans. Used by stock Material components. */
 val BookmarkTypography: Typography = Typography().run {
     copy(
-        displayLarge = displayLarge.copy(fontFamily = DmSans),
-        displayMedium = displayMedium.copy(fontFamily = DmSans),
-        displaySmall = displaySmall.copy(fontFamily = DmSans),
-        headlineLarge = headlineLarge.copy(fontFamily = DmSans),
-        headlineMedium = headlineMedium.copy(fontFamily = DmSans),
-        headlineSmall = headlineSmall.copy(fontFamily = DmSans),
-        titleLarge = titleLarge.copy(fontFamily = DmSans),
-        titleMedium = titleMedium.copy(fontFamily = DmSans),
-        titleSmall = titleSmall.copy(fontFamily = DmSans),
-        bodyLarge = bodyLarge.copy(fontFamily = DmSans),
-        bodyMedium = bodyMedium.copy(fontFamily = DmSans),
-        bodySmall = bodySmall.copy(fontFamily = DmSans),
-        labelLarge = labelLarge.copy(fontFamily = DmSans),
-        labelMedium = labelMedium.copy(fontFamily = DmSans),
-        labelSmall = labelSmall.copy(fontFamily = DmSans),
+        displayLarge = displayLarge.copy(fontFamily = Bricolage),
+        displayMedium = displayMedium.copy(fontFamily = Bricolage),
+        displaySmall = displaySmall.copy(fontFamily = Bricolage),
+        headlineLarge = headlineLarge.copy(fontFamily = Bricolage),
+        headlineMedium = headlineMedium.copy(fontFamily = Bricolage),
+        headlineSmall = headlineSmall.copy(fontFamily = Bricolage),
+        titleLarge = titleLarge.copy(fontFamily = Bricolage),
+        titleMedium = titleMedium.copy(fontFamily = InstrumentSans),
+        titleSmall = titleSmall.copy(fontFamily = InstrumentSans),
+        bodyLarge = bodyLarge.copy(fontFamily = InstrumentSans),
+        bodyMedium = bodyMedium.copy(fontFamily = InstrumentSans),
+        bodySmall = bodySmall.copy(fontFamily = InstrumentSans),
+        labelLarge = labelLarge.copy(fontFamily = InstrumentSans),
+        labelMedium = labelMedium.copy(fontFamily = InstrumentSans),
+        labelSmall = labelSmall.copy(fontFamily = InstrumentSans),
     )
 }
 
@@ -89,51 +86,52 @@ data class BookmarkTextStyles(
 
 val DesignTextStyles = BookmarkTextStyles(
     screenTitle = TextStyle(
-        fontFamily = DmSans, fontWeight = FontWeight.Medium,
-        fontSize = 23.sp, lineHeight = 28.sp, letterSpacing = (-0.01).em,
+        fontFamily = Bricolage, fontWeight = FontWeight.Bold,
+        fontSize = 30.sp, lineHeight = 34.sp, letterSpacing = (-0.012).em,
     ),
-    screenCount = TextStyle(fontFamily = DmSans, fontSize = 12.5.sp, lineHeight = 16.sp),
+    screenCount = TextStyle(fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = 13.sp, lineHeight = 16.sp),
     sheetTitle = TextStyle(
-        fontFamily = DmSans, fontWeight = FontWeight.Medium,
-        fontSize = 19.sp, lineHeight = 24.sp,
+        fontFamily = Bricolage, fontWeight = FontWeight.SemiBold,
+        fontSize = 22.sp, lineHeight = 27.sp, letterSpacing = (-0.01).em,
     ),
     dialogTitle = TextStyle(
-        fontFamily = DmSans, fontWeight = FontWeight.Medium,
-        fontSize = 20.sp, lineHeight = 26.sp,
+        fontFamily = Bricolage, fontWeight = FontWeight.SemiBold,
+        fontSize = 22.sp, lineHeight = 27.sp, letterSpacing = (-0.01).em,
     ),
     detailTitle = TextStyle(
-        fontFamily = DmSans, fontWeight = FontWeight.Medium,
-        fontSize = 21.sp, lineHeight = 27.sp,
+        fontFamily = Bricolage, fontWeight = FontWeight.SemiBold,
+        fontSize = 23.sp, lineHeight = 29.sp, letterSpacing = (-0.01).em,
     ),
     emptyTitle = TextStyle(
-        fontFamily = DmSans, fontWeight = FontWeight.Medium,
-        fontSize = 20.sp, lineHeight = 26.sp,
+        fontFamily = Bricolage, fontWeight = FontWeight.Bold,
+        fontSize = 26.sp, lineHeight = 31.sp, letterSpacing = (-0.012).em,
     ),
     cardTitle = TextStyle(
-        fontFamily = DmSans, fontWeight = FontWeight.Medium,
-        fontSize = 14.5.sp, lineHeight = 19.sp,
+        fontFamily = Bricolage, fontWeight = FontWeight.SemiBold,
+        fontSize = 15.sp, lineHeight = 19.sp, letterSpacing = 0.em,
     ),
-    cardDescription = TextStyle(fontFamily = DmSans, fontSize = 12.5.sp, lineHeight = 17.sp),
-    siteLine = TextStyle(fontFamily = DmSans, fontSize = 11.5.sp, lineHeight = 15.sp),
-    chipLabel = TextStyle(fontFamily = DmSans, fontSize = 14.sp, lineHeight = 18.sp),
+    cardDescription = TextStyle(fontFamily = InstrumentSans, fontSize = 13.sp, lineHeight = 18.sp),
+    siteLine = TextStyle(fontFamily = InstrumentSans, fontSize = 12.5.sp, lineHeight = 16.sp),
+    chipLabel = TextStyle(fontFamily = InstrumentSans, fontWeight = FontWeight.Medium, fontSize = 14.sp, lineHeight = 18.sp),
     fieldLabel = TextStyle(
-        fontFamily = DmSans, fontWeight = FontWeight.Medium,
-        fontSize = 10.5.sp, lineHeight = 14.sp,
+        fontFamily = InstrumentSans, fontWeight = FontWeight.Medium,
+        fontSize = 11.sp, lineHeight = 14.sp, letterSpacing = 0.02.em,
     ),
-    fieldValue = TextStyle(fontFamily = DmSans, fontSize = 15.sp, lineHeight = 20.sp),
-    rowTitle = TextStyle(fontFamily = DmSans, fontSize = 15.sp, lineHeight = 20.sp),
-    rowSubtitle = TextStyle(fontFamily = DmSans, fontSize = 12.sp, lineHeight = 17.sp),
+    fieldValue = TextStyle(fontFamily = InstrumentSans, fontSize = 15.5.sp, lineHeight = 21.sp),
+    rowTitle = TextStyle(fontFamily = InstrumentSans, fontWeight = FontWeight.Medium, fontSize = 15.5.sp, lineHeight = 21.sp),
+    rowSubtitle = TextStyle(fontFamily = InstrumentSans, fontSize = 12.5.sp, lineHeight = 17.sp),
     buttonLabel = TextStyle(
-        fontFamily = DmSans, fontWeight = FontWeight.Medium,
-        fontSize = 14.5.sp, lineHeight = 19.sp,
+        fontFamily = InstrumentSans, fontWeight = FontWeight.SemiBold,
+        fontSize = 15.sp, lineHeight = 20.sp,
     ),
     monoSection = TextStyle(
-        fontFamily = PlexMono, fontWeight = FontWeight.Medium,
-        fontSize = 10.sp, lineHeight = 14.sp, letterSpacing = 0.1.em,
+        fontFamily = GeistMono, fontWeight = FontWeight.Medium,
+        fontSize = 11.sp, lineHeight = 15.sp, letterSpacing = 0.08.em,
     ),
-    monoCounter = TextStyle(fontFamily = PlexMono, fontSize = 9.5.sp, lineHeight = 13.sp),
+    monoCounter = TextStyle(fontFamily = GeistMono, fontSize = 11.sp, lineHeight = 14.sp),
     monoCaption = TextStyle(
-        fontFamily = PlexMono, fontSize = 10.sp, lineHeight = 14.sp, letterSpacing = 0.08.em,
+        fontFamily = GeistMono, fontWeight = FontWeight.Medium,
+        fontSize = 12.sp, lineHeight = 16.sp,
     ),
 )
 

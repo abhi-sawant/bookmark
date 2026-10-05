@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -20,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.theme.BookmarkTheme
+import com.bookmark.core.ui.theme.glass
 import com.bookmark.core.ui.theme.Dimens
 
 /**
@@ -43,12 +43,7 @@ fun PreviewCard(
     /** A candidate URL or local `Uri` to preview before anything is saved -- see [ThumbnailSurface]. */
     previewModel: Any? = null,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = BookmarkShapes.previewCard,
-        color = BookmarkTheme.colors.cardSurface,
-        shadowElevation = 1.dp,
-    ) {
+    Box(modifier = modifier.fillMaxWidth().glass(BookmarkShapes.previewCard)) {
         Row(
             modifier = Modifier.padding(12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),

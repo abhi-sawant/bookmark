@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,6 +36,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.theme.BookmarkTheme
+import com.bookmark.core.ui.theme.accentFill
+import com.bookmark.core.ui.theme.glass
 import com.bookmark.core.ui.theme.Dimens
 
 /**
@@ -57,21 +60,22 @@ fun OutlinedField(
     keyboardType: KeyboardType = KeyboardType.Text,
     imeAction: ImeAction = ImeAction.Next,
     visualTransformation: VisualTransformation = VisualTransformation.None,
+    onImeAction: (() -> Unit)? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
-    val borderColor = if (focused) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.outline
-    }
-
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(BookmarkShapes.field)
-            .border(1.dp, borderColor, BookmarkShapes.field)
-            .padding(horizontal = 13.dp, vertical = 9.dp),
+            .glass(BookmarkShapes.field)
+            .then(
+                if (focused) {
+                    Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, BookmarkShapes.field)
+                } else {
+                    Modifier
+                },
+            )
+            .padding(horizontal = 16.dp, vertical = 10.dp),
     ) {
         Text(
             text = label,
@@ -110,6 +114,9 @@ fun OutlinedField(
                         keyboardType = keyboardType,
                         imeAction = imeAction,
                     ),
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                        onAny = { onImeAction?.invoke() },
+                    ),
                     visualTransformation = visualTransformation,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -126,7 +133,7 @@ fun OutlinedField(
     }
 }
 
-/** Filled action button: 52dp tall, 16dp radius. */
+/** Filled action button: a pill on the brand gradient. */
 @Composable
 fun PrimaryButton(
     text: String,
@@ -138,23 +145,25 @@ fun PrimaryButton(
     Box(
         modifier = modifier
             .heightIn(min = height)
-            .clip(BookmarkShapes.primaryButton)
-            .background(
+            .then(
                 if (enabled) {
-                    MaterialTheme.colorScheme.primary
+                    Modifier
+                        .accentFill(BookmarkShapes.primaryButton)
                 } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                    Modifier
+                        .clip(BookmarkShapes.primaryButton)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
                 },
             )
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 22.dp),
+            .padding(horizontal = 26.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = text,
             style = BookmarkTheme.text.buttonLabel,
             color = if (enabled) {
-                MaterialTheme.colorScheme.onPrimary
+                BookmarkTheme.colors.onAccent
             } else {
                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
             },
@@ -162,7 +171,7 @@ fun PrimaryButton(
     }
 }
 
-/** Outlined action button, same metrics, primary-coloured label. */
+/** Frosted pill button, same metrics, ink label. */
 @Composable
 fun SecondaryButton(
     text: String,
@@ -173,16 +182,15 @@ fun SecondaryButton(
     Box(
         modifier = modifier
             .heightIn(min = height)
-            .clip(BookmarkShapes.primaryButton)
-            .border(1.dp, MaterialTheme.colorScheme.outline, BookmarkShapes.primaryButton)
+            .glass(BookmarkShapes.primaryButton)
             .clickable(onClick = onClick)
-            .padding(horizontal = 22.dp),
+            .padding(horizontal = 26.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = text,
             style = BookmarkTheme.text.buttonLabel,
-            color = MaterialTheme.colorScheme.primary,
+            color = MaterialTheme.colorScheme.onSurface,
         )
     }
 }
@@ -223,17 +231,11 @@ fun DesignSwitch(
     modifier: Modifier = Modifier,
     interactive: Boolean = true,
 ) {
+    val track = RoundedCornerShape(16.dp)
     Box(
         modifier = modifier
             .size(width = 52.dp, height = 32.dp)
-            .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
-            .background(
-                if (checked) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant
-                },
-            )
+            .then(if (checked) Modifier.accentFill(track) else Modifier.glass(track))
             .then(
                 if (interactive) {
                     Modifier.toggleable(

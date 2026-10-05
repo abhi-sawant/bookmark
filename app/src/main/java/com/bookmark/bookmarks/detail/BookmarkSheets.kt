@@ -67,6 +67,8 @@ import com.bookmark.core.ui.components.ThumbnailSharedElementKey
 import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.Dimens
+import com.bookmark.core.ui.theme.accentFill
+import com.bookmark.core.ui.theme.glass
 import com.bookmark.core.ui.theme.parseCategoryColor
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -277,6 +279,13 @@ fun BookmarkDetailSheet(
                     .fillMaxWidth()
                     .clip(BookmarkShapes.sheet)
                     .background(MaterialTheme.colorScheme.surface)
+                    .border(
+                        1.dp,
+                        Brush.verticalGradient(
+                            listOf(BookmarkTheme.colors.glassEdgeTop, Color.Transparent),
+                        ),
+                        BookmarkShapes.sheet,
+                    )
                     // Swallows taps so they don't fall through to the scrim below.
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
@@ -318,7 +327,7 @@ fun BookmarkDetailSheet(
                             .height(56.dp)
                             .background(
                                 Brush.verticalGradient(
-                                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.28f)),
+                                    listOf(Color.Transparent, MaterialTheme.colorScheme.surface),
                                 ),
                             ),
                     )
@@ -413,8 +422,7 @@ private fun IconAction(
     Box(
         modifier = Modifier
             .size(50.dp)
-            .clip(BookmarkShapes.primaryButton)
-            .border(1.dp, MaterialTheme.colorScheme.outline, BookmarkShapes.primaryButton)
+            .glass(BookmarkShapes.primaryButton)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -456,8 +464,7 @@ private fun FailureCard(
             modifier = Modifier
                 .padding(top = 11.dp)
                 .heightIn(min = 34.dp)
-                .clip(BookmarkShapes.smallButton)
-                .background(MaterialTheme.colorScheme.primary)
+                .accentFill(BookmarkShapes.smallButton)
                 .clickable(onClick = onRetry)
                 .padding(horizontal = 15.dp),
             contentAlignment = Alignment.Center,
@@ -465,7 +472,7 @@ private fun FailureCard(
             Text(
                 text = "Retry fetch",
                 style = BookmarkTheme.text.rowSubtitle,
-                color = MaterialTheme.colorScheme.onPrimary,
+                color = BookmarkTheme.colors.onAccent,
             )
         }
     }

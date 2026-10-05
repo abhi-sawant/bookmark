@@ -40,6 +40,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.theme.BookmarkTheme
+import com.bookmark.core.ui.theme.accentFill
+import com.bookmark.core.ui.theme.glass
+import androidx.compose.foundation.layout.Arrangement
 
 /** The 32x4 grabber at the top of every bottom sheet. */
 @Composable
@@ -49,7 +52,7 @@ fun SheetHandle(modifier: Modifier = Modifier) {
             .padding(vertical = 10.dp)
             .size(width = 32.dp, height = 4.dp)
             .clip(RoundedCornerShape(2.dp))
-            .background(MaterialTheme.colorScheme.outline),
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.28f)),
     )
 }
 
@@ -76,7 +79,7 @@ fun PendingPill(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .heightIn(min = 22.dp)
-            .clip(RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(percent = 50))
             .background(BookmarkTheme.colors.pendingPillContainer)
             .padding(horizontal = 9.dp),
         contentAlignment = Alignment.Center,
@@ -131,7 +134,7 @@ fun SkeletonLine(modifier: Modifier = Modifier) {
 
 /**
  * The two- and three-way segmented controls in Settings and the import sheet:
- * a single outlined container with hairline dividers, not individual buttons.
+ * a glass trough with the chosen option lifted onto the brand gradient.
  */
 @Composable
 fun SegmentedControl(
@@ -139,39 +142,26 @@ fun SegmentedControl(
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    height: androidx.compose.ui.unit.Dp = 38.dp,
+    height: androidx.compose.ui.unit.Dp = 44.dp,
 ) {
+    val troughShape = RoundedCornerShape(18.dp)
+    val segmentShape = RoundedCornerShape(14.dp)
     Row(
-        // IntrinsicSize.Min alongside heightIn(min=) lets the row (and its
-        // fillMaxHeight/fillMaxSize children below) grow past `height` at
-        // large font scale instead of a fixed height clipping the text --
-        // a plain heightIn() here would hand those children an unbounded
-        // max-height constraint and crash.
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = height)
-            .height(IntrinsicSize.Min)
-            .clip(BookmarkShapes.field)
-            .border(1.dp, MaterialTheme.colorScheme.outline, BookmarkShapes.field),
+            .glass(troughShape)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         options.forEachIndexed { index, label ->
             val selected = index == selectedIndex
-            if (index > 0) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(1.dp)
-                        .background(MaterialTheme.colorScheme.outline),
-                )
-            }
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxSize()
-                    .background(
-                        if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-                    )
-                    .clickable { onSelect(index) },
+                    .heightIn(min = height - 8.dp)
+                    .then(if (selected) Modifier.accentFill(segmentShape) else Modifier.clip(segmentShape))
+                    .clickable { onSelect(index) }
+                    .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -179,9 +169,9 @@ fun SegmentedControl(
                     style = BookmarkTheme.text.chipLabel,
                     textAlign = TextAlign.Center,
                     color = if (selected) {
-                        MaterialTheme.colorScheme.onSecondaryContainer
+                        BookmarkTheme.colors.onAccent
                     } else {
-                        MaterialTheme.colorScheme.onSurface
+                        MaterialTheme.colorScheme.onSurfaceVariant
                     },
                 )
             }
@@ -189,7 +179,7 @@ fun SegmentedControl(
     }
 }
 
-/** Uppercase IBM Plex Mono section label, as used across Settings. */
+/** Uppercase Geist Mono section label, as used across Settings. */
 @Composable
 fun MonoSectionHeader(text: String, modifier: Modifier = Modifier) {
     Text(
@@ -206,14 +196,12 @@ fun MonoSectionHeader(text: String, modifier: Modifier = Modifier) {
  */
 @Composable
 fun SettingsGroup(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = BookmarkShapes.settingsGroup,
-        color = BookmarkTheme.colors.cardSurface,
-        shadowElevation = 1.dp,
-    ) {
-        Column(content = content)
-    }
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .glass(BookmarkShapes.settingsGroup),
+        content = content,
+    )
 }
 
 /** Hairline divider between rows inside a [SettingsGroup]. */

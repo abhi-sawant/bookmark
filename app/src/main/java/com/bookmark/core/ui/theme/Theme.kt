@@ -28,40 +28,36 @@ fun BookmarkTheme(
     }
     val context = LocalContext.current
 
-    // Dynamic colour is on by default (spec 10); the hand-picked palette from the
-    // design is the fallback, and the only thing shown below Android 12.
+    // Aurora owns the surfaces, glass and light. Dynamic colour (when the user
+    // turns it on) only re-tints the accent roles from the wallpaper, so the
+    // look holds while the primary/secondary/tertiary follow the system.
     val supportsDynamic = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val useDynamic = dynamicColor && supportsDynamic
 
-    // True black wins over dynamic colour: OLED power-saving is a deliberate,
-    // strong preference, so the surface family always collapses to pure black
-    // when both are on. Dynamic's wallpaper-derived accent roles (primary/
-    // secondary/tertiary and their containers) are kept on top of that, rather
-    // than losing them entirely to the hand-picked TrueBlackColors accents.
-    val scheme = when {
-        dark && trueBlack && useDynamic -> {
-            val dynamic = dynamicDarkColorScheme(context)
-            TrueBlackColors.copy(
-                primary = dynamic.primary,
-                onPrimary = dynamic.onPrimary,
-                primaryContainer = dynamic.primaryContainer,
-                onPrimaryContainer = dynamic.onPrimaryContainer,
-                inversePrimary = dynamic.inversePrimary,
-                secondary = dynamic.secondary,
-                onSecondary = dynamic.onSecondary,
-                secondaryContainer = dynamic.secondaryContainer,
-                onSecondaryContainer = dynamic.onSecondaryContainer,
-                tertiary = dynamic.tertiary,
-                onTertiary = dynamic.onTertiary,
-                tertiaryContainer = dynamic.tertiaryContainer,
-                onTertiaryContainer = dynamic.onTertiaryContainer,
-            )
-        }
+    val base = when {
         dark && trueBlack -> TrueBlackColors
-        dark && useDynamic -> dynamicDarkColorScheme(context)
-        useDynamic -> dynamicLightColorScheme(context)
         dark -> DarkColors
         else -> LightColors
+    }
+    val scheme = if (useDynamic) {
+        val dynamic = if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        base.copy(
+            primary = dynamic.primary,
+            onPrimary = dynamic.onPrimary,
+            primaryContainer = dynamic.primaryContainer,
+            onPrimaryContainer = dynamic.onPrimaryContainer,
+            inversePrimary = dynamic.inversePrimary,
+            secondary = dynamic.secondary,
+            onSecondary = dynamic.onSecondary,
+            secondaryContainer = dynamic.secondaryContainer,
+            onSecondaryContainer = dynamic.onSecondaryContainer,
+            tertiary = dynamic.tertiary,
+            onTertiary = dynamic.onTertiary,
+            tertiaryContainer = dynamic.tertiaryContainer,
+            onTertiaryContainer = dynamic.onTertiaryContainer,
+        )
+    } else {
+        base
     }
 
     // The app theme can disagree with the system one (the user picks Light/Dark

@@ -5,6 +5,10 @@ import android.text.format.DateUtils
 import android.text.format.Formatter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -83,7 +87,7 @@ fun SettingsScreen(
                 .padding(bottom = 120.dp),
         ) {
             MonoSectionHeader("Sync", modifier = Modifier.padding(top = 8.dp))
-            SettingsGroup(modifier = Modifier.padding(horizontal = 14.dp)) {
+            SettingsGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
                 when (authState) {
                     AuthState.SignedOut -> SettingsRow(
                         leadingIcon = Icons.Outlined.Sync,
@@ -116,7 +120,7 @@ fun SettingsScreen(
             }
 
             MonoSectionHeader("Backup")
-            SettingsGroup(modifier = Modifier.padding(horizontal = 14.dp)) {
+            SettingsGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
                 SettingsRow(
                     leadingIcon = Icons.Outlined.FileDownload,
                     title = "Export backup",
@@ -137,7 +141,7 @@ fun SettingsScreen(
             }
 
             MonoSectionHeader("Previews")
-            SettingsGroup(modifier = Modifier.padding(horizontal = 14.dp)) {
+            SettingsGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
                 SettingsRow(
                     title = "Fetch link previews automatically",
                     subtitle = "Requests go straight to the saved site, which sees your IP. " +
@@ -163,7 +167,7 @@ fun SettingsScreen(
             }
 
             MonoSectionHeader("Appearance")
-            SettingsGroup(modifier = Modifier.padding(horizontal = 14.dp)) {
+            SettingsGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
                     Text(
                         text = "Theme",
@@ -181,7 +185,7 @@ fun SettingsScreen(
                 SettingsRow(
                     title = "Dynamic colour",
                     subtitle = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        "Follow the wallpaper palette"
+                        "Tint accents from your wallpaper"
                     } else {
                         "Needs Android 12 or newer"
                     },
@@ -250,11 +254,20 @@ private fun SettingsRow(
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         if (leadingIcon != null) {
-            Icon(
-                imageVector = leadingIcon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary.copy(alpha = alpha),
-            )
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = leadingIcon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = alpha),
+                    modifier = Modifier.size(22.dp),
+                )
+            }
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(

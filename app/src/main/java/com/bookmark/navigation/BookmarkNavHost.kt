@@ -10,6 +10,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -52,6 +59,7 @@ import com.bookmark.core.model.Bookmark
 import com.bookmark.core.model.Category
 import com.bookmark.core.model.MetadataState
 import com.bookmark.core.ui.components.BookmarkBottomBar
+import com.bookmark.core.ui.theme.AuroraBackground
 import com.bookmark.core.ui.components.BottomDestination
 import com.bookmark.core.ui.motion.rememberReducedMotionEnabled
 import com.bookmark.core.util.LinkActions
@@ -206,11 +214,13 @@ fun BookmarkNavHost() {
     // keep this available (see HANDOVER.md). Wraps everything below so the
     // scope is available to both the grid (inside NavHost) and the sheets
     // (in the `when` blocks after it).
+    AuroraBackground(modifier = Modifier.fillMaxSize()) {
     SharedTransitionLayout(modifier = Modifier.fillMaxSize()) {
         val sharedTransitionScope = this
         val openDetailBookmarkId = (sheet as? SheetState.Detail)?.bookmark?.id
 
     Scaffold(
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             if (!onSearchRoute) {
@@ -239,7 +249,21 @@ fun BookmarkNavHost() {
             startDestination = HomeRoute,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                // Content dissolves into the floating bar instead of being cut off.
+                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                .drawWithContent {
+                    drawContent()
+                    val fade = 28.dp.toPx()
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(Color.Black, Color.Transparent),
+                            startY = size.height - fade,
+                            endY = size.height,
+                        ),
+                        blendMode = BlendMode.DstIn,
+                    )
+                },
             // No animated transition between destinations (tabs, Search) --
             // the switch is instant rather than a slide/fade.
             enterTransition = { EnterTransition.None },
@@ -530,6 +554,7 @@ fun BookmarkNavHost() {
             onDismiss = categoriesViewModel::dismissDialog,
             onConfirm = { strategy -> categoriesViewModel.delete(dialog.category, strategy) },
         )
+    }
     }
     }
 }

@@ -45,7 +45,9 @@ import com.bookmark.core.model.Bookmark
 import com.bookmark.core.ui.components.BookmarkThumbnail
 import com.bookmark.core.ui.components.CategoryFilterRow
 import com.bookmark.core.ui.theme.BookmarkShapes
+import com.bookmark.core.ui.components.GlassIconButton
 import com.bookmark.core.ui.theme.BookmarkTheme
+import com.bookmark.core.ui.theme.glass
 
 @Composable
 fun SearchScreen(
@@ -70,12 +72,16 @@ fun SearchScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 8.dp, top = 8.dp, end = 16.dp, bottom = 12.dp),
+                .padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            GlassIconButton(onClick = onBack) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
             }
             SearchField(
                 value = state.query,
@@ -122,12 +128,12 @@ fun SearchScreen(
                             (state.elapsedMs?.let { " · ${it}ms" } ?: ""),
                         style = BookmarkTheme.text.monoCaption,
                         color = BookmarkTheme.colors.monoLabel,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
                     )
                 }
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 24.dp),
+                    contentPadding = PaddingValues(bottom = 24.dp, top = 4.dp),
                 ) {
                     items(state.results, key = { it.id }, contentType = { "searchResultRow" }) { bookmark ->
                         SearchResultRow(
@@ -156,10 +162,9 @@ private fun SearchField(
 ) {
     Box(
         modifier = modifier
-            .heightIn(min = 44.dp)
-            .clip(RoundedCornerShape(22.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .padding(horizontal = 16.dp),
+            .heightIn(min = 46.dp)
+            .glass(RoundedCornerShape(percent = 50))
+            .padding(horizontal = 18.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
         if (value.isEmpty()) {
@@ -200,13 +205,15 @@ private fun SearchResultRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 5.dp)
+            .glass(RoundedCornerShape(22.dp))
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,
                 onClickLabel = "Open ${bookmark.title}",
                 onLongClickLabel = "Bookmark actions",
             )
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(9.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -222,7 +229,7 @@ private fun SearchResultRow(
                 text = highlightedText(
                     text = bookmark.title,
                     ranges = findHighlightRanges(bookmark.title, queryTerms),
-                    highlightColor = MaterialTheme.colorScheme.secondaryContainer,
+                    highlightColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.38f),
                 ),
                 style = BookmarkTheme.text.cardTitle,
                 color = MaterialTheme.colorScheme.onSurface,

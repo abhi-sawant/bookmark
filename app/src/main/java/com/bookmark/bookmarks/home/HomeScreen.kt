@@ -2,7 +2,9 @@ package com.bookmark.bookmarks.home
 
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +22,9 @@ import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material3.Icon
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +37,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -45,6 +55,8 @@ import com.bookmark.core.ui.components.PrimaryButton
 import com.bookmark.core.ui.components.ScreenHeader
 import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.Dimens
+import com.bookmark.core.ui.theme.accentFill
+import com.bookmark.core.ui.theme.glass
 
 /**
  * Stable UiAutomator selectors for the :macrobenchmark module (M6), which
@@ -116,12 +128,27 @@ fun HomeScreen(
                         onSelect = onSelectCategory,
                         modifier = Modifier.weight(1f),
                     )
-                    Text(
-                        text = state.sortOrder.shortLabel,
-                        style = BookmarkTheme.text.monoCaption,
-                        color = BookmarkTheme.colors.monoLabel,
-                        modifier = Modifier.padding(horizontal = 20.dp),
-                    )
+                    Row(
+                        modifier = Modifier
+                            .padding(end = 16.dp)
+                            .clip(RoundedCornerShape(percent = 50))
+                            .clickable { menuOpen = true }
+                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.SwapVert,
+                            contentDescription = "Sort order",
+                            tint = BookmarkTheme.colors.monoLabel,
+                            modifier = Modifier.size(15.dp),
+                        )
+                        Text(
+                            text = state.sortOrder.shortLabel,
+                            style = BookmarkTheme.text.monoCaption,
+                            color = BookmarkTheme.colors.monoLabel,
+                        )
+                    }
                 }
 
                 when (state.viewMode) {
@@ -237,7 +264,13 @@ private fun HomeOverflowMenu(
     onSetViewMode: (ViewMode) -> Unit,
     onSetSortOrder: (SortOrder) -> Unit,
 ) {
-    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(22.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
         DropdownMenuItem(
             text = {
                 Text(if (viewMode == ViewMode.GRID) "Switch to list" else "Switch to grid")
@@ -278,50 +311,82 @@ private fun EmptyHome(onAdd: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 40.dp, vertical = 24.dp),
+            .padding(horizontal = 44.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Box(
-            modifier = Modifier
-                .size(132.dp)
-                .clip(RoundedCornerShape(34.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-        )
+        // Three frosted tiles fanned like a stack of saved links.
+        Box(modifier = Modifier.size(width = 168.dp, height = 140.dp)) {
+            val tileShape = RoundedCornerShape(30.dp)
+            Box(
+                Modifier
+                    .size(104.dp)
+                    .align(Alignment.TopStart)
+                    .graphicsLayer { rotationZ = -12f }
+                    .glass(tileShape)
+                    .background(Brush.linearGradient(listOf(BookmarkTheme.colors.accentStart.copy(alpha = 0.5f), Color.Transparent))),
+            )
+            Box(
+                Modifier
+                    .size(104.dp)
+                    .align(Alignment.TopEnd)
+                    .padding(top = 12.dp)
+                    .graphicsLayer { rotationZ = 9f }
+                    .glass(tileShape)
+                    .background(Brush.linearGradient(listOf(BookmarkTheme.colors.accentEnd.copy(alpha = 0.45f), Color.Transparent))),
+            )
+            Box(
+                Modifier
+                    .size(104.dp)
+                    .align(Alignment.BottomCenter)
+                    .glass(tileShape, strong = true),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Link,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(36.dp),
+                )
+            }
+        }
         Text(
             text = "Nothing saved yet",
             style = BookmarkTheme.text.emptyTitle,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(top = 26.dp),
+            modifier = Modifier.padding(top = 30.dp),
         )
         Text(
             text = "Share a link to this app from anywhere — tap Share in your browser and pick Bookmarks.",
             style = BookmarkTheme.text.fieldValue,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 9.dp),
+            modifier = Modifier.padding(top = 10.dp),
         )
         PrimaryButton(
             text = "Paste a link",
             onClick = onAdd,
-            height = 48.dp,
-            modifier = Modifier.padding(top = 22.dp),
+            height = 52.dp,
+            modifier = Modifier.padding(top = 26.dp),
         )
     }
 }
 
 @Composable
 private fun AddFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    androidx.compose.material3.FloatingActionButton(
-        onClick = onClick,
-        modifier = modifier.size(Dimens.fabSize).testTag(HomeTestTags.ADD_FAB),
-        shape = com.bookmark.core.ui.theme.BookmarkShapes.fab,
-        containerColor = MaterialTheme.colorScheme.primary,
-        contentColor = MaterialTheme.colorScheme.onPrimary,
+    Box(
+        modifier = modifier
+            .size(Dimens.fabSize)
+            .testTag(HomeTestTags.ADD_FAB)
+            .shadow(18.dp, com.bookmark.core.ui.theme.BookmarkShapes.fab, ambientColor = BookmarkTheme.colors.accentStart, spotColor = BookmarkTheme.colors.accentStart)
+            .accentFill(com.bookmark.core.ui.theme.BookmarkShapes.fab)
+            .clickable(role = Role.Button, onClickLabel = "Add bookmark", onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
-        androidx.compose.material3.Icon(
+        Icon(
             imageVector = Icons.Outlined.Add,
             contentDescription = "Add bookmark",
+            tint = BookmarkTheme.colors.onAccent,
             modifier = Modifier.size(28.dp),
         )
     }

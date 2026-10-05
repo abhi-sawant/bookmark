@@ -23,12 +23,13 @@ import androidx.compose.ui.unit.dp
 import com.bookmark.core.model.CategoryWithCount
 import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.theme.BookmarkTheme
+import com.bookmark.core.ui.theme.accentFill
+import com.bookmark.core.ui.theme.glass
 import com.bookmark.core.ui.theme.Dimens
 import com.bookmark.core.ui.theme.parseCategoryColor
 
 /**
- * Filter chip, 32dp tall with an 8dp radius rather than a full pill -- the
- * design is specific about this and it reads differently from a Material chip.
+ * Filter chip: a frosted pill, or the brand gradient when selected.
  */
 @Composable
 fun CategoryChip(
@@ -40,47 +41,31 @@ fun CategoryChip(
     trailingCount: Int? = null,
     height: Dp = Dimens.chipHeight,
 ) {
+    val colors = BookmarkTheme.colors
     Row(
         modifier = modifier
             .heightIn(min = height)
-            .clip(BookmarkShapes.chip)
-            .background(
-                if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-            )
             .then(
-                if (selected) {
-                    Modifier
-                } else {
-                    Modifier.border(1.dp, MaterialTheme.colorScheme.outline, BookmarkShapes.chip)
-                },
+                if (selected) Modifier.accentFill(BookmarkShapes.chip) else Modifier.glass(BookmarkShapes.chip),
             )
             .clickable(onClick = onClick)
             .padding(horizontal = Dimens.chipHorizontalPadding)
             .semantics { stateDescription = if (selected) "Selected" else "Not selected" },
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(if (dotColor != null) 7.dp else 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (dotColor != null) 8.dp else 6.dp),
     ) {
+        val content = if (selected) colors.onAccent else MaterialTheme.colorScheme.onSurfaceVariant
         if (dotColor != null) CategoryDot(dotColor)
         Text(
             text = label,
             style = BookmarkTheme.text.chipLabel,
-            color = if (selected) {
-                MaterialTheme.colorScheme.onSecondaryContainer
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            },
+            color = content,
         )
         if (trailingCount != null) {
             Text(
                 text = trailingCount.toString(),
-                style = BookmarkTheme.text.siteLine,
-                color = (
-                    if (selected) {
-                        MaterialTheme.colorScheme.onSecondaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    }
-                    ).copy(alpha = 0.65f),
+                style = BookmarkTheme.text.monoCounter,
+                color = content.copy(alpha = 0.78f),
             )
         }
     }
