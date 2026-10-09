@@ -67,7 +67,7 @@ function validate_category_payload($raw): ?array
         return null;
     }
     $name = trim($raw['name']);
-    if ($name === '' || strlen($name) > 40) {
+    if ($name === '' || mb_strlen($name) > 40) {
         return null;
     }
     if (!is_string($raw['color_hex'] ?? null) || !preg_match('/^#[0-9A-Fa-f]{6}$/', $raw['color_hex'])) {
@@ -75,7 +75,7 @@ function validate_category_payload($raw): ?array
     }
     $iconKey = $raw['icon_key'] ?? null;
     if ($iconKey !== null) {
-        if (!is_string($iconKey) || strlen($iconKey) > 40) {
+        if (!is_string($iconKey) || mb_strlen($iconKey) > 40) {
             return null;
         }
     }
@@ -108,16 +108,16 @@ function validate_bookmark_payload($raw): ?array
     if (!is_string($raw['original_url'] ?? null) || strlen($raw['original_url']) === 0 || strlen($raw['original_url']) > 2048) {
         return null;
     }
-    if (!is_string($raw['title'] ?? null) || strlen($raw['title']) > 200) {
+    if (!is_string($raw['title'] ?? null) || mb_strlen($raw['title']) > 200) {
         return null;
     }
 
     $description = $raw['description'] ?? null;
-    if ($description !== null && (!is_string($description) || strlen($description) > 500)) {
+    if ($description !== null && (!is_string($description) || mb_strlen($description) > 500)) {
         return null;
     }
     $siteName = $raw['site_name'] ?? null;
-    if ($siteName !== null && (!is_string($siteName) || strlen($siteName) > 60)) {
+    if ($siteName !== null && (!is_string($siteName) || mb_strlen($siteName) > 60)) {
         return null;
     }
     $thumbnailUrl = $raw['thumbnail_url'] ?? null;

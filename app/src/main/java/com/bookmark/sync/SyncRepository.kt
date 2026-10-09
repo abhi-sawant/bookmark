@@ -1,5 +1,6 @@
 package com.bookmark.sync
 
+import android.util.Log
 import com.bookmark.account.data.AuthTokenStore
 import com.bookmark.account.di.ApiHttpClient
 import com.bookmark.bookmarks.data.BookmarkDao
@@ -96,6 +97,8 @@ class SyncRepository @Inject constructor(
 
         val rejectedBookmarkIds = response.bookmarks.rejected.map { it.id }.toSet()
         val rejectedCategoryIds = response.categories.rejected.map { it.id }.toSet()
+        response.bookmarks.rejected.forEach { Log.w(TAG, "Push rejected bookmark ${it.id}: ${it.reason}") }
+        response.categories.rejected.forEach { Log.w(TAG, "Push rejected category ${it.id}: ${it.reason}") }
 
         dirtyBookmarks.forEach { bookmark ->
             if (bookmark.id !in rejectedBookmarkIds) bookmarkDao.markSynced(bookmark.id, bookmark.updatedAt)
@@ -186,5 +189,9 @@ class SyncRepository @Inject constructor(
         } catch (e: Exception) {
             false
         }
+    }
+
+    private companion object {
+        const val TAG = "SyncRepository"
     }
 }
