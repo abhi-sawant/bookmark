@@ -28,9 +28,9 @@ fun BookmarkTheme(
     }
     val context = LocalContext.current
 
-    // Aurora owns the surfaces, glass and light. Dynamic colour (when the user
-    // turns it on) only re-tints the accent roles from the wallpaper, so the
-    // look holds while the primary/secondary/tertiary follow the system.
+    // Slate owns the surfaces and neutrals. Dynamic colour (when the user turns
+    // it on) only re-tints the accent roles from the wallpaper, so the look
+    // holds while the primary/secondary/tertiary follow the system.
     val supportsDynamic = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val useDynamic = dynamicColor && supportsDynamic
 
@@ -76,10 +76,21 @@ fun BookmarkTheme(
         }
     }
 
-    val bookmarkColors = when {
+    val baseColors = when {
         dark && trueBlack -> TrueBlackBookmarkColors
         dark -> DarkBookmarkColors
         else -> LightBookmarkColors
+    }
+    // The accent tokens follow the wallpaper too, not just the M3 roles.
+    val bookmarkColors = if (useDynamic) {
+        baseColors.copy(
+            accent = scheme.primary,
+            onAccent = scheme.onPrimary,
+            accentSoft = scheme.primaryContainer,
+            onAccentSoft = scheme.onPrimaryContainer,
+        )
+    } else {
+        baseColors
     }
 
     CompositionLocalProvider(

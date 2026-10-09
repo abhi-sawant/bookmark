@@ -13,47 +13,35 @@ import androidx.compose.ui.unit.sp
 import com.bookmark.R
 
 /**
- * Aurora's three voices, each a single variable font so weights are `wght`
- * axis values rather than separate files: Bricolage Grotesque for display
- * (titles, card headlines), Instrument Sans for text, Geist Mono for counters
- * and labels.
+ * Slate speaks in one voice: Hanken Grotesk, a single variable font so weights
+ * are `wght` axis values rather than separate files. Hierarchy comes from
+ * weight and size, with tight tracking on the large steps.
  */
-val Bricolage = FontFamily(
-    Font(R.font.bricolage_grotesque, FontWeight.Medium, variationSettings = FontVariation.Settings(FontVariation.weight(500))),
-    Font(R.font.bricolage_grotesque, FontWeight.SemiBold, variationSettings = FontVariation.Settings(FontVariation.weight(600))),
-    Font(R.font.bricolage_grotesque, FontWeight.Bold, variationSettings = FontVariation.Settings(FontVariation.weight(700))),
+val HankenGrotesk = FontFamily(
+    Font(R.font.hanken_grotesk, FontWeight.Normal, variationSettings = FontVariation.Settings(FontVariation.weight(400))),
+    Font(R.font.hanken_grotesk, FontWeight.Medium, variationSettings = FontVariation.Settings(FontVariation.weight(500))),
+    Font(R.font.hanken_grotesk, FontWeight.SemiBold, variationSettings = FontVariation.Settings(FontVariation.weight(600))),
+    Font(R.font.hanken_grotesk, FontWeight.Bold, variationSettings = FontVariation.Settings(FontVariation.weight(700))),
 )
 
-val InstrumentSans = FontFamily(
-    Font(R.font.instrument_sans, FontWeight.Normal, variationSettings = FontVariation.Settings(FontVariation.weight(400))),
-    Font(R.font.instrument_sans, FontWeight.Medium, variationSettings = FontVariation.Settings(FontVariation.weight(500))),
-    Font(R.font.instrument_sans, FontWeight.SemiBold, variationSettings = FontVariation.Settings(FontVariation.weight(600))),
-    Font(R.font.instrument_sans, FontWeight.Bold, variationSettings = FontVariation.Settings(FontVariation.weight(700))),
-)
-
-val GeistMono = FontFamily(
-    Font(R.font.geist_mono, FontWeight.Normal, variationSettings = FontVariation.Settings(FontVariation.weight(400))),
-    Font(R.font.geist_mono, FontWeight.Medium, variationSettings = FontVariation.Settings(FontVariation.weight(500))),
-)
-
-/** Baseline M3 scale, re-cut in DM Sans. Used by stock Material components. */
+/** Baseline M3 scale, re-cut in Hanken Grotesk. Used by stock Material components. */
 val BookmarkTypography: Typography = Typography().run {
     copy(
-        displayLarge = displayLarge.copy(fontFamily = Bricolage),
-        displayMedium = displayMedium.copy(fontFamily = Bricolage),
-        displaySmall = displaySmall.copy(fontFamily = Bricolage),
-        headlineLarge = headlineLarge.copy(fontFamily = Bricolage),
-        headlineMedium = headlineMedium.copy(fontFamily = Bricolage),
-        headlineSmall = headlineSmall.copy(fontFamily = Bricolage),
-        titleLarge = titleLarge.copy(fontFamily = Bricolage),
-        titleMedium = titleMedium.copy(fontFamily = InstrumentSans),
-        titleSmall = titleSmall.copy(fontFamily = InstrumentSans),
-        bodyLarge = bodyLarge.copy(fontFamily = InstrumentSans),
-        bodyMedium = bodyMedium.copy(fontFamily = InstrumentSans),
-        bodySmall = bodySmall.copy(fontFamily = InstrumentSans),
-        labelLarge = labelLarge.copy(fontFamily = InstrumentSans),
-        labelMedium = labelMedium.copy(fontFamily = InstrumentSans),
-        labelSmall = labelSmall.copy(fontFamily = InstrumentSans),
+        displayLarge = displayLarge.copy(fontFamily = HankenGrotesk),
+        displayMedium = displayMedium.copy(fontFamily = HankenGrotesk),
+        displaySmall = displaySmall.copy(fontFamily = HankenGrotesk),
+        headlineLarge = headlineLarge.copy(fontFamily = HankenGrotesk),
+        headlineMedium = headlineMedium.copy(fontFamily = HankenGrotesk),
+        headlineSmall = headlineSmall.copy(fontFamily = HankenGrotesk),
+        titleLarge = titleLarge.copy(fontFamily = HankenGrotesk),
+        titleMedium = titleMedium.copy(fontFamily = HankenGrotesk),
+        titleSmall = titleSmall.copy(fontFamily = HankenGrotesk),
+        bodyLarge = bodyLarge.copy(fontFamily = HankenGrotesk),
+        bodyMedium = bodyMedium.copy(fontFamily = HankenGrotesk),
+        bodySmall = bodySmall.copy(fontFamily = HankenGrotesk),
+        labelLarge = labelLarge.copy(fontFamily = HankenGrotesk),
+        labelMedium = labelMedium.copy(fontFamily = HankenGrotesk),
+        labelSmall = labelSmall.copy(fontFamily = HankenGrotesk),
     )
 }
 
@@ -79,59 +67,59 @@ data class BookmarkTextStyles(
     val rowTitle: TextStyle,
     val rowSubtitle: TextStyle,
     val buttonLabel: TextStyle,
-    val monoSection: TextStyle,
-    val monoCounter: TextStyle,
-    val monoCaption: TextStyle,
+    val sectionLabel: TextStyle,
+    val counter: TextStyle,
+    val caption: TextStyle,
 )
 
 val DesignTextStyles = BookmarkTextStyles(
     screenTitle = TextStyle(
-        fontFamily = Bricolage, fontWeight = FontWeight.Bold,
-        fontSize = 30.sp, lineHeight = 34.sp, letterSpacing = (-0.012).em,
+        fontFamily = HankenGrotesk, fontWeight = FontWeight.Bold,
+        fontSize = 30.sp, lineHeight = 34.sp, letterSpacing = (-0.04).em,
     ),
-    screenCount = TextStyle(fontFamily = GeistMono, fontWeight = FontWeight.Medium, fontSize = 13.sp, lineHeight = 16.sp),
+    screenCount = TextStyle(fontFamily = HankenGrotesk, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, lineHeight = 16.sp),
     sheetTitle = TextStyle(
-        fontFamily = Bricolage, fontWeight = FontWeight.SemiBold,
-        fontSize = 22.sp, lineHeight = 27.sp, letterSpacing = (-0.01).em,
+        fontFamily = HankenGrotesk, fontWeight = FontWeight.Bold,
+        fontSize = 22.sp, lineHeight = 27.sp, letterSpacing = (-0.03).em,
     ),
     dialogTitle = TextStyle(
-        fontFamily = Bricolage, fontWeight = FontWeight.SemiBold,
-        fontSize = 22.sp, lineHeight = 27.sp, letterSpacing = (-0.01).em,
+        fontFamily = HankenGrotesk, fontWeight = FontWeight.Bold,
+        fontSize = 22.sp, lineHeight = 27.sp, letterSpacing = (-0.03).em,
     ),
     detailTitle = TextStyle(
-        fontFamily = Bricolage, fontWeight = FontWeight.SemiBold,
-        fontSize = 23.sp, lineHeight = 29.sp, letterSpacing = (-0.01).em,
+        fontFamily = HankenGrotesk, fontWeight = FontWeight.Bold,
+        fontSize = 23.sp, lineHeight = 29.sp, letterSpacing = (-0.03).em,
     ),
     emptyTitle = TextStyle(
-        fontFamily = Bricolage, fontWeight = FontWeight.Bold,
-        fontSize = 26.sp, lineHeight = 31.sp, letterSpacing = (-0.012).em,
+        fontFamily = HankenGrotesk, fontWeight = FontWeight.Bold,
+        fontSize = 26.sp, lineHeight = 31.sp, letterSpacing = (-0.04).em,
     ),
     cardTitle = TextStyle(
-        fontFamily = Bricolage, fontWeight = FontWeight.SemiBold,
-        fontSize = 15.sp, lineHeight = 19.sp, letterSpacing = 0.em,
+        fontFamily = HankenGrotesk, fontWeight = FontWeight.SemiBold,
+        fontSize = 14.5.sp, lineHeight = 19.sp, letterSpacing = (-0.01).em,
     ),
-    cardDescription = TextStyle(fontFamily = InstrumentSans, fontSize = 13.sp, lineHeight = 18.sp),
-    siteLine = TextStyle(fontFamily = InstrumentSans, fontSize = 12.5.sp, lineHeight = 16.sp),
-    chipLabel = TextStyle(fontFamily = InstrumentSans, fontWeight = FontWeight.Medium, fontSize = 14.sp, lineHeight = 18.sp),
+    cardDescription = TextStyle(fontFamily = HankenGrotesk, fontWeight = FontWeight.Medium, fontSize = 13.sp, lineHeight = 18.sp),
+    siteLine = TextStyle(fontFamily = HankenGrotesk, fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 16.sp),
+    chipLabel = TextStyle(fontFamily = HankenGrotesk, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 18.sp),
     fieldLabel = TextStyle(
-        fontFamily = InstrumentSans, fontWeight = FontWeight.Medium,
-        fontSize = 11.sp, lineHeight = 14.sp, letterSpacing = 0.02.em,
+        fontFamily = HankenGrotesk, fontWeight = FontWeight.SemiBold,
+        fontSize = 12.sp, lineHeight = 15.sp,
     ),
-    fieldValue = TextStyle(fontFamily = InstrumentSans, fontSize = 15.5.sp, lineHeight = 21.sp),
-    rowTitle = TextStyle(fontFamily = InstrumentSans, fontWeight = FontWeight.Medium, fontSize = 15.5.sp, lineHeight = 21.sp),
-    rowSubtitle = TextStyle(fontFamily = InstrumentSans, fontSize = 12.5.sp, lineHeight = 17.sp),
+    fieldValue = TextStyle(fontFamily = HankenGrotesk, fontWeight = FontWeight.Medium, fontSize = 15.5.sp, lineHeight = 21.sp),
+    rowTitle = TextStyle(fontFamily = HankenGrotesk, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, lineHeight = 20.sp),
+    rowSubtitle = TextStyle(fontFamily = HankenGrotesk, fontWeight = FontWeight.Medium, fontSize = 12.5.sp, lineHeight = 17.sp),
     buttonLabel = TextStyle(
-        fontFamily = InstrumentSans, fontWeight = FontWeight.SemiBold,
+        fontFamily = HankenGrotesk, fontWeight = FontWeight.Bold,
         fontSize = 15.sp, lineHeight = 20.sp,
     ),
-    monoSection = TextStyle(
-        fontFamily = GeistMono, fontWeight = FontWeight.Medium,
-        fontSize = 11.sp, lineHeight = 15.sp, letterSpacing = 0.08.em,
+    sectionLabel = TextStyle(
+        fontFamily = HankenGrotesk, fontWeight = FontWeight.SemiBold,
+        fontSize = 13.sp, lineHeight = 16.sp, letterSpacing = 0.01.em,
     ),
-    monoCounter = TextStyle(fontFamily = GeistMono, fontSize = 11.sp, lineHeight = 14.sp),
-    monoCaption = TextStyle(
-        fontFamily = GeistMono, fontWeight = FontWeight.Medium,
-        fontSize = 12.sp, lineHeight = 16.sp,
+    counter = TextStyle(fontFamily = HankenGrotesk, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, lineHeight = 14.sp),
+    caption = TextStyle(
+        fontFamily = HankenGrotesk, fontWeight = FontWeight.SemiBold,
+        fontSize = 13.sp, lineHeight = 16.sp,
     ),
 )
 

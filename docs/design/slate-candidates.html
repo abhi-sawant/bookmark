@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bookmark — Redesign Candidates</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Geist:wght@400;500;600&family=Hanken+Grotesk:wght@400;500;600;700&family=Albert+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   Page chrome (review surface, not part of any candidate)
+   ============================================================ */
+:root{
+  --pg:#e4e2dc; --pg-ink:#1d1c19; --pg-mute:#6c6a63; --pg-rule:#cfccc3;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--pg);color:var(--pg-ink);font:400 15px/1.55 "Geist",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+::selection{background:#1d1c19;color:#f4f1ea}
+a{color:inherit}
+:focus-visible{outline:2px solid currentColor;outline-offset:3px;border-radius:4px}
+
+.top{position:sticky;top:0;z-index:50;background:color-mix(in oklab,var(--pg) 88%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--pg-rule)}
+.top-in{max-width:1500px;margin:0 auto;padding:14px 32px;display:flex;align-items:center;gap:28px;flex-wrap:wrap}
+.top b{font:600 15px "Geist";letter-spacing:-.01em}
+.top nav{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+.top nav a{text-decoration:none;font-weight:500;font-size:14px;padding:6px 14px;border-radius:999px;color:var(--pg-mute);transition:background .2s,color .2s}
+.top nav a:hover{background:#d6d3cb;color:var(--pg-ink)}
+
+.intro{max-width:1500px;margin:0 auto;padding:72px 32px 24px}
+.intro h1{font:500 clamp(34px,5vw,56px)/1.02 "Newsreader",serif;letter-spacing:-.02em;max-width:18ch;text-wrap:balance}
+.intro p{margin-top:18px;max-width:62ch;color:var(--pg-mute);text-wrap:pretty}
+
+.cand{max-width:1500px;margin:0 auto;padding:72px 32px 24px;border-top:1px solid var(--pg-rule);margin-top:56px;scroll-margin-top:56px}
+.cand-head{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:24px 64px;margin-bottom:44px;align-items:end}
+.cand-head h2{font-size:clamp(30px,3.6vw,44px);line-height:1.05;letter-spacing:-.02em;font-weight:500}
+.cand-head .idx{display:block;font:500 13px "Geist";color:var(--pg-mute);margin-bottom:12px}
+.cand-head p{color:var(--pg-mute);text-wrap:pretty;max-width:60ch}
+.cand-head p+p{margin-top:8px}
+.spec{display:flex;gap:18px;align-items:center;margin-top:20px;flex-wrap:wrap}
+.sw-row{display:flex;gap:0;border-radius:10px;overflow:hidden;box-shadow:0 0 0 1px #00000018}
+.sw-row i{display:block;width:34px;height:34px}
+.spec small{color:var(--pg-mute);font-size:13px}
+
+.stage{display:flex;flex-wrap:wrap;gap:48px 40px;justify-content:flex-start}
+.slot{width:390px;max-width:100%}
+.slot figcaption{font:500 13px "Geist";color:var(--pg-mute);margin-top:16px;display:flex;gap:8px;align-items:center}
+.slot figcaption i{width:8px;height:8px;border-radius:50%;display:inline-block;background:#fff;box-shadow:0 0 0 1px #0004}
+.slot figcaption i.d{background:#111}
+.pair-label{width:100%;font:500 13px "Geist";color:var(--pg-mute);margin:8px 0 -24px}
+.foot{max-width:1500px;margin:80px auto 0;padding:32px 32px 96px;border-top:1px solid var(--pg-rule);color:var(--pg-mute);font-size:14px}
+@media (max-width:900px){.cand-head{grid-template-columns:1fr}}
+
+/* ============================================================
+   Phone shell
+   ============================================================ */
+.phone{position:relative;width:390px;height:844px;border-radius:44px;overflow:hidden;background:var(--bg);color:var(--ink);
+  box-shadow:0 0 0 8px #14141a,0 0 0 9px #3a3a44,0 30px 60px -24px #0008,0 8px 20px -8px #0005;isolation:isolate;font-family:var(--ui);
+  -webkit-font-smoothing:antialiased;user-select:none}
+.phone *{-webkit-tap-highlight-color:transparent}
+.sb{position:absolute;top:0;left:0;right:0;height:46px;display:flex;align-items:center;justify-content:space-between;padding:6px 28px 0 30px;z-index:20;
+  font:600 14px var(--ui);color:var(--ink);background:linear-gradient(var(--bg) 70%,transparent)}
+.sb .r{display:flex;gap:6px;align-items:center}
+.sb svg{width:16px;height:16px}
+.gest{position:absolute;bottom:7px;left:50%;width:120px;height:4px;border-radius:4px;background:var(--ink);opacity:.5;z-index:30;transform:translateX(-50%)}
+.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding-top:46px;scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}
+.ic{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic.f{fill:currentColor;stroke:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.nowrap{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hs{display:flex;overflow-x:auto;scrollbar-width:none}
+.hs::-webkit-scrollbar{display:none}
+
+/* thumbnails: generated, deterministic — the app's own fallback tile */
+.tile{position:relative;display:grid;place-items:center;overflow:hidden;color:oklch(.98 .01 var(--h));
+  background:
+    radial-gradient(110% 90% at 18% 8%,oklch(calc(var(--tl) + .1) var(--tc) calc(var(--h) + 35)),transparent 62%),
+    linear-gradient(155deg,oklch(var(--tl) var(--tc) var(--h)),oklch(calc(var(--tl) - .09) var(--tc) calc(var(--h) - 25)))}
+.tile.v2::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(115deg,#fff1 0 2px,transparent 2px 14px)}
+.tile.v3::after{content:"";position:absolute;width:90%;aspect-ratio:1;border-radius:50%;right:-30%;bottom:-35%;background:oklch(calc(var(--tl) + .12) var(--tc) calc(var(--h) + 20) / .55)}
+.tile.v4::after{content:"";position:absolute;inset:auto 0 0 0;height:46%;background:linear-gradient(transparent,#0003)}
+.tile span{position:relative;z-index:1;font:600 var(--ms,22px)/1 var(--disp);text-shadow:0 1px 8px #0002}
+
+/* ============================================================
+   CANDIDATE 1 — PAPER
+   Warm paper, ink type, one vermilion. An editorial reading list.
+   ============================================================ */
+.c1{--ui:"Geist",system-ui,sans-serif;--disp:"Newsreader",Georgia,serif;--tc:.06;}
+.c1[data-mode=light]{--bg:#f5f1e8;--surf:#fbf9f3;--ink:#1d1a14;--mute:#766f61;--rule:#e2dbc9;--acc:#c23a16;--onacc:#fff8f3;--hov:#ece6d7;--tl:.62}
+.c1[data-mode=dark]{--bg:#161410;--surf:#1e1b15;--ink:#efe9dc;--mute:#9a9181;--rule:#2d2a21;--acc:#ff8059;--onacc:#2a0e04;--hov:#25221a;--tl:.5}
+.c1 .tile{border-radius:12px;--ms:24px}
+.c1 .hd{padding:14px 24px 0;display:flex;align-items:flex-end;justify-content:space-between}
+.c1 .hd h1{font:500 38px/1 var(--disp);letter-spacing:-.025em}
+.c1 .hd .sub{font:400 13px var(--ui);color:var(--mute);margin-top:8px}
+.c1 .ib{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;color:var(--ink);transition:background .2s}
+.c1 .ib:hover{background:var(--hov)}
+.c1 .search{margin:22px 24px 0;display:flex;align-items:center;gap:12px;height:48px;padding:0 16px;border-radius:14px;background:var(--surf);box-shadow:inset 0 0 0 1px var(--rule);color:var(--mute);font-size:15px}
+.c1 .tabs{margin-top:20px;padding:0 24px;gap:22px;border-bottom:1px solid var(--rule)}
+.c1 .tabs button{flex:none;padding:10px 0 12px;font-size:15px;color:var(--mute);position:relative;font-weight:500;transition:color .2s}
+.c1 .tabs button:hover{color:var(--ink)}
+.c1 .tabs button.on{color:var(--ink)}
+.c1 .tabs button.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--acc)}
+.c1 .bar{display:flex;align-items:center;justify-content:space-between;padding:16px 24px 4px;font-size:13px;color:var(--mute)}
+.c1 .bar .sort{display:flex;align-items:center;gap:6px;font-weight:500;color:var(--ink)}
+.c1 .bar .sort .ic{width:16px;height:16px}
+.c1 .bar .views{display:flex;gap:2px}
+.c1 .bar .views button{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;color:var(--mute)}
+.c1 .bar .views .on{color:var(--ink);background:var(--hov)}
+.c1 .bar .views .ic{width:19px;height:19px}
+.c1 .list{padding:0 24px 120px}
+.c1 .row{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--rule);align-items:flex-start}
+.c1 .row:last-child{border-bottom:0}
+.c1 .row .tile{width:64px;height:64px;flex:none}
+.c1 .row .t{font:500 18px/1.22 var(--disp);letter-spacing:-.005em;text-wrap:balance}
+.c1 .row .m{display:flex;gap:8px;align-items:center;margin-top:7px;font-size:12.5px;color:var(--mute)}
+.c1 .row .m .cat{color:var(--ink);flex:none}
+.c1 .row .m s{width:3px;height:3px;border-radius:50%;background:currentColor;opacity:.6;text-decoration:none}
+.c1 .row .pin{color:var(--acc);width:15px;height:15px;margin-right:-2px}
+.c1 .row .more{margin:-8px -10px 0 0;width:40px;height:40px;display:grid;place-items:center;color:var(--mute);border-radius:50%;flex:none}
+.c1 .row .more .ic{width:18px;height:18px}
+.c1 .fab{position:absolute;right:20px;bottom:30px;z-index:25;height:54px;padding:0 22px 0 18px;border-radius:999px;display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--bg);font:500 15px var(--ui);box-shadow:0 10px 24px -8px #0006,0 2px 6px #0003;transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+.c1 .fab:hover{transform:translateY(-2px)}
+.c1 .fab .ic{width:20px;height:20px;color:var(--acc)}
+.c1[data-mode=dark] .fab{background:var(--ink);color:var(--bg)}
+/* settings */
+.c1 .nav{display:flex;align-items:center;padding:6px 12px 0}
+.c1 .sh{padding:6px 24px 28px}
+.c1 .sh h1{font:500 38px/1 var(--disp);letter-spacing:-.025em}
+.c1 .sec{padding:0 24px;margin-bottom:30px}
+.c1 .sec h2{font:500 21px/1.2 var(--disp);letter-spacing:-.01em;padding-bottom:10px;border-bottom:1px solid var(--ink)}
+.c1 .set{display:flex;align-items:center;gap:16px;padding:15px 0;border-bottom:1px solid var(--rule)}
+.c1 .set .tx{flex:1;min-width:0}
+.c1 .set .tt{font-size:15px;font-weight:500}
+.c1 .set .dd{font-size:13px;color:var(--mute);margin-top:3px;text-wrap:pretty}
+.c1 .set .lk{font-size:14px;font-weight:500;color:var(--acc);padding:6px 0}
+.c1 .set .val{font-size:13px;color:var(--mute)}
+.c1 .tog{width:44px;height:26px;border-radius:99px;box-shadow:inset 0 0 0 1.5px var(--mute);position:relative;flex:none;transition:all .25s}
+.c1 .tog::after{content:"";position:absolute;top:5px;left:5px;width:16px;height:16px;border-radius:50%;background:var(--mute);transition:all .25s cubic-bezier(.2,.8,.2,1)}
+.c1 .tog.on{background:var(--acc);box-shadow:none}
+.c1 .tog.on::after{left:23px;top:4px;width:18px;height:18px;background:var(--onacc)}
+.c1 .tog.dis{opacity:.4}
+.c1 .seg{display:flex;gap:22px;padding:14px 0 2px}
+.c1 .seg button{font-size:15px;font-weight:500;color:var(--mute);padding:4px 0 8px;position:relative}
+.c1 .seg button.on{color:var(--ink)}
+.c1 .seg button.on::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--acc)}
+.c1 .note{font-size:13px;color:var(--mute);padding-top:12px;text-wrap:pretty}
+.c1 .pad-b{height:56px}
+
+/* ============================================================
+   CANDIDATE 2 — SLATE
+   Cool, quiet, image-forward grid. Lowercase voice, one green.
+   ============================================================ */
+.c2{--ui:"Hanken Grotesk",system-ui,sans-serif;--disp:"Hanken Grotesk",system-ui,sans-serif;--tc:.11}
+.c2[data-mode=light]{--bg:#f2f3f4;--surf:#ffffff;--ink:#0f1214;--mute:#6a7076;--rule:#e3e5e8;--acc:#0b7a54;--onacc:#fff;--soft:#e4ede9;--tl:.66}
+.c2[data-mode=dark]{--bg:#0b0d0e;--surf:#141718;--ink:#eceff0;--mute:#8b9298;--rule:#222729;--acc:#5ee0a9;--onacc:#06231a;--soft:#12231c;--tl:.5}
+.c2 .tile{--ms:30px}
+.c2 .hd{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 0 22px}
+.c2 .hd h1{font:700 30px/1 var(--disp);letter-spacing:-.04em;display:flex;align-items:baseline;gap:10px}
+.c2 .hd h1 small{font:600 13px var(--ui);letter-spacing:0;color:var(--mute);background:var(--rule);padding:3px 9px;border-radius:99px;transform:translateY(-3px)}
+.c2 .hd .r{display:flex;gap:2px}
+.c2 .ib{width:44px;height:44px;display:grid;place-items:center;border-radius:14px;color:var(--ink);transition:background .2s}
+.c2 .ib:hover{background:var(--rule)}
+.c2 .search{margin:18px 20px 0;height:46px;border-radius:14px;background:var(--surf);display:flex;align-items:center;gap:10px;padding:0 14px;color:var(--mute);font-size:15px;box-shadow:0 0 0 1px var(--rule)}
+.c2 .chips{gap:8px;padding:14px 20px 0}
+.c2 .chips button{flex:none;height:36px;padding:0 14px;border-radius:12px;font-size:14px;font-weight:600;color:var(--mute);box-shadow:inset 0 0 0 1px var(--rule);display:flex;align-items:center;gap:8px;transition:all .2s}
+.c2 .chips button:hover{color:var(--ink)}
+.c2 .chips button.on{background:var(--ink);color:var(--bg);box-shadow:none}
+.c2 .chips i{width:7px;height:7px;border-radius:50%;background:var(--c)}
+.c2 .bar{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px}
+.c2 .bar .sort{font-size:13px;font-weight:600;display:flex;align-items:center;gap:4px;color:var(--mute)}
+.c2 .bar .sort b{color:var(--ink);font-weight:600}
+.c2 .bar .sort .ic{width:16px;height:16px}
+.c2 .bar .views{display:flex;background:var(--rule);border-radius:11px;padding:3px;gap:2px}
+.c2 .bar .views button{width:36px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--mute)}
+.c2 .bar .views .on{background:var(--surf);color:var(--ink);box-shadow:0 1px 2px #0002}
+.c2 .bar .views .ic{width:17px;height:17px}
+.c2 .grid{display:flex;gap:12px;padding:0 20px 120px;align-items:flex-start}
+.c2 .col{flex:1;display:flex;flex-direction:column;gap:18px;min-width:0}
+.c2 .card .tile{width:100%;border-radius:18px;--ms:34px}
+.c2 .card .pin{position:absolute;top:8px;left:8px;z-index:2;width:26px;height:26px;border-radius:9px;display:grid;place-items:center;background:var(--surf);color:var(--acc);box-shadow:0 2px 6px #0003}
+.c2 .card .pin .ic{width:14px;height:14px}
+.c2 .card .t{font:600 14.5px/1.28 var(--ui);letter-spacing:-.01em;margin:10px 4px 0;text-wrap:balance}
+.c2 .card .m{display:flex;align-items:center;gap:6px;margin:5px 4px 0;font-size:12px;color:var(--mute);font-weight:500}
+.c2 .card .m span:last-child{flex:none;white-space:nowrap}
+.c2 .card .m i{width:6px;height:6px;border-radius:50%;background:var(--c);flex:none}
+.c2 .fab{position:absolute;right:20px;bottom:30px;z-index:25;width:58px;height:58px;border-radius:19px;display:grid;place-items:center;background:var(--acc);color:var(--onacc);box-shadow:0 12px 24px -10px var(--acc),0 3px 8px #0003;transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+.c2 .fab:hover{transform:scale(1.05) rotate(90deg)}
+.c2 .fab .ic{width:26px;height:26px;stroke-width:2}
+/* settings */
+.c2 .nav{display:flex;align-items:center;gap:4px;padding:6px 12px 0}
+.c2 .nav h1{font:700 22px var(--disp);letter-spacing:-.03em}
+.c2 .sec{padding:0 20px;margin-top:22px}
+.c2 .sec>h2{font:600 13px var(--ui);color:var(--mute);padding:0 6px 9px;letter-spacing:.01em}
+.c2 .grp{background:var(--surf);border-radius:22px;box-shadow:0 0 0 1px var(--rule);overflow:hidden}
+.c2 .set{display:flex;align-items:center;gap:14px;padding:14px 16px;position:relative}
+.c2 .set+.set::before{content:"";position:absolute;top:0;left:62px;right:0;height:1px;background:var(--rule)}
+.c2 .set .gl{width:34px;height:34px;border-radius:11px;background:var(--soft);color:var(--acc);display:grid;place-items:center;flex:none}
+.c2 .set .gl .ic{width:19px;height:19px}
+.c2 .set .tx{flex:1;min-width:0}
+.c2 .set .tt{font-size:15px;font-weight:600;letter-spacing:-.005em}
+.c2 .set .dd{font-size:12.5px;color:var(--mute);margin-top:2px;text-wrap:pretty;font-weight:500}
+.c2 .set .ch{color:var(--mute);width:18px;height:18px}
+.c2 .set.danger .tt{color:#c4352f}
+.c2[data-mode=dark] .set.danger .tt{color:#ff8a84}
+.c2 .set.danger .gl{background:#c4352f1a;color:#c4352f}
+.c2[data-mode=dark] .set.danger .gl{color:#ff8a84}
+.c2 .tog{width:46px;height:28px;border-radius:99px;background:var(--rule);position:relative;flex:none;transition:background .25s}
+.c2 .tog::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0004;transition:left .25s cubic-bezier(.2,.8,.2,1)}
+.c2[data-mode=dark] .tog::after{background:#e9ecee}
+.c2 .tog.on{background:var(--acc)}
+.c2 .tog.on::after{left:21px}
+.c2 .tog.dis{opacity:.4}
+.c2 .seg{display:flex;background:var(--bg);border-radius:13px;padding:3px;margin:0 16px 16px}
+.c2 .seg button{flex:1;height:38px;border-radius:10px;font-size:14px;font-weight:600;color:var(--mute);display:flex;gap:7px;justify-content:center;align-items:center;transition:all .2s}
+.c2 .seg button .ic{width:17px;height:17px}
+.c2 .seg button.on{background:var(--ink);color:var(--bg)}
+.c2 .seg-t{padding:14px 16px 12px;font-size:15px;font-weight:600}
+.c2 .note{font-size:12.5px;color:var(--mute);padding:10px 8px 0;font-weight:500;text-wrap:pretty}
+.c2 .pad-b{height:56px}
+
+/* ============================================================
+   CANDIDATE 3 — RIBBON
+   Cream-and-ink with a mustard bookmark ribbon. Soft, tactile, friendly.
+   ============================================================ */
+.c3{--ui:"Albert Sans",system-ui,sans-serif;--disp:"Instrument Serif",Georgia,serif;--tc:.09}
+.c3[data-mode=light]{--bg:#eceef7;--surf:#ffffff;--ink:#141937;--mute:#646a8c;--rule:#dcdfef;--acc:#e8a416;--onacc:#2b1d00;--pri:#252d6b;--onpri:#fff;--hov:#e1e4f3;--tl:.64}
+.c3[data-mode=dark]{--bg:#0e1124;--surf:#171b38;--ink:#eceefb;--mute:#9aa0c9;--rule:#262b52;--acc:#f3b53f;--onacc:#2b1d00;--pri:#2d3580;--onpri:#f2f3ff;--hov:#1d2245;--tl:.5}
+.c3 .tile{border-radius:16px;--ms:26px}
+.c3 .ribbon{position:absolute;top:-1px;right:16px;width:20px;height:30px;background:var(--acc);clip-path:polygon(0 0,100% 0,100% 100%,50% 76%,0 100%);z-index:3}
+.c3 .hd{padding:16px 22px 0;display:flex;justify-content:space-between;align-items:flex-start}
+.c3 .hd h1{font:400 42px/.98 var(--disp);letter-spacing:-.01em}
+.c3 .hd h1 em{font-style:italic;color:var(--pri)}
+.c3[data-mode=dark] .hd h1 em{color:var(--acc)}
+.c3 .ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--surf);box-shadow:0 0 0 1px var(--rule);transition:transform .2s}
+.c3 .ib:hover{transform:scale(1.06)}
+.c3 .search{margin:18px 22px 0;height:50px;border-radius:99px;background:var(--surf);box-shadow:0 0 0 1px var(--rule),0 4px 14px -8px #1419371f;display:flex;align-items:center;gap:12px;padding:0 20px;color:var(--mute);font-size:15px;font-weight:500}
+.c3 .chips{gap:8px;padding:16px 22px 0}
+.c3 .chips button{flex:none;height:36px;padding:0 16px;border-radius:99px;font-size:14px;font-weight:600;color:var(--mute);background:transparent;box-shadow:inset 0 0 0 1px var(--rule);transition:all .2s}
+.c3 .chips button:hover{color:var(--ink)}
+.c3 .chips button.on{background:var(--pri);color:var(--onpri);box-shadow:none}
+.c3 .lab{display:flex;justify-content:space-between;align-items:center;padding:22px 22px 10px;font-size:13px;font-weight:600;color:var(--mute)}
+.c3 .lab h2{font:400 22px var(--disp);color:var(--ink);letter-spacing:0}
+.c3 .lab .tools{display:flex;gap:4px;align-items:center}
+.c3 .lab .tools button{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;color:var(--mute)}
+.c3 .lab .tools button.on{background:var(--hov);color:var(--ink)}
+.c3 .lab .tools .ic{width:18px;height:18px}
+.c3 .lab .srt{display:flex;gap:4px;align-items:center;color:var(--ink);margin-right:6px}
+.c3 .lab .srt .ic{width:15px;height:15px}
+.c3 .pins{gap:12px;padding:0 22px 4px;scroll-snap-type:x mandatory;scroll-padding-left:22px}
+.c3 .pc{position:relative;flex:none;width:178px;border-radius:22px;background:var(--surf);box-shadow:0 0 0 1px var(--rule),0 10px 24px -16px #14193744;padding:8px 8px 14px;scroll-snap-align:start}
+.c3 .pc .tile{height:96px;border-radius:15px;--ms:32px}
+.c3 .pc .t{font:600 14.5px/1.25 var(--ui);margin:11px 6px 0;text-wrap:balance}
+.c3 .pc .m{font-size:12px;color:var(--mute);margin:4px 6px 0;font-weight:500}
+.c3 .items{padding:0 22px 120px;display:flex;flex-direction:column;gap:10px}
+.c3 .it{display:flex;gap:14px;align-items:center;padding:10px 10px 10px 10px;border-radius:22px;background:var(--surf);box-shadow:0 0 0 1px var(--rule);transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+.c3 .it:hover{transform:translateY(-2px)}
+.c3 .it .tile{width:62px;height:62px;flex:none;border-radius:15px;--ms:22px}
+.c3 .it .tx{flex:1;min-width:0}
+.c3 .it .t{font:600 15px/1.25 var(--ui);text-wrap:balance}
+.c3 .it .m{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--mute);margin-top:5px;font-weight:500}
+.c3 .it .tag{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:99px;background:var(--hov);color:var(--ink);font-weight:600}
+.c3 .it .tag i{width:6px;height:6px;border-radius:50%;background:var(--c)}
+.c3 .it .more{width:34px;height:34px;display:grid;place-items:center;color:var(--mute);flex:none}
+.c3 .it .more .ic{width:18px;height:18px}
+.c3 .fab{position:absolute;right:20px;bottom:30px;z-index:25;height:56px;padding:0 24px 0 20px;border-radius:99px;display:flex;align-items:center;gap:10px;background:var(--acc);color:var(--onacc);font:700 15px var(--ui);box-shadow:0 14px 26px -12px var(--acc),0 3px 8px #0003;transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+.c3 .fab:hover{transform:translateY(-2px)}
+.c3 .fab .ic{width:21px;height:21px;stroke-width:2.2}
+/* settings */
+.c3 .nav{display:flex;align-items:center;justify-content:space-between;padding:12px 22px 0}
+.c3 .sh{padding:14px 22px 6px}
+.c3 .sh h1{font:400 42px/1 var(--disp)}
+.c3 .sync{position:relative;margin:16px 22px 0;padding:22px 20px 18px;border-radius:26px;background:var(--pri);color:var(--onpri);overflow:hidden}
+.c3[data-mode=dark] .sync{background:linear-gradient(160deg,#2d3580,#222866)}
+.c3 .sync .ribbon{right:22px;top:0;height:36px;width:22px}
+.c3 .sync .k{font-size:13px;font-weight:600;opacity:.72}
+.c3 .sync .big{font:400 28px/1.1 var(--disp);margin-top:6px;max-width:14ch}
+.c3 .sync p{font-size:13px;opacity:.75;margin-top:8px;max-width:30ch;text-wrap:pretty;font-weight:500}
+.c3 .sync .acts{display:flex;gap:10px;margin-top:18px}
+.c3 .sync .acts .b1{height:42px;padding:0 18px;border-radius:99px;background:var(--acc);color:var(--onacc);font-weight:700;font-size:14px;display:flex;gap:8px;align-items:center}
+.c3 .sync .acts .b2{height:42px;padding:0 16px;border-radius:99px;box-shadow:inset 0 0 0 1px #ffffff44;font-weight:600;font-size:14px}
+.c3 .sync .b1 .ic{width:17px;height:17px;stroke-width:2.2}
+.c3 .sec{padding:0 22px;margin-top:26px}
+.c3 .sec>h2{font:400 24px var(--disp);padding:0 4px 10px}
+.c3 .grp{background:var(--surf);border-radius:24px;box-shadow:0 0 0 1px var(--rule);overflow:hidden}
+.c3 .set{display:flex;align-items:center;gap:14px;padding:15px 18px;position:relative}
+.c3 .set+.set{border-top:1px solid var(--rule)}
+.c3 .set .tx{flex:1;min-width:0}
+.c3 .set .tt{font-size:15px;font-weight:600}
+.c3 .set .dd{font-size:13px;color:var(--mute);margin-top:3px;font-weight:500;text-wrap:pretty}
+.c3 .set .ch{color:var(--mute);width:18px;height:18px}
+.c3 .tog{width:48px;height:28px;border-radius:99px;background:var(--rule);position:relative;flex:none;transition:background .25s}
+.c3 .tog::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--surf);box-shadow:0 1px 3px #0004;transition:left .25s cubic-bezier(.2,.8,.2,1)}
+.c3 .tog.on{background:var(--pri)}
+.c3[data-mode=dark] .tog.on{background:#4a55c4}
+.c3 .tog.on::after{left:23px;background:var(--acc)}
+.c3 .tog.dis{opacity:.4}
+.c3 .themes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px 16px 18px}
+.c3 .th{border-radius:18px;padding:8px 8px 10px;box-shadow:inset 0 0 0 1px var(--rule);text-align:center;font-size:13px;font-weight:600;color:var(--mute);transition:all .2s}
+.c3 .th .sw{height:46px;border-radius:12px;margin-bottom:8px;position:relative;overflow:hidden}
+.c3 .th .sw::before{content:"";position:absolute;left:8px;top:8px;width:55%;height:6px;border-radius:3px;background:var(--a)}
+.c3 .th .sw::after{content:"";position:absolute;left:8px;top:19px;width:35%;height:6px;border-radius:3px;background:var(--a);opacity:.5}
+.c3 .th .sw.l{background:#f4f5fc;--a:#252d6b}
+.c3 .th .sw.d{background:#12163a;--a:#f3b53f}
+.c3 .th .sw.s{background:linear-gradient(115deg,#f4f5fc 50%,#12163a 50%);--a:#e8a416}
+.c3 .th.on{box-shadow:inset 0 0 0 2px var(--pri);color:var(--ink)}
+.c3[data-mode=dark] .th.on{box-shadow:inset 0 0 0 2px var(--acc)}
+.c3 .note{font-size:13px;color:var(--mute);padding:12px 8px 0;font-weight:500;text-wrap:pretty}
+.c3 .pad-b{height:56px}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-sort" viewBox="0 0 24 24"><path d="M7 5v14M4 16l3 3 3-3M17 19V5M14 8l3-3 3 3"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M9 4h6l-1 6 3 3v1.5H7V13l3-3-1-6ZM12 14.5V21"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle class="" cx="12" cy="5.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="18.5" r="1.4" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 10a4 4 0 0 1-.5 8H7Z"/></symbol>
+    <symbol id="i-sync" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.3-4.5L4 8.5M4 4v4.5h4.5M4 13a8 8 0 0 0 14.3 4.5L20 15.5M20 20v-4.5h-4.5"/></symbol>
+    <symbol id="i-out" viewBox="0 0 24 24"><path d="M10 5H6a1.5 1.5 0 0 0-1.5 1.5v11A1.5 1.5 0 0 0 6 19h4M14 8l4 4-4 4M18 12H9"/></symbol>
+    <symbol id="i-img" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="m5 17 4.5-4.5 3 3 2.5-2.5L19 17"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+    <symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14"/></symbol>
+    <symbol id="i-ul" viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 19h14"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.8"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6 18 18M6 18l1.4-1.4M16.6 7.4 18 6"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10Z"/></symbol>
+    <symbol id="i-auto" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v16" /><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor"/></symbol>
+    <symbol id="i-brush" viewBox="0 0 24 24"><path d="M12 3.5c-4.7 0-8.5 3.4-8.5 7.7 0 4.3 3.4 5.3 5.3 5.3 1.5 0 1.7 1 1.2 2-.5 1 .1 2 1.6 2 4.7 0 8.5-3.2 8.5-7.5S16.7 3.5 12 3.5Z"/><circle cx="8" cy="10" r=".9" fill="currentColor" stroke="none"/><circle cx="12" cy="7.8" r=".9" fill="currentColor" stroke="none"/><circle cx="16" cy="10" r=".9" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-contrast" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17Z" fill="currentColor"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l.8 12h8.4L17 7M10.5 11v5M13.5 11v5"/></symbol>
+  </defs>
+</svg>
+
+<header class="top"><div class="top-in">
+  <b>Bookmark — redesign candidates</b>
+  <nav aria-label="Candidates">
+    <a href="#paper">1 · Paper</a><a href="#slate">2 · Slate</a><a href="#ribbon">3 · Ribbon</a>
+  </nav>
+</div></header>
+
+<section class="intro">
+  <h1>Three quiet ways to carry a link.</h1>
+  <p>Each candidate redraws Home and Settings in light and dark. Nothing about what the app does has changed: same search, categories, pinning, sort, grid/list toggle, sync, previews and backup. Only layout, type, colour and shape differ. Scroll inside any phone, Settings is longer than the frame.</p>
+</section>
+
+<main id="mount"></main>
+
+<footer class="foot">Prototype only. Thumbnails are the app's own generated fallback tiles (hue + monogram); real previews will replace them. Fonts load from Google Fonts. Pick a number and we move forward from there.</footer>
+
+<script>
+/* ---------- data (mirrors real app strings and states) ---------- */
+const CATS = [
+  {n:'Reading', c:'oklch(.66 .14 25)'},
+  {n:'Design',  c:'oklch(.66 .14 300)'},
+  {n:'Dev',     c:'oklch(.66 .12 230)'},
+  {n:'Recipes', c:'oklch(.7 .13 70)'},
+  {n:'Travel',  c:'oklch(.66 .12 165)'},
+];
+const catColor = n => CATS.find(c=>c.n===n).c;
+const BM = [
+  {t:'How complex systems fail',               s:'how.complexsystems.fail', cat:'Reading', age:'2d',  pin:1, h:35,  m:'H', v:2, r:1.1},
+  {t:'Sourdough for people with jobs',         s:'crumbsandco.com',         cat:'Recipes', age:'3d',  pin:1, h:70,  m:'S', v:3, r:1.3},
+  {t:'Designing for the thumb, not the cursor',s:'smashingmagazine.com',    cat:'Design',  age:'5d',  pin:0, h:300, m:'D', v:4, r:.95},
+  {t:'Kyoto in four days, slowly',             s:'slowtravel.jp',           cat:'Travel',  age:'1w',  pin:0, h:165, m:'K', v:3, r:1.35},
+  {t:'SQLite is not a toy database',           s:'sqlite.org',              cat:'Dev',     age:'1w',  pin:0, h:230, m:'S', v:2, r:1.0},
+  {t:'The quiet joy of mechanical watches',    s:'hodinkee.com',            cat:'Reading', age:'2w',  pin:0, h:20,  m:'T', v:4, r:1.2},
+  {t:'An introduction to variable fonts',      s:'web.dev',                 cat:'Design',  age:'3w',  pin:0, h:330, m:'V', v:3, r:.9},
+];
+const ic = (n,cls='') => `<svg class="ic ${cls}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const tile = (b,extra='') => `<div class="tile v${b.v} ${extra}" style="--h:${b.h}"><span>${b.m}</span></div>`;
+const sb = () => `<div class="sb"><span>9:41</span><span class="r">
+  <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 12h2v2H1zM5 9h2v5H5zM9 6h2v8H9zM13 3h2v11h-2z"/></svg>
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M1.5 6a9 9 0 0 1 13 0M4 8.8a5.4 5.4 0 0 1 8 0M6.4 11.5a2 2 0 0 1 3.2 0"/></svg>
+  <svg viewBox="0 0 22 16" fill="none"><rect x=".5" y="3" width="18" height="10" rx="3" stroke="currentColor" opacity=".6"/><rect x="2" y="4.5" width="13" height="7" rx="1.8" fill="currentColor"/><rect x="19.5" y="6" width="1.8" height="4" rx=".9" fill="currentColor" opacity=".6"/></svg>
+</span></div>`;
+const phone = (cand, mode, label, body, extra='') =>
+  `<figure class="slot"><div class="phone ${cand}" data-mode="${mode}" role="img" aria-label="${label}">${sb()}<div class="screen">${body}</div>${extra}<div class="gest"></div></div>
+   <figcaption><i class="${mode==='dark'?'d':''}"></i>${label}</figcaption></figure>`;
+const tog = (on,dis) => `<span class="tog ${on?'on':''} ${dis?'dis':''}"></span>`;
+
+/* ============ 1 · PAPER ============ */
+const p1 = {
+  home: () => `
+    <div class="hd"><div><h1>Bookmarks</h1><div class="sub">214 saved</div></div>
+      <button class="ib" aria-label="Settings">${ic('gear')}</button></div>
+    <div class="search">${ic('search')}<span>Search titles, notes, links</span></div>
+    <div class="tabs hs"><button class="on">All</button>${CATS.map(c=>`<button>${c.n}</button>`).join('')}</div>
+    <div class="bar"><span class="sort">${ic('sort')}Newest</span>
+      <span class="views"><button class="on" aria-label="List">${ic('list')}</button><button aria-label="Grid">${ic('grid')}</button></span></div>
+    <div class="list">${BM.map(b=>`
+      <div class="row">${tile(b)}
+        <div style="flex:1;min-width:0"><div class="t clamp2">${b.t}</div>
+          <div class="m">${b.pin?ic('pin','pin'):''}<span class="nowrap">${b.s}</span><s></s><span class="cat">${b.cat}</span></div></div>
+        <button class="more" aria-label="Bookmark actions">${ic('more')}</button></div>`).join('')}</div>`,
+  fab: () => `<button class="fab">${ic('plus')}Add bookmark</button>`,
+  settings: () => `
+    <div class="nav"><button class="ib" aria-label="Back">${ic('back')}</button></div>
+    <div class="sh"><h1>Settings</h1></div>
+    <div class="sec"><h2>Sync</h2>
+      <div class="set"><div class="tx"><div class="tt">Last synced 4 minutes ago</div><div class="dd">Bookmarks and categories stay in sync. Fully optional.</div></div></div>
+      <div class="set"><button class="lk">Sync now</button><span style="flex:1"></span><button class="lk">Sign out</button></div></div>
+    <div class="sec"><h2>Appearance</h2>
+      <div class="set" style="display:block;padding-bottom:6px"><div class="tt">Theme</div>
+        <div class="seg"><button>System</button><button class="on">Light</button><button>Dark</button></div></div>
+      <div class="set"><div class="tx"><div class="tt">Dynamic colour</div><div class="dd">Tint accents from your wallpaper</div></div>${tog(0,1)}</div>
+      <div class="set"><div class="tx"><div class="tt">True black for OLED</div></div>${tog(0)}</div></div>
+    <div class="sec"><h2>Previews</h2>
+      <div class="set"><div class="tx"><div class="tt">Fetch link previews automatically</div><div class="dd">Requests go straight to the saved site, which sees your IP.</div></div>${tog(1)}</div>
+      <div class="set"><div class="tx"><div class="tt">Refresh all metadata</div><div class="dd">214 bookmarks</div></div></div>
+      <div class="set"><div class="tx"><div class="tt">Clear thumbnails</div><div class="dd">38.2 MB · 212 bookmarks</div></div></div></div>
+    <div class="sec"><h2>Backup</h2>
+      <div class="set"><div class="tx"><div class="tt">Export backup</div></div></div>
+      <div class="set"><div class="tx"><div class="tt">Import backup</div><div class="dd">Merge or replace, with a preview first</div></div></div>
+      <div class="note">No servers of ours are involved.</div></div>
+    <div class="pad-b"></div>`
+};
+
+/* ============ 2 · SLATE ============ */
+const p2 = {
+  home: () => {
+    const L = BM.filter((_,i)=>i%2===0), R = BM.filter((_,i)=>i%2===1);
+    const card = b => `<article class="card"><div style="position:relative">${b.pin?`<span class="pin">${ic('pin')}</span>`:''}
+      <div class="tile v${b.v}" style="--h:${b.h};aspect-ratio:${b.r}"><span>${b.m}</span></div></div>
+      <div class="t clamp2">${b.t}</div>
+      <div class="m"><i style="--c:${catColor(b.cat)}"></i><span class="nowrap">${b.s}</span><span>· ${b.age}</span></div></article>`;
+    return `
+    <div class="hd"><h1>bookmarks<small>214</small></h1>
+      <div class="r"><button class="ib" aria-label="Search">${ic('search')}</button><button class="ib" aria-label="Settings">${ic('gear')}</button></div></div>
+    <div class="chips hs"><button class="on">All</button>${CATS.map(c=>`<button><i style="--c:${c.c}"></i>${c.n}</button>`).join('')}</div>
+    <div class="bar"><span class="sort">${ic('sort')}<b>Newest</b></span>
+      <span class="views"><button aria-label="List">${ic('list')}</button><button class="on" aria-label="Grid">${ic('grid')}</button></span></div>
+    <div class="grid"><div class="col">${L.map(card).join('')}</div><div class="col" style="margin-top:28px">${R.map(card).join('')}</div></div>`;
+  },
+  fab: () => `<button class="fab" aria-label="Add bookmark">${ic('plus')}</button>`,
+  settings: () => `
+    <div class="nav"><button class="ib" aria-label="Back">${ic('back')}</button><h1>Settings</h1></div>
+    <div class="sec"><h2>sync</h2><div class="grp">
+      <div class="set"><span class="gl">${ic('cloud')}</span><div class="tx"><div class="tt">Last synced 4 minutes ago</div><div class="dd">Bookmarks and categories stay in sync. Fully optional.</div></div></div>
+      <div class="set"><span class="gl">${ic('sync')}</span><div class="tx"><div class="tt">Sync now</div></div>${ic('chev','ch')}</div>
+      <div class="set danger"><span class="gl">${ic('out')}</span><div class="tx"><div class="tt">Sign out</div></div></div></div></div>
+    <div class="sec"><h2>appearance</h2><div class="grp">
+      <div class="seg-t">Theme</div>
+      <div class="seg"><button>${ic('auto')}System</button><button class="on">${ic('sun')}Light</button><button>${ic('moon')}Dark</button></div>
+      <div class="set"><span class="gl">${ic('brush')}</span><div class="tx"><div class="tt">Dynamic colour</div><div class="dd">Tint accents from your wallpaper</div></div>${tog(0,1)}</div>
+      <div class="set"><span class="gl">${ic('contrast')}</span><div class="tx"><div class="tt">True black for OLED</div></div>${tog(0)}</div></div></div>
+    <div class="sec"><h2>previews</h2><div class="grp">
+      <div class="set"><span class="gl">${ic('link')}</span><div class="tx"><div class="tt">Fetch link previews automatically</div><div class="dd">Requests go straight to the saved site, which sees your IP.</div></div>${tog(1)}</div>
+      <div class="set"><span class="gl">${ic('sync')}</span><div class="tx"><div class="tt">Refresh all metadata</div><div class="dd">214 bookmarks</div></div>${ic('chev','ch')}</div>
+      <div class="set"><span class="gl">${ic('img')}</span><div class="tx"><div class="tt">Clear thumbnails</div><div class="dd">38.2 MB · 212 bookmarks</div></div>${ic('chev','ch')}</div></div></div>
+    <div class="sec"><h2>backup</h2><div class="grp">
+      <div class="set"><span class="gl">${ic('dl')}</span><div class="tx"><div class="tt">Export backup</div></div>${ic('chev','ch')}</div>
+      <div class="set"><span class="gl">${ic('ul')}</span><div class="tx"><div class="tt">Import backup</div><div class="dd">Merge or replace, with a preview first</div></div>${ic('chev','ch')}</div></div>
+      <div class="note">No servers of ours are involved.</div></div>
+    <div class="pad-b"></div>`
+};
+
+/* ============ 3 · RIBBON ============ */
+const p3 = {
+  home: () => {
+    const pins = BM.filter(b=>b.pin), rest = BM.filter(b=>!b.pin);
+    return `
+    <div class="hd"><h1>Your<br><em>bookmarks</em></h1><button class="ib" aria-label="Settings">${ic('gear')}</button></div>
+    <div class="search">${ic('search')}<span>Search 214 bookmarks</span></div>
+    <div class="chips hs"><button class="on">All</button>${CATS.map(c=>`<button>${c.n}</button>`).join('')}</div>
+    <div class="lab"><h2>Pinned</h2></div>
+    <div class="pins hs">${pins.map(b=>`<article class="pc"><span class="ribbon"></span>${tile(b)}<div class="t clamp2">${b.t}</div><div class="m nowrap">${b.s}</div></article>`).join('')}</div>
+    <div class="lab"><h2>Everything</h2><span class="tools"><span class="srt">${ic('sort')}Newest</span>
+      <button class="on" aria-label="List">${ic('list')}</button><button aria-label="Grid">${ic('grid')}</button></span></div>
+    <div class="items">${rest.map(b=>`<div class="it">${tile(b)}
+      <div class="tx"><div class="t clamp2">${b.t}</div>
+      <div class="m"><span class="tag"><i style="--c:${catColor(b.cat)}"></i>${b.cat}</span><span class="nowrap">${b.age}</span></div></div>
+      <button class="more" aria-label="Bookmark actions">${ic('more')}</button></div>`).join('')}</div>`;
+  },
+  fab: () => `<button class="fab">${ic('plus')}Add bookmark</button>`,
+  settings: () => `
+    <div class="nav"><button class="ib" aria-label="Back">${ic('back')}</button></div>
+    <div class="sh"><h1>Settings</h1></div>
+    <div class="sync"><span class="ribbon"></span><div class="k">Sync</div><div class="big">Last synced 4 minutes ago</div>
+      <p>Bookmarks and categories stay in sync. Fully optional.</p>
+      <div class="acts"><button class="b1">${ic('sync')}Sync now</button><button class="b2">Sign out</button></div></div>
+    <div class="sec"><h2>Appearance</h2><div class="grp">
+      <div class="themes">
+        <button class="th"><div class="sw s"></div>System</button>
+        <button class="th on"><div class="sw l"></div>Light</button>
+        <button class="th"><div class="sw d"></div>Dark</button></div>
+      <div class="set"><div class="tx"><div class="tt">Dynamic colour</div><div class="dd">Tint accents from your wallpaper</div></div>${tog(0,1)}</div>
+      <div class="set"><div class="tx"><div class="tt">True black for OLED</div></div>${tog(0)}</div></div></div>
+    <div class="sec"><h2>Previews</h2><div class="grp">
+      <div class="set"><div class="tx"><div class="tt">Fetch link previews automatically</div><div class="dd">Requests go straight to the saved site, which sees your IP.</div></div>${tog(1)}</div>
+      <div class="set"><div class="tx"><div class="tt">Refresh all metadata</div><div class="dd">214 bookmarks</div></div>${ic('chev','ch')}</div>
+      <div class="set"><div class="tx"><div class="tt">Clear thumbnails</div><div class="dd">38.2 MB · 212 bookmarks</div></div>${ic('chev','ch')}</div></div></div>
+    <div class="sec"><h2>Backup</h2><div class="grp">
+      <div class="set"><div class="tx"><div class="tt">Export backup</div></div>${ic('dl','ch')}</div>
+      <div class="set"><div class="tx"><div class="tt">Import backup</div><div class="dd">Merge or replace, with a preview first</div></div>${ic('ul','ch')}</div></div>
+      <div class="note">No servers of ours are involved.</div></div>
+    <div class="pad-b"></div>`
+};
+
+/* ---------- candidate sections ---------- */
+const CANDS = [
+  {id:'paper', cls:'c1', n:'1', name:'Paper', impl:p1,
+   line:'An editorial reading list. Warm paper, ink-black type, and a single vermilion that only appears where something is selected, pinned or saved.',
+   why:'Personality lives in the serif titles and the hairline rules; the UI itself disappears. Best for a long list you actually read.',
+   type:'Newsreader + Geist', sw:['#f5f1e8','#1d1a14','#c23a16','#161410','#ff8059']},
+  {id:'slate', cls:'c2', n:'2', name:'Slate', impl:p2,
+   line:'A calm, image-forward grid. Cool neutrals, tight grotesque type, one green. Lowercase title, category dots, and chunky soft corners keep it friendly.',
+   why:'Thumbnails do the talking, chrome stays small. Best if you save lots of visual links and like to browse.',
+   type:'Hanken Grotesk', sw:['#f2f3f4','#0f1214','#0b7a54','#0b0d0e','#5ee0a9']},
+  {id:'ribbon', cls:'c3', n:'3', name:'Ribbon', impl:p3,
+   line:'Pale ink-blue with a mustard bookmark ribbon. Pinned links hang from a ribbon, sync gets one confident card, everything else is soft and tactile.',
+   why:'The most characterful of the three: a serif italic in the title, rounded cards, a real motif. Best if you want the app to feel like an object.',
+   type:'Instrument Serif + Albert Sans', sw:['#eceef7','#141937','#252d6b','#e8a416','#0e1124']},
+];
+const mount = document.getElementById('mount');
+mount.innerHTML = CANDS.map(c=>`
+<section class="cand" id="${c.id}">
+  <div class="cand-head">
+    <div><span class="idx">Candidate ${c.n}</span><h2 style="font-family:${c.cls==='c1'?'Newsreader,serif':c.cls==='c2'?'Hanken Grotesk,sans-serif':'Instrument Serif,serif'};${c.cls==='c2'?'font-weight:700;letter-spacing:-.04em':'font-weight:400'}">${c.name}</h2>
+      <div class="spec"><span class="sw-row">${c.sw.map(s=>`<i style="background:${s}"></i>`).join('')}</span><small>${c.type}</small></div></div>
+    <div><p>${c.line}</p><p>${c.why}</p></div>
+  </div>
+  <div class="stage">
+    ${phone(c.cls,'light','Home · Light',c.impl.home(),c.impl.fab())}
+    ${phone(c.cls,'dark','Home · Dark',c.impl.home(),c.impl.fab())}
+    ${phone(c.cls,'light','Settings · Light',c.impl.settings())}
+    ${phone(c.cls,'dark','Settings · Dark',c.impl.settings())}
+  </div>
+</section>`).join('');
+
+/* dark settings: reflect the selected theme in the control */
+document.querySelectorAll('.phone[data-mode=dark]').forEach(p=>{
+  const seg = p.querySelectorAll('.seg button, .themes .th');
+  if(seg.length){ seg.forEach(b=>b.classList.remove('on')); seg[2].classList.add('on'); }
+});
+</script>
+</body>
+</html>

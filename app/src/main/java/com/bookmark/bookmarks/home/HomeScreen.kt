@@ -21,7 +21,9 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.Icon
@@ -38,8 +40,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.testTag
@@ -56,7 +56,7 @@ import com.bookmark.core.ui.components.ScreenHeader
 import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.Dimens
 import com.bookmark.core.ui.theme.accentFill
-import com.bookmark.core.ui.theme.glass
+import com.bookmark.core.ui.theme.panel
 
 /**
  * Stable UiAutomator selectors for the :macrobenchmark module (M6), which
@@ -89,7 +89,7 @@ fun HomeScreen(
     openDetailBookmarkId: String? = null,
     reducedMotion: Boolean = false,
 ) {
-    var menuOpen by remember { mutableStateOf(false) }
+    var sortMenuOpen by remember { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -97,58 +97,55 @@ fun HomeScreen(
                 title = "Bookmarks",
                 count = state.totalCount,
                 onSearch = onSearch,
-                onOverflow = { menuOpen = true },
                 searchEnabled = state.totalCount > 0,
-                overflowHighlighted = menuOpen,
-                overflowMenu = {
-                    HomeOverflowMenu(
-                        expanded = menuOpen,
-                        viewMode = state.viewMode,
-                        sortOrder = state.sortOrder,
-                        onDismiss = { menuOpen = false },
-                        onSetViewMode = onSetViewMode,
-                        onSetSortOrder = onSetSortOrder,
-                    )
-                },
             )
 
             if (state.isEmpty) {
                 EmptyHome(onAdd = onAdd, modifier = Modifier.weight(1f))
             } else {
+                CategoryFilterRow(
+                    categories = state.categories,
+                    selectedCategoryId = state.selectedCategoryId,
+                    totalCount = state.totalCount,
+                    onSelect = onSelectCategory,
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 10.dp),
+                        .padding(start = Dimens.gridOuterPadding, end = Dimens.gridOuterPadding, top = 14.dp, bottom = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    CategoryFilterRow(
-                        categories = state.categories,
-                        selectedCategoryId = state.selectedCategoryId,
-                        totalCount = state.totalCount,
-                        onSelect = onSelectCategory,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Row(
-                        modifier = Modifier
-                            .padding(end = 16.dp)
-                            .clip(RoundedCornerShape(percent = 50))
-                            .clickable { menuOpen = true }
-                            .padding(horizontal = 8.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.SwapVert,
-                            contentDescription = "Sort order",
-                            tint = BookmarkTheme.colors.monoLabel,
-                            modifier = Modifier.size(15.dp),
-                        )
-                        Text(
-                            text = state.sortOrder.shortLabel,
-                            style = BookmarkTheme.text.monoCaption,
-                            color = BookmarkTheme.colors.monoLabel,
+                    Box {
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable(role = Role.Button, onClickLabel = "Sort order") { sortMenuOpen = true }
+                                .padding(vertical = 8.dp, horizontal = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.SwapVert,
+                                contentDescription = "Sort order",
+                                tint = BookmarkTheme.colors.mutedLabel,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                text = state.sortOrder.shortLabel,
+                                style = BookmarkTheme.text.caption,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                        SortMenu(
+                            expanded = sortMenuOpen,
+                            sortOrder = state.sortOrder,
+                            onDismiss = { sortMenuOpen = false },
+                            onSetSortOrder = onSetSortOrder,
                         )
                     }
+                    ViewModeToggle(viewMode = state.viewMode, onSetViewMode = onSetViewMode)
                 }
 
                 when (state.viewMode) {
@@ -181,6 +178,41 @@ fun HomeScreen(
                     .align(Alignment.BottomEnd)
                     .padding(end = Dimens.fabEndMargin, bottom = Dimens.fabBottomMargin),
             )
+        }
+    }
+}
+
+/** The two-way list/grid switch: a recessed trough, the active mode on a raised chip. */
+@Composable
+private fun ViewModeToggle(viewMode: ViewMode, onSetViewMode: (ViewMode) -> Unit) {
+    val colors = BookmarkTheme.colors
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(11.dp))
+            .background(colors.hairline)
+            .padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        listOf(
+            Triple(ViewMode.LIST, Icons.AutoMirrored.Outlined.ViewList, "Switch to list"),
+            Triple(ViewMode.GRID, Icons.Outlined.GridView, "Switch to grid"),
+        ).forEach { (mode, icon, label) ->
+            val selected = viewMode == mode
+            Box(
+                modifier = Modifier
+                    .size(width = 36.dp, height = 30.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .then(if (selected) Modifier.background(colors.cardSurface) else Modifier)
+                    .clickable(role = Role.Button, onClickLabel = label) { onSetViewMode(mode) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = if (selected) MaterialTheme.colorScheme.onSurface else colors.mutedLabel,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         }
     }
 }
@@ -256,30 +288,19 @@ private fun BookmarkList(
 }
 
 @Composable
-private fun HomeOverflowMenu(
+private fun SortMenu(
     expanded: Boolean,
-    viewMode: ViewMode,
     sortOrder: SortOrder,
     onDismiss: () -> Unit,
-    onSetViewMode: (ViewMode) -> Unit,
     onSetSortOrder: (SortOrder) -> Unit,
 ) {
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(18.dp),
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(1.dp, BookmarkTheme.colors.hairline),
     ) {
-        DropdownMenuItem(
-            text = {
-                Text(if (viewMode == ViewMode.GRID) "Switch to list" else "Switch to grid")
-            },
-            onClick = {
-                onSetViewMode(if (viewMode == ViewMode.GRID) ViewMode.LIST else ViewMode.GRID)
-                onDismiss()
-            },
-        )
         SortOrder.entries.forEach { order ->
             DropdownMenuItem(
                 text = {
@@ -290,6 +311,7 @@ private fun HomeOverflowMenu(
                             SortOrder.TITLE_AZ -> "Sort: Title A–Z"
                             SortOrder.CATEGORY -> "Sort: Category"
                         },
+                        style = BookmarkTheme.text.rowTitle,
                         color = if (order == sortOrder) {
                             MaterialTheme.colorScheme.primary
                         } else {
@@ -315,37 +337,37 @@ private fun EmptyHome(onAdd: () -> Unit, modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        // Three frosted tiles fanned like a stack of saved links.
+        // Three flat tiles fanned like a stack of saved links.
         Box(modifier = Modifier.size(width = 168.dp, height = 140.dp)) {
-            val tileShape = RoundedCornerShape(30.dp)
+            val tileShape = RoundedCornerShape(26.dp)
             Box(
                 Modifier
                     .size(104.dp)
                     .align(Alignment.TopStart)
-                    .graphicsLayer { rotationZ = -12f }
-                    .glass(tileShape)
-                    .background(Brush.linearGradient(listOf(BookmarkTheme.colors.accentStart.copy(alpha = 0.5f), Color.Transparent))),
+                    .graphicsLayer { rotationZ = -10f }
+                    .clip(tileShape)
+                    .background(BookmarkTheme.colors.accentSoft),
             )
             Box(
                 Modifier
                     .size(104.dp)
                     .align(Alignment.TopEnd)
                     .padding(top = 12.dp)
-                    .graphicsLayer { rotationZ = 9f }
-                    .glass(tileShape)
-                    .background(Brush.linearGradient(listOf(BookmarkTheme.colors.accentEnd.copy(alpha = 0.45f), Color.Transparent))),
+                    .graphicsLayer { rotationZ = 8f }
+                    .clip(tileShape)
+                    .background(BookmarkTheme.colors.hairline),
             )
             Box(
                 Modifier
                     .size(104.dp)
                     .align(Alignment.BottomCenter)
-                    .glass(tileShape, strong = true),
+                    .panel(tileShape, raised = true),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Link,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface,
+                    tint = BookmarkTheme.colors.accent,
                     modifier = Modifier.size(36.dp),
                 )
             }
@@ -378,7 +400,7 @@ private fun AddFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier
             .size(Dimens.fabSize)
             .testTag(HomeTestTags.ADD_FAB)
-            .shadow(18.dp, com.bookmark.core.ui.theme.BookmarkShapes.fab, ambientColor = BookmarkTheme.colors.accentStart, spotColor = BookmarkTheme.colors.accentStart)
+            .shadow(8.dp, com.bookmark.core.ui.theme.BookmarkShapes.fab, ambientColor = BookmarkTheme.colors.accent.copy(alpha = 0.5f), spotColor = BookmarkTheme.colors.accent.copy(alpha = 0.5f))
             .accentFill(com.bookmark.core.ui.theme.BookmarkShapes.fab)
             .clickable(role = Role.Button, onClickLabel = "Add bookmark", onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -387,7 +409,7 @@ private fun AddFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
             imageVector = Icons.Outlined.Add,
             contentDescription = "Add bookmark",
             tint = BookmarkTheme.colors.onAccent,
-            modifier = Modifier.size(28.dp),
+            modifier = Modifier.size(26.dp),
         )
     }
 }

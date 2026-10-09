@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.theme.BookmarkTheme
-import com.bookmark.core.ui.theme.glass
+import com.bookmark.core.ui.theme.panel
 import com.bookmark.core.ui.theme.Dimens
 
 /**
@@ -43,7 +43,7 @@ fun PreviewCard(
     /** A candidate URL or local `Uri` to preview before anything is saved -- see [ThumbnailSurface]. */
     previewModel: Any? = null,
 ) {
-    Box(modifier = modifier.fillMaxWidth().glass(BookmarkShapes.previewCard)) {
+    Box(modifier = modifier.fillMaxWidth().panel(BookmarkShapes.previewCard)) {
         Row(
             modifier = Modifier.padding(12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),

@@ -68,7 +68,7 @@ import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.Dimens
 import com.bookmark.core.ui.theme.accentFill
-import com.bookmark.core.ui.theme.glass
+import com.bookmark.core.ui.theme.panel
 import com.bookmark.core.ui.theme.parseCategoryColor
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -279,13 +279,7 @@ fun BookmarkDetailSheet(
                     .fillMaxWidth()
                     .clip(BookmarkShapes.sheet)
                     .background(MaterialTheme.colorScheme.surface)
-                    .border(
-                        1.dp,
-                        Brush.verticalGradient(
-                            listOf(BookmarkTheme.colors.glassEdgeTop, Color.Transparent),
-                        ),
-                        BookmarkShapes.sheet,
-                    )
+                    .border(1.dp, BookmarkTheme.colors.hairline, BookmarkShapes.sheet)
                     // Swallows taps so they don't fall through to the scrim below.
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
@@ -422,7 +416,7 @@ private fun IconAction(
     Box(
         modifier = Modifier
             .size(50.dp)
-            .glass(BookmarkShapes.primaryButton)
+            .panel(BookmarkShapes.primaryButton)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {

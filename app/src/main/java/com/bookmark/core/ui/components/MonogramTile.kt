@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bookmark.core.ui.theme.CategorySwatches
-import com.bookmark.core.ui.theme.Bricolage
+import com.bookmark.core.ui.theme.HankenGrotesk
 import com.bookmark.core.util.DomainColor
 import com.bookmark.core.util.TitleFallback
 
@@ -46,8 +46,8 @@ fun MonogramTile(
             .background(
                 Brush.linearGradient(
                     listOf(
-                        lerp(background, Color.White, 0.12f),
-                        lerp(background, Color(0xFF0B0C20), 0.55f),
+                        lerp(background, Color.White, 0.10f),
+                        lerp(background, Color(0xFF0B0D0E), 0.42f),
                     ),
                 ),
             )
@@ -60,7 +60,7 @@ fun MonogramTile(
         Text(
             text = monogram,
             color = Color.White,
-            fontFamily = Bricolage,
+            fontFamily = HankenGrotesk,
             fontWeight = FontWeight.SemiBold,
             fontSize = fontSize,
         )
@@ -87,7 +87,7 @@ fun MonogramTileFullSize(url: String, accentColor: Color? = null, fontSize: Text
     )
 }
 
-/** A soft top-left glow so a fallback tile reads as lit glass, not a flat swatch. */
+/** A soft top-left glow so a fallback tile reads as lit, not a flat swatch. */
 private fun Modifier.softHighlight(): Modifier = drawWithCache {
     val brush = Brush.radialGradient(
         colors = listOf(Color.White.copy(alpha = 0.26f), Color.Transparent),

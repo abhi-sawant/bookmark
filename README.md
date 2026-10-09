@@ -113,8 +113,7 @@ app/
         share/               # Quick-save sheet, share target logic
         search/              # FTS-backed full-text search
         settings/            # Theme, export/import, storage management
-        core/                # Database, repositories, shared components
-        ui/                  # Theme, common composables
+        core/                # Database, repositories, theme (core/ui/theme), shared components
         MainActivity.kt      # Main entry point
       res/                   # Resources, icons, strings
     test/                    # Unit tests
@@ -173,13 +172,15 @@ All measured on mid-range hardware (Pixel 6a class, release build):
 ## Design
 
 ### Visual Language
-- **Material 3** with expressive components
-- **Dynamic color** (Android 12+), hand-picked palette for older versions
+- **Slate** design system: flat cool-neutral surfaces, hairline borders, one green accent (see [DESIGN.md](DESIGN.md))
+- **Hanken Grotesk** throughout, lowercase screen titles and section labels
+- **Material 3** under the hood, themed through `core/ui/theme`
+- **Dynamic color** (Android 12+) re-tints the accent from the wallpaper; Slate palette otherwise
 - **Edge-to-edge** UI with proper inset handling
 - **Predictive back** with progress animation on sheets
 - **Shared-element transitions** between grid and detail
 - **Haptics** on save, delete, and drag-reorder
-- **Typography scale** — display face for headers, system face for body
+- **Light, dark and true-black** themes sharing one palette
 - **Content-forward cards** — image dominant, title/description 2-line clamp
 
 ### Accessibility
@@ -202,9 +203,9 @@ All data is stored in app-private storage. The app makes **zero outbound request
 ## Screens & Flows
 
 ### Home
-- Large collapsing app bar with search and menu
+- Single-line header: lowercase title, live count, search
 - Category filter chips (All + live counts)
-- Switchable grid/list view
+- Sort button and a list/grid toggle in one control row
 - 4-way sort (date, title, category)
 - Long-press for context actions (edit, change category, copy, share, pin, delete)
 - Empty state with share hint

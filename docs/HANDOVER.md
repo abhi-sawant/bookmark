@@ -1055,3 +1055,37 @@ edge-swipe predictive-back gesture on the custom detail sheet specifically
 (system back button was verified, which exercises the same
 `PredictiveBackHandler` completion path, but not the progress-scaling
 branch). Worth doing both on a future pass.
+
+---
+
+## 10. Slate redesign (visual only)
+
+The "Aurora" look (translucent glass cards, gradient accent, three light orbs, floating
+bottom capsule, Bricolage / Instrument Sans / Geist Mono) was replaced by **Slate**.
+No behaviour changed. See [DESIGN.md](../DESIGN.md) for the system and
+[design/slate-candidates.html](design/slate-candidates.html) for the chosen prototype.
+
+What moved, so the diff is easy to read:
+
+- **Theme tokens** (`core/ui/theme/`): `Color.kt` and `Type.kt` rewritten; `Aurora.kt` is
+  now `Surfaces.kt`. Renames: `AuroraBackground` → `SlateBackground`, `Modifier.glass`
+  → `Modifier.panel` (`strong` → `raised`), `accentStart/accentEnd` → `accent`,
+  `monoLabel/monoSection/monoCounter/monoCaption` → `mutedLabel/sectionLabel/counter/caption`.
+  Removed: orbs, glass edge/hover tokens, the brand gradient. Added: `hairline`, `hover`,
+  `accentSoft`, `selectedFill`, `raisedSurface`.
+- **Fonts:** Hanken Grotesk replaces three font files; stale OFL licence files removed.
+- **Components renamed:** `GlassIconButton` → `SlateIconButton`, `MonoSectionHeader` →
+  `SectionHeader` (now lowercase).
+- **Home:** the overflow menu is gone. Sort lives in a button under the chips, list/grid
+  in a toggle beside it; every previous option is still reachable. Grid cards lost their
+  container. `ScreenHeader` no longer takes `onOverflow` (Settings and Categories had
+  passed a no-op).
+- **Bottom bar:** floating capsule → flat docked bar; the content fade-out mask in
+  `BookmarkNavHost` was removed with it.
+- **Resources:** window background seed colours and the launcher icon follow the palette.
+- **Segmented control** is now `selectable` (radio semantics) rather than a plain clickable.
+
+Not done / worth a pass on a device: TalkBack check of the new Home controls, contrast
+spot-check of the accent on dynamic-colour wallpapers, and a visual pass over the sheets
+and dialogs (Add/Edit, Detail, Quick-save, category dialogs, Login), which pick up Slate
+through shared tokens but were not individually redrawn.

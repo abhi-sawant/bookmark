@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Only the pre-first-frame window background. The real palette lives in Compose. -->
-    <color name="seed_surface">#FFF4EFFB</color>
+    <color name="seed_surface">#FFF2F3F4</color>
 </resources>

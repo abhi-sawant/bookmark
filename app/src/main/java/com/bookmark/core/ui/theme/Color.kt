@@ -8,113 +8,113 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 /*
- * "Aurora": a deep ink base lit by soft violet / cyan / magenta light, with
- * frosted-glass surfaces on top. Dark is the home theme; the light scheme is
- * its pearl counterpart (lavender-white, peach + sky light).
+ * "Slate": calm cool neutrals with a single green. Surfaces are flat and solid,
+ * separated by hairlines rather than blur or shadow; the one accent only appears
+ * where something is on, selected-as-action or primary. Light is the cool-grey
+ * paper, dark is near-black with a faint green cast.
  *
- * Material roles carry text, accents and the opaque surfaces sheets and dialogs
- * sit on. Everything translucent -- cards, bars, chips -- lives in
- * [BookmarkColors] so it can be tuned per theme without touching M3 roles.
+ * Material roles carry text, the accent and the opaque surfaces sheets and
+ * dialogs sit on. The few tokens with no M3 role live in [BookmarkColors].
  */
 
-private val Violet80 = Color(0xFFB4A9FF)
-private val Violet40 = Color(0xFF5B45E0)
+private val SlateGreenLight = Color(0xFF0B7A54)
+private val SlateGreenDark = Color(0xFF5EE0A9)
 
 val LightColors: ColorScheme = lightColorScheme(
-    primary = Violet40,
+    primary = SlateGreenLight,
     onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFE3DEFF),
-    onPrimaryContainer = Color(0xFF1B0D6B),
-    inversePrimary = Violet80,
+    primaryContainer = Color(0xFFE4EDE9),
+    onPrimaryContainer = Color(0xFF053D2A),
+    inversePrimary = SlateGreenDark,
 
-    secondary = Color(0xFF3C5EA8),
+    secondary = Color(0xFF4A5157),
     onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFDDE4FF),
-    onSecondaryContainer = Color(0xFF14204A),
+    secondaryContainer = Color(0xFFE3E5E8),
+    onSecondaryContainer = Color(0xFF0F1214),
 
-    tertiary = Color(0xFFA23F8F),
+    tertiary = Color(0xFF4A5157),
     onTertiary = Color(0xFFFFFFFF),
-    tertiaryContainer = Color(0xFFFFD7F2),
-    onTertiaryContainer = Color(0xFF3B0033),
+    tertiaryContainer = Color(0xFFE3E5E8),
+    onTertiaryContainer = Color(0xFF0F1214),
 
-    error = Color(0xFFBA1A3A),
+    error = Color(0xFFC4352F),
     onError = Color(0xFFFFFFFF),
-    errorContainer = Color(0xFFFFDADF),
-    onErrorContainer = Color(0xFF410010),
+    errorContainer = Color(0xFFFBE4E2),
+    onErrorContainer = Color(0xFF5A100D),
 
-    background = Color(0xFFF4EFFB),
-    onBackground = Color(0xFF1D1A30),
-    surface = Color(0xFFF4EFFB),
-    onSurface = Color(0xFF1D1A30),
-    surfaceVariant = Color(0xFFE6E0F5),
-    onSurfaceVariant = Color(0xFF5F5B78),
+    background = Color(0xFFF2F3F4),
+    onBackground = Color(0xFF0F1214),
+    surface = Color(0xFFF2F3F4),
+    onSurface = Color(0xFF0F1214),
+    surfaceVariant = Color(0xFFE3E5E8),
+    onSurfaceVariant = Color(0xFF6A7076),
 
     surfaceContainerLowest = Color(0xFFFFFFFF),
-    surfaceContainerLow = Color(0xFFF8F4FF),
-    surfaceContainer = Color(0xFFF1ECFA),
-    surfaceContainerHigh = Color(0xFFEAE4F6),
-    surfaceContainerHighest = Color(0xFFE2DBF2),
+    surfaceContainerLow = Color(0xFFFFFFFF),
+    surfaceContainer = Color(0xFFFFFFFF),
+    surfaceContainerHigh = Color(0xFFFFFFFF),
+    surfaceContainerHighest = Color(0xFFE9EBED),
 
-    outline = Color(0x331D1A30),
-    outlineVariant = Color(0x1F1D1A30),
+    outline = Color(0xFFC9CDD1),
+    outlineVariant = Color(0xFFE3E5E8),
 
-    inverseSurface = Color(0xFF2E2B45),
-    inverseOnSurface = Color(0xFFF1EEFF),
+    inverseSurface = Color(0xFF0F1214),
+    inverseOnSurface = Color(0xFFECEFF0),
     scrim = Color(0xFF000000),
 )
 
 val DarkColors: ColorScheme = darkColorScheme(
-    primary = Color(0xFFA79BFF),
-    onPrimary = Color(0xFF14104D),
-    primaryContainer = Color(0xFF3A3290),
-    onPrimaryContainer = Color(0xFFE6E2FF),
-    inversePrimary = Violet40,
+    primary = SlateGreenDark,
+    onPrimary = Color(0xFF06231A),
+    primaryContainer = Color(0xFF12231C),
+    onPrimaryContainer = Color(0xFFBFF3DC),
+    inversePrimary = SlateGreenLight,
 
-    secondary = Color(0xFF8AD0F7),
-    onSecondary = Color(0xFF00334A),
-    secondaryContainer = Color(0xFF38408A),
-    onSecondaryContainer = Color(0xFFEEEBFF),
+    secondary = Color(0xFFB4BBC0),
+    onSecondary = Color(0xFF111416),
+    secondaryContainer = Color(0xFF222729),
+    onSecondaryContainer = Color(0xFFECEFF0),
 
-    tertiary = Color(0xFFF2A9E6),
-    onTertiary = Color(0xFF4A0A40),
-    tertiaryContainer = Color(0xFF6B2A61),
-    onTertiaryContainer = Color(0xFFFFD7F2),
+    tertiary = Color(0xFFB4BBC0),
+    onTertiary = Color(0xFF111416),
+    tertiaryContainer = Color(0xFF222729),
+    onTertiaryContainer = Color(0xFFECEFF0),
 
-    error = Color(0xFFFFB3BE),
-    onError = Color(0xFF670020),
-    errorContainer = Color(0xFF8A1634),
-    onErrorContainer = Color(0xFFFFDADF),
+    error = Color(0xFFFF8A84),
+    onError = Color(0xFF4A0907),
+    errorContainer = Color(0xFF3A1210),
+    onErrorContainer = Color(0xFFFFD9D6),
 
-    background = Color(0xFF090A17),
-    onBackground = Color(0xFFECEEFF),
-    surface = Color(0xFF0F1124),
-    onSurface = Color(0xFFECEEFF),
-    surfaceVariant = Color(0xFF252849),
-    onSurfaceVariant = Color(0xFFA9AEDA),
+    background = Color(0xFF0B0D0E),
+    onBackground = Color(0xFFECEFF0),
+    surface = Color(0xFF0B0D0E),
+    onSurface = Color(0xFFECEFF0),
+    surfaceVariant = Color(0xFF222729),
+    onSurfaceVariant = Color(0xFF8B9298),
 
-    surfaceContainerLowest = Color(0xFF070813),
-    surfaceContainerLow = Color(0xFF111327),
-    surfaceContainer = Color(0xFF15182F),
-    surfaceContainerHigh = Color(0xFF1C1F3A),
-    surfaceContainerHighest = Color(0xFF252849),
+    surfaceContainerLowest = Color(0xFF080A0B),
+    surfaceContainerLow = Color(0xFF141718),
+    surfaceContainer = Color(0xFF141718),
+    surfaceContainerHigh = Color(0xFF181C1D),
+    surfaceContainerHighest = Color(0xFF222729),
 
-    outline = Color(0x33FFFFFF),
-    outlineVariant = Color(0x1FFFFFFF),
+    outline = Color(0xFF3A4144),
+    outlineVariant = Color(0xFF222729),
 
-    inverseSurface = Color(0xFFECEEFF),
-    inverseOnSurface = Color(0xFF1A1C33),
+    inverseSurface = Color(0xFFECEFF0),
+    inverseOnSurface = Color(0xFF111416),
     scrim = Color(0xFF000000),
 )
 
 /** OLED variant: the surfaces collapse to true black, everything else holds. */
 val TrueBlackColors: ColorScheme = DarkColors.copy(
     background = Color(0xFF000000),
-    surface = Color(0xFF05060D),
+    surface = Color(0xFF000000),
     surfaceContainerLowest = Color(0xFF000000),
-    surfaceContainerLow = Color(0xFF07080F),
-    surfaceContainer = Color(0xFF0C0D18),
-    surfaceContainerHigh = Color(0xFF131427),
-    surfaceContainerHighest = Color(0xFF1A1C33),
+    surfaceContainerLow = Color(0xFF0C0E0F),
+    surfaceContainer = Color(0xFF0C0E0F),
+    surfaceContainerHigh = Color(0xFF121516),
+    surfaceContainerHighest = Color(0xFF1B1F20),
 )
 
 /**
@@ -123,29 +123,29 @@ val TrueBlackColors: ColorScheme = DarkColors.copy(
  */
 @Immutable
 data class BookmarkColors(
-    /** Frosted card fill: translucent so the aurora shows through. */
+    /** Fill of cards, rows, fields and grouped settings: the raised surface. */
     val cardSurface: Color,
-    /** Stronger glass for things that float over content: bars, menus. */
-    val glassStrong: Color,
-    /** Hairline that outlines glass; drawn as a top-lit gradient. */
-    val glassEdgeTop: Color,
-    val glassEdgeBottom: Color,
-    /** Pressed / hovered glass. */
-    val glassHover: Color,
-    /** Brand gradient: primary actions, selected chip, FAB. */
-    val accentStart: Color,
-    val accentEnd: Color,
+    /** Fill of things that float over content: the bottom bar, menus. */
+    val raisedSurface: Color,
+    /** The 1dp line that separates surfaces. */
+    val hairline: Color,
+    /** Pressed / hovered / highlighted neutral. */
+    val hover: Color,
+    /** The one accent: switches, FAB, primary buttons, links. */
+    val accent: Color,
     val onAccent: Color,
-    /** The three aurora orbs behind everything, and how bright they glow. */
-    val orbA: Color,
-    val orbB: Color,
-    val orbC: Color,
-    val orbAlpha: Float,
+    /** A quiet wash of the accent: icon chips, the active bottom tab. */
+    val accentSoft: Color,
+    /** Text and glyphs that sit on [accentSoft]. */
+    val onAccentSoft: Color,
+    /** Fill of the selected chip / segment: the ink itself. */
+    val selectedFill: Color,
+    val onSelectedFill: Color,
     /** Background of the "Preview pending" pill. */
     val pendingPillContainer: Color,
     val onPendingPillContainer: Color,
-    /** Mono affordance labels: section headers, counters, timings. */
-    val monoLabel: Color,
+    /** Section headers, counters, timings. */
+    val mutedLabel: Color,
     /** Detail-sheet hard-failure card. */
     val failureContainer: Color,
     val onFailureContainer: Color,
@@ -158,64 +158,61 @@ data class BookmarkColors(
 )
 
 val LightBookmarkColors = BookmarkColors(
-    cardSurface = Color(0x99FFFFFF),
-    glassStrong = Color(0xC7FFFFFF),
-    glassEdgeTop = Color(0xFFFFFFFF),
-    glassEdgeBottom = Color(0x80FFFFFF),
-    glassHover = Color(0xCCFFFFFF),
-    accentStart = Color(0xFFFF7A5C),
-    accentEnd = Color(0xFF9A4DFF),
+    cardSurface = Color(0xFFFFFFFF),
+    raisedSurface = Color(0xFFFFFFFF),
+    hairline = Color(0xFFE3E5E8),
+    hover = Color(0xFFE9EBED),
+    accent = SlateGreenLight,
     onAccent = Color(0xFFFFFFFF),
-    orbA = Color(0xFFFFB59A),
-    orbB = Color(0xFFC3B5FF),
-    orbC = Color(0xFF9EE0FF),
-    orbAlpha = 0.8f,
-    pendingPillContainer = Color(0x1F5B45E0),
-    onPendingPillContainer = Color(0xFF4A3BB0),
-    monoLabel = Color(0xFF5B45E0),
-    failureContainer = Color(0xFFFFE6DE),
-    onFailureContainer = Color(0xFF6B2512),
-    onFailureContainerVariant = Color(0xFF8A4330),
-    selectedOptionContainer = Color(0x265B45E0),
-    skeleton = Color(0x261D1A30),
-    skeletonHighlight = Color(0x4DFFFFFF),
+    accentSoft = Color(0xFFE4EDE9),
+    onAccentSoft = Color(0xFF0B7A54),
+    selectedFill = Color(0xFF0F1214),
+    onSelectedFill = Color(0xFFF2F3F4),
+    pendingPillContainer = Color(0xFFE3E5E8),
+    onPendingPillContainer = Color(0xFF4A5157),
+    mutedLabel = Color(0xFF6A7076),
+    failureContainer = Color(0xFFFBE4E2),
+    onFailureContainer = Color(0xFF5A100D),
+    onFailureContainerVariant = Color(0xFF8A3B37),
+    selectedOptionContainer = Color(0xFFE4EDE9),
+    skeleton = Color(0xFFE3E5E8),
+    skeletonHighlight = Color(0xFFF2F3F4),
 )
 
 val DarkBookmarkColors = BookmarkColors(
-    cardSurface = Color(0x12FFFFFF),
-    glassStrong = Color(0x8C14162C),
-    glassEdgeTop = Color(0x38FFFFFF),
-    glassEdgeBottom = Color(0x0FFFFFFF),
-    glassHover = Color(0x1FFFFFFF),
-    accentStart = Color(0xFF8A7BFF),
-    accentEnd = Color(0xFF3AA8F6),
-    onAccent = Color(0xFFFFFFFF),
-    orbA = Color(0xFF6B5CFF),
-    orbB = Color(0xFF1FB6E8),
-    orbC = Color(0xFFD946EF),
-    orbAlpha = 0.5f,
-    pendingPillContainer = Color(0x1FFFFFFF),
-    onPendingPillContainer = Color(0xFFC4C8EE),
-    monoLabel = Color(0xFFA9AEDA),
-    failureContainer = Color(0x40FF8A6B),
-    onFailureContainer = Color(0xFFFFD9CC),
-    onFailureContainerVariant = Color(0xFFE8B5A3),
-    selectedOptionContainer = Color(0x337C6CFF),
-    skeleton = Color(0x1AFFFFFF),
-    skeletonHighlight = Color(0x33FFFFFF),
+    cardSurface = Color(0xFF141718),
+    raisedSurface = Color(0xFF141718),
+    hairline = Color(0xFF222729),
+    hover = Color(0xFF1D2123),
+    accent = SlateGreenDark,
+    onAccent = Color(0xFF06231A),
+    accentSoft = Color(0xFF12231C),
+    onAccentSoft = Color(0xFF5EE0A9),
+    selectedFill = Color(0xFFECEFF0),
+    onSelectedFill = Color(0xFF0B0D0E),
+    pendingPillContainer = Color(0xFF222729),
+    onPendingPillContainer = Color(0xFFB4BBC0),
+    mutedLabel = Color(0xFF8B9298),
+    failureContainer = Color(0xFF3A1210),
+    onFailureContainer = Color(0xFFFFD9D6),
+    onFailureContainerVariant = Color(0xFFE5A9A5),
+    selectedOptionContainer = Color(0xFF12231C),
+    skeleton = Color(0xFF1D2123),
+    skeletonHighlight = Color(0xFF2A3033),
 )
 
-/** True-black counterpart to [DarkBookmarkColors]: the same glass, dimmer light. */
+/** True-black counterpart to [DarkBookmarkColors]: same palette on a black ground. */
 val TrueBlackBookmarkColors = DarkBookmarkColors.copy(
-    glassStrong = Color(0xB3080914),
-    orbAlpha = 0.3f,
+    cardSurface = Color(0xFF0C0E0F),
+    raisedSurface = Color(0xFF0C0E0F),
+    hairline = Color(0xFF1B1F20),
 )
 
 val LocalBookmarkColors = staticCompositionLocalOf { DarkBookmarkColors }
 
 /**
  * The eight category swatches offered in the create/edit dialog. Tuned bright
- * enough to read as a dot on the dark aurora; also the source palette for
+ * enough to read as a dot on the dark surface; also the source palette for
  * generated monogram tiles (spec 8.3) -- a domain always hashes to the same
  * entry, which is what makes a grid of fallbacks scannable.
  */
@@ -236,13 +233,13 @@ val CategorySwatchHex: List<String> = listOf(
     "#F472B6", "#8F96C4", "#FACC15", "#34D399",
 )
 
-/** The pre-Aurora swatches. Already-saved categories carry these hex values. */
+/** The pre-Slate swatches. Already-saved categories carry these hex values. */
 private val LegacySwatchHex: List<String> = listOf(
     "#B0552F", "#0F7A6B", "#7A4FD6", "#2A5FD6",
     "#C0392B", "#7D918D", "#7D5416", "#00504A",
 )
 
-/** Maps a pre-Aurora swatch hex onto its Aurora counterpart; anything else passes through. */
+/** Maps a pre-Aurora swatch hex onto its current counterpart; anything else passes through. */
 fun normalizeCategoryHex(hex: String?): String? {
     if (hex == null) return null
     val i = LegacySwatchHex.indexOfFirst { it.equals(hex, ignoreCase = true) }

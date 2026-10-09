@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.MaterialTheme
@@ -37,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.accentFill
-import com.bookmark.core.ui.theme.glass
+import com.bookmark.core.ui.theme.panel
 import com.bookmark.core.ui.theme.Dimens
 
 /**
@@ -67,7 +68,7 @@ fun OutlinedField(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .glass(BookmarkShapes.field)
+            .panel(BookmarkShapes.field)
             .then(
                 if (focused) {
                     Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, BookmarkShapes.field)
@@ -83,7 +84,7 @@ fun OutlinedField(
             color = if (focused) {
                 MaterialTheme.colorScheme.primary
             } else {
-                BookmarkTheme.colors.monoLabel
+                BookmarkTheme.colors.mutedLabel
             },
         )
         Row(
@@ -124,7 +125,7 @@ fun OutlinedField(
             if (showCounter && maxLength != null) {
                 Text(
                     text = "${value.length}/$maxLength",
-                    style = BookmarkTheme.text.monoCounter,
+                    style = BookmarkTheme.text.counter,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp),
                 )
@@ -133,7 +134,7 @@ fun OutlinedField(
     }
 }
 
-/** Filled action button: a pill on the brand gradient. */
+/** Filled action button: a solid accent rounded rectangle. */
 @Composable
 fun PrimaryButton(
     text: String,
@@ -171,7 +172,7 @@ fun PrimaryButton(
     }
 }
 
-/** Frosted pill button, same metrics, ink label. */
+/** Outlined button, same metrics, ink label. */
 @Composable
 fun SecondaryButton(
     text: String,
@@ -182,7 +183,7 @@ fun SecondaryButton(
     Box(
         modifier = modifier
             .heightIn(min = height)
-            .glass(BookmarkShapes.primaryButton)
+            .panel(BookmarkShapes.primaryButton)
             .clickable(onClick = onClick)
             .padding(horizontal = 26.dp),
         contentAlignment = Alignment.Center,
@@ -220,7 +221,7 @@ fun TextActionButton(
 }
 
 /**
- * The 52x32 switch drawn in Settings. [interactive] is false when a parent row
+ * The 46x28 switch drawn in Settings. [interactive] is false when a parent row
  * (e.g. `SettingsRow`) already owns the toggle semantics and touch target, so
  * this doesn't end up as a second, disconnected accessibility node.
  */
@@ -231,11 +232,13 @@ fun DesignSwitch(
     modifier: Modifier = Modifier,
     interactive: Boolean = true,
 ) {
-    val track = RoundedCornerShape(16.dp)
+    val track = CircleShape
+    val colors = BookmarkTheme.colors
     Box(
         modifier = modifier
-            .size(width = 52.dp, height = 32.dp)
-            .then(if (checked) Modifier.accentFill(track) else Modifier.glass(track))
+            .size(width = 46.dp, height = 28.dp)
+            .clip(track)
+            .background(if (checked) colors.accent else colors.hairline, track)
             .then(
                 if (interactive) {
                     Modifier.toggleable(
@@ -247,14 +250,14 @@ fun DesignSwitch(
                     Modifier.clearAndSetSemantics { }
                 },
             )
-            .padding(horizontal = 4.dp),
+            .padding(horizontal = 3.dp),
         contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,
     ) {
         Box(
             modifier = Modifier
-                .size(24.dp)
-                .clip(androidx.compose.foundation.shape.CircleShape)
-                .background(if (checked) Color.White else MaterialTheme.colorScheme.onSurfaceVariant),
+                .size(22.dp)
+                .clip(CircleShape)
+                .background(if (checked) colors.onAccent else MaterialTheme.colorScheme.surface),
         )
     }
 }

@@ -6,6 +6,8 @@
 **Version:** 1.0 (draft)
 **Date:** September 2026
 
+> **Visual design:** this spec's layout and styling notes (e.g. the collapsing top app bar) are superseded by the Slate design system, see [DESIGN.md](DESIGN.md). Behaviour sections are unchanged.
+
 ---
 
 ## 1. Overview

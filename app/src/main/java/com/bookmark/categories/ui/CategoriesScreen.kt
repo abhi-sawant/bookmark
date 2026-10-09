@@ -40,14 +40,13 @@ import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.Dimens
 import com.bookmark.core.ui.theme.accentFill
-import com.bookmark.core.ui.theme.glass
+import com.bookmark.core.ui.theme.panel
 import com.bookmark.core.ui.theme.parseCategoryColor
 
 @Composable
 fun CategoriesScreen(
     categories: List<CategoryWithCount>,
     onSearch: () -> Unit,
-    onOverflow: () -> Unit,
     onCreate: () -> Unit,
     onEdit: (Category) -> Unit,
     onMove: (Int, Int) -> Unit,
@@ -63,8 +62,7 @@ fun CategoriesScreen(
                 title = "Categories",
                 count = categories.size,
                 onSearch = onSearch,
-                onOverflow = onOverflow,
-            )
+                )
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
@@ -110,7 +108,7 @@ private fun CategoryRow(
     handleModifier: Modifier,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier = modifier.fillMaxWidth().glass(BookmarkShapes.categoryRow)) {
+    Box(modifier = modifier.fillMaxWidth().panel(BookmarkShapes.categoryRow)) {
         Row(
             modifier = Modifier
                 .clickable(onClick = onClick)
@@ -141,7 +139,7 @@ private fun CategoryRow(
             if (entry.category.isDefault) {
                 Box(
                     modifier = Modifier
-                        .glass(RoundedCornerShape(percent = 50))
+                        .panel(RoundedCornerShape(percent = 50))
                         .padding(horizontal = 9.dp, vertical = 3.dp),
                 ) {
                     Text(

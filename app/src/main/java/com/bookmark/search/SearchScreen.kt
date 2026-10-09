@@ -45,9 +45,9 @@ import com.bookmark.core.model.Bookmark
 import com.bookmark.core.ui.components.BookmarkThumbnail
 import com.bookmark.core.ui.components.CategoryFilterRow
 import com.bookmark.core.ui.theme.BookmarkShapes
-import com.bookmark.core.ui.components.GlassIconButton
+import com.bookmark.core.ui.components.SlateIconButton
 import com.bookmark.core.ui.theme.BookmarkTheme
-import com.bookmark.core.ui.theme.glass
+import com.bookmark.core.ui.theme.panel
 
 @Composable
 fun SearchScreen(
@@ -76,7 +76,7 @@ fun SearchScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            GlassIconButton(onClick = onBack) {
+            SlateIconButton(onClick = onBack) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
@@ -126,8 +126,8 @@ fun SearchScreen(
                     Text(
                         text = "${state.results.size} results" +
                             (state.elapsedMs?.let { " · ${it}ms" } ?: ""),
-                        style = BookmarkTheme.text.monoCaption,
-                        color = BookmarkTheme.colors.monoLabel,
+                        style = BookmarkTheme.text.caption,
+                        color = BookmarkTheme.colors.mutedLabel,
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
                     )
                 }
@@ -163,7 +163,7 @@ private fun SearchField(
     Box(
         modifier = modifier
             .heightIn(min = 46.dp)
-            .glass(RoundedCornerShape(percent = 50))
+            .panel(BookmarkShapes.primaryButton)
             .padding(horizontal = 18.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
@@ -206,7 +206,7 @@ private fun SearchResultRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 5.dp)
-            .glass(RoundedCornerShape(22.dp))
+            .panel(RoundedCornerShape(18.dp))
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,
@@ -229,7 +229,7 @@ private fun SearchResultRow(
                 text = highlightedText(
                     text = bookmark.title,
                     ranges = findHighlightRanges(bookmark.title, queryTerms),
-                    highlightColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.38f),
+                    highlightColor = BookmarkTheme.colors.accent.copy(alpha = 0.28f),
                 ),
                 style = BookmarkTheme.text.cardTitle,
                 color = MaterialTheme.colorScheme.onSurface,

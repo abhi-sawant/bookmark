@@ -23,13 +23,11 @@ import androidx.compose.ui.unit.dp
 import com.bookmark.core.model.CategoryWithCount
 import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.theme.BookmarkTheme
-import com.bookmark.core.ui.theme.accentFill
-import com.bookmark.core.ui.theme.glass
 import com.bookmark.core.ui.theme.Dimens
 import com.bookmark.core.ui.theme.parseCategoryColor
 
 /**
- * Filter chip: a frosted pill, or the brand gradient when selected.
+ * Filter chip: an outlined rounded square, or the solid ink fill when selected.
  */
 @Composable
 fun CategoryChip(
@@ -46,15 +44,23 @@ fun CategoryChip(
         modifier = modifier
             .heightIn(min = height)
             .then(
-                if (selected) Modifier.accentFill(BookmarkShapes.chip) else Modifier.glass(BookmarkShapes.chip),
+                if (selected) {
+                    Modifier
+                        .clip(BookmarkShapes.chip)
+                        .background(colors.selectedFill)
+                } else {
+                    Modifier
+                        .clip(BookmarkShapes.chip)
+                        .border(1.dp, colors.hairline, BookmarkShapes.chip)
+                },
             )
             .clickable(onClick = onClick)
             .padding(horizontal = Dimens.chipHorizontalPadding)
             .semantics { stateDescription = if (selected) "Selected" else "Not selected" },
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(if (dotColor != null) 8.dp else 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (dotColor != null) 8.dp else 7.dp),
     ) {
-        val content = if (selected) colors.onAccent else MaterialTheme.colorScheme.onSurfaceVariant
+        val content = if (selected) colors.onSelectedFill else MaterialTheme.colorScheme.onSurfaceVariant
         if (dotColor != null) CategoryDot(dotColor)
         Text(
             text = label,
@@ -64,8 +70,8 @@ fun CategoryChip(
         if (trailingCount != null) {
             Text(
                 text = trailingCount.toString(),
-                style = BookmarkTheme.text.monoCounter,
-                color = content.copy(alpha = 0.78f),
+                style = BookmarkTheme.text.counter,
+                color = content.copy(alpha = 0.7f),
             )
         }
     }

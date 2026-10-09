@@ -58,7 +58,7 @@ fun ImportPreviewSheet(
             )
             Text(
                 text = preview.fileName,
-                style = BookmarkTheme.text.monoCaption,
+                style = BookmarkTheme.text.caption,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 6.dp),
             )
@@ -99,7 +99,7 @@ private fun PreviewCountRow(label: String, count: Int) {
         Text(text = label, style = BookmarkTheme.text.rowTitle, color = MaterialTheme.colorScheme.onSurface)
         Text(
             text = count.toString(),
-            style = BookmarkTheme.text.monoCounter,
+            style = BookmarkTheme.text.counter,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }

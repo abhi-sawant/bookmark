@@ -64,7 +64,7 @@ import com.bookmark.core.ui.components.SecondaryButton
 import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.Dimens
-import com.bookmark.core.ui.theme.glass
+import com.bookmark.core.ui.theme.panel
 import com.bookmark.core.ui.theme.parseCategoryColor
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -207,7 +207,7 @@ private fun ClipboardChip(
     Row(
         modifier = modifier
             .heightIn(min = Dimens.chipHeight)
-            .glass(BookmarkShapes.chip)
+            .panel(BookmarkShapes.chip)
             .padding(start = 14.dp, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -244,7 +244,7 @@ private fun OutlinedPicker(
     Row(
         modifier = modifier
             .heightIn(min = Dimens.secondaryButtonHeight)
-            .glass(BookmarkShapes.field)
+            .panel(BookmarkShapes.field)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -406,7 +406,7 @@ private fun CategorySelector(
         Text(
             text = "Category",
             style = BookmarkTheme.text.fieldLabel,
-            color = BookmarkTheme.colors.monoLabel,
+            color = BookmarkTheme.colors.mutedLabel,
             modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
         )
         FlowRow(
@@ -425,7 +425,7 @@ private fun CategorySelector(
             Row(
                 modifier = Modifier
                     .heightIn(min = 36.dp)
-                    .glass(BookmarkShapes.chip)
+                    .panel(BookmarkShapes.chip)
                     .then(
                         if (creating) {
                             Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, BookmarkShapes.chip)

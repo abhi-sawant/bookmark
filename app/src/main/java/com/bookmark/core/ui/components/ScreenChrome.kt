@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,7 +27,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -37,14 +37,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.Dimens
-import com.bookmark.core.ui.theme.glass
+import com.bookmark.core.ui.theme.BookmarkShapes
 
 /** Kept in sync with `macrobenchmark/.../BaselineProfileGenerator.kt` (M6). */
 const val SEARCH_BUTTON_TEST_TAG = "search_button"
 
 /**
- * The single-line header the 2a design uses on every top-level screen: title,
- * live count, then search and overflow. This replaces the large collapsing app
+ * The single-line header every top-level screen uses: lowercase title, live
+ * count, then search. This replaces the large collapsing app
  * bar the written spec describes -- the design supersedes it deliberately.
  */
 @Composable
@@ -52,14 +52,10 @@ fun ScreenHeader(
     title: String,
     count: Int?,
     onSearch: () -> Unit,
-    onOverflow: () -> Unit,
     modifier: Modifier = Modifier,
     searchEnabled: Boolean = true,
-    overflowHighlighted: Boolean = false,
     /** What [count] counts, for TalkBack (e.g. "bookmarks", "categories"). */
     countItemName: String = title.lowercase(),
-    /** Rendered anchored to the overflow button, so menus open beside it. */
-    overflowMenu: @Composable () -> Unit = {},
 ) {
     Row(
         modifier = modifier
@@ -70,7 +66,7 @@ fun ScreenHeader(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
-            text = title,
+            text = title.lowercase(),
             style = BookmarkTheme.text.screenTitle,
             color = MaterialTheme.colorScheme.onSurface,
         )
@@ -80,14 +76,15 @@ fun ScreenHeader(
                 style = BookmarkTheme.text.screenCount,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
-                    .glass(RoundedCornerShape(percent = 50))
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                    .clip(BookmarkShapes.countPill)
+                    .background(BookmarkTheme.colors.hairline)
+                    .padding(horizontal = 9.dp, vertical = 3.dp)
                     .semantics { contentDescription = "$count $countItemName" },
             )
         }
         Spacer(modifier = Modifier.weight(1f))
 
-        GlassIconButton(
+        SlateIconButton(
             onClick = onSearch,
             enabled = searchEnabled,
             modifier = Modifier.testTag(SEARCH_BUTTON_TEST_TAG),
@@ -98,34 +95,24 @@ fun ScreenHeader(
                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (searchEnabled) 1f else 0.35f),
             )
         }
-        Box(contentAlignment = Alignment.Center) {
-            GlassIconButton(onClick = onOverflow, highlighted = overflowHighlighted) {
-                Icon(
-                    imageVector = Icons.Outlined.MoreVert,
-                    contentDescription = "More options",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-            overflowMenu()
-        }
     }
 }
 
-/** The rounded-square frosted button used for header actions. */
+/** The rounded-square button used for header actions: no fill until pressed or active. */
 @Composable
-fun GlassIconButton(
+fun SlateIconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     highlighted: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = BookmarkShapes.iconButton
     Box(
         modifier = modifier
             .size(Dimens.iconSlot)
-            .glass(shape)
-            .then(if (highlighted) Modifier.background(BookmarkTheme.colors.glassHover) else Modifier)
+            .clip(shape)
+            .then(if (highlighted) Modifier.background(BookmarkTheme.colors.hover) else Modifier)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -140,8 +127,9 @@ data class BottomDestination(
 )
 
 /**
- * The three-destination bar: a floating frosted capsule rather than a docked
- * strip, with the active tab lifted onto a violet glow.
+ * The three-destination bar: a flat strip docked to the bottom edge, one
+ * hairline above it, with the active tab marked by a soft accent wash behind
+ * its icon.
  */
 @Composable
 fun BookmarkBottomBar(
@@ -150,64 +138,53 @@ fun BookmarkBottomBar(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
+    val colors = BookmarkTheme.colors
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            // Edge-to-edge: the bar floats above the system navigation bar.
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 12.dp),
+            .background(colors.raisedSurface),
     ) {
+        HorizontalDivider(thickness = 1.dp, color = colors.hairline)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .glass(RoundedCornerShape(28.dp), strong = true)
-                .padding(horizontal = 8.dp, vertical = 8.dp),
+                // Edge-to-edge: the bar sits above the system navigation bar.
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceAround,
         ) {
             destinations.forEachIndexed { index, destination ->
                 val selected = index == selectedIndex
-                val shape = RoundedCornerShape(20.dp)
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(shape)
-                        .then(
-                            if (selected) {
-                                Modifier.background(
-                                    Brush.verticalGradient(
-                                        listOf(
-                                            BookmarkTheme.colors.accentStart.copy(alpha = 0.34f),
-                                            BookmarkTheme.colors.accentStart.copy(alpha = 0.10f),
-                                        ),
-                                    ),
-                                    shape,
-                                )
-                            } else {
-                                Modifier
-                            },
-                        )
+                        .clip(RoundedCornerShape(16.dp))
                         .selectable(
                             selected = selected,
                             role = Role.Tab,
                             onClick = { onSelect(index) },
                         )
-                        .padding(vertical = 8.dp),
+                        .padding(vertical = 4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(3.dp),
                 ) {
-                    Icon(
-                        imageVector = destination.icon,
-                        contentDescription = null,
-                        tint = if (selected) {
-                            MaterialTheme.colorScheme.onSurface
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        modifier = Modifier.size(24.dp),
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(width = 56.dp, height = 30.dp)
+                            .clip(RoundedCornerShape(15.dp))
+                            .then(if (selected) Modifier.background(colors.accentSoft) else Modifier),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = destination.icon,
+                            contentDescription = null,
+                            tint = if (selected) colors.onAccentSoft else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
                     Text(
                         text = destination.label,
-                        style = BookmarkTheme.text.rowSubtitle.copy(fontWeight = FontWeight.Medium, fontSize = 11.5.sp),
+                        style = BookmarkTheme.text.rowSubtitle.copy(fontWeight = FontWeight.SemiBold, fontSize = 11.5.sp),
                         color = if (selected) {
                             MaterialTheme.colorScheme.onSurface
                         } else {

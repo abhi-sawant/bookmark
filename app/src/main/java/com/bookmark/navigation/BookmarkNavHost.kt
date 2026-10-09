@@ -59,7 +59,7 @@ import com.bookmark.core.model.Bookmark
 import com.bookmark.core.model.Category
 import com.bookmark.core.model.MetadataState
 import com.bookmark.core.ui.components.BookmarkBottomBar
-import com.bookmark.core.ui.theme.AuroraBackground
+import com.bookmark.core.ui.theme.SlateBackground
 import com.bookmark.core.ui.components.BottomDestination
 import com.bookmark.core.ui.motion.rememberReducedMotionEnabled
 import com.bookmark.core.util.LinkActions
@@ -114,22 +114,20 @@ fun BookmarkNavHost() {
     val settingsViewModel: SettingsViewModel = hiltViewModel()
 
     val backStackEntry by navController.currentBackStackEntryAsState()
-    // Route-checking by KClass (NavDestination.hasRoute) is the more idiomatic
-    // API, but the destination's `route` string is already the route class's
-    // qualified name (how composable<T>() registers it), and comparing that
-    // directly sidesteps an overload-resolution ambiguity between the
-    // KClass-based extension and the older String-based member function.
+    // Compared by serial name, not `KClass.qualifiedName`: the destination's
+    // route is the @Serializable name, which R8 leaves alone, while the class's
+    // own name is obfuscated in release builds and would never match.
     val currentRoute = backStackEntry?.destination?.route
     val currentTopLevel = when (currentRoute) {
-        CategoriesRoute::class.qualifiedName -> TopLevelDestination.CATEGORIES
-        SettingsRoute::class.qualifiedName -> TopLevelDestination.SETTINGS
+        CategoriesRoute.serializer().descriptor.serialName -> TopLevelDestination.CATEGORIES
+        SettingsRoute.serializer().descriptor.serialName -> TopLevelDestination.SETTINGS
         else -> TopLevelDestination.HOME
     }
     // Search is a full-screen destination pushed on top of Home, not one of
     // the three tabs -- the bottom bar has nothing sensible to highlight
     // while it's open, so it hides instead (matches the design's full-screen
     // search mock, which shows no bottom bar).
-    val onSearchRoute = currentRoute == SearchRoute::class.qualifiedName
+    val onSearchRoute = currentRoute == SearchRoute.serializer().descriptor.serialName
 
     val homeState by homeViewModel.uiState.collectAsStateWithLifecycle()
     val addEditState by addEditViewModel.state.collectAsStateWithLifecycle()
@@ -214,7 +212,7 @@ fun BookmarkNavHost() {
     // keep this available (see HANDOVER.md). Wraps everything below so the
     // scope is available to both the grid (inside NavHost) and the sheets
     // (in the `when` blocks after it).
-    AuroraBackground(modifier = Modifier.fillMaxSize()) {
+    SlateBackground(modifier = Modifier.fillMaxSize()) {
     SharedTransitionLayout(modifier = Modifier.fillMaxSize()) {
         val sharedTransitionScope = this
         val openDetailBookmarkId = (sheet as? SheetState.Detail)?.bookmark?.id
@@ -249,21 +247,7 @@ fun BookmarkNavHost() {
             startDestination = HomeRoute,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                // Content dissolves into the floating bar instead of being cut off.
-                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-                .drawWithContent {
-                    drawContent()
-                    val fade = 28.dp.toPx()
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(Color.Black, Color.Transparent),
-                            startY = size.height - fade,
-                            endY = size.height,
-                        ),
-                        blendMode = BlendMode.DstIn,
-                    )
-                },
+                .padding(innerPadding),
             // No animated transition between destinations (tabs, Search) --
             // the switch is instant rather than a slide/fade.
             enterTransition = { EnterTransition.None },
@@ -304,7 +288,6 @@ fun BookmarkNavHost() {
                 CategoriesScreen(
                     categories = categoryDraftOrder ?: categoriesState.categories,
                     onSearch = { },
-                    onOverflow = { },
                     onCreate = categoriesViewModel::openCreate,
                     onEdit = categoriesViewModel::openEdit,
                     onMove = categoriesViewModel::moveDraft,
@@ -330,7 +313,6 @@ fun BookmarkNavHost() {
                     onSyncNow = settingsViewModel::syncNow,
                     onSignOut = settingsViewModel::signOut,
                     onSearch = { },
-                    onOverflow = { },
                 )
             }
 

@@ -7,7 +7,8 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -40,8 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.theme.BookmarkTheme
-import com.bookmark.core.ui.theme.accentFill
-import com.bookmark.core.ui.theme.glass
+import com.bookmark.core.ui.theme.panel
 import androidx.compose.foundation.layout.Arrangement
 
 /** The 32x4 grabber at the top of every bottom sheet. */
@@ -134,7 +134,7 @@ fun SkeletonLine(modifier: Modifier = Modifier) {
 
 /**
  * The two- and three-way segmented controls in Settings and the import sheet:
- * a glass trough with the chosen option lifted onto the brand gradient.
+ * a recessed trough with the chosen option lifted onto the ink fill.
  */
 @Composable
 fun SegmentedControl(
@@ -144,23 +144,25 @@ fun SegmentedControl(
     modifier: Modifier = Modifier,
     height: androidx.compose.ui.unit.Dp = 44.dp,
 ) {
-    val troughShape = RoundedCornerShape(18.dp)
-    val segmentShape = RoundedCornerShape(14.dp)
+    val troughShape = RoundedCornerShape(14.dp)
+    val segmentShape = RoundedCornerShape(11.dp)
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .glass(troughShape)
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+            .clip(troughShape)
+            .background(MaterialTheme.colorScheme.background)
+            .padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         options.forEachIndexed { index, label ->
             val selected = index == selectedIndex
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .heightIn(min = height - 8.dp)
-                    .then(if (selected) Modifier.accentFill(segmentShape) else Modifier.clip(segmentShape))
-                    .clickable { onSelect(index) }
+                    .heightIn(min = height - 6.dp)
+                    .clip(segmentShape)
+                    .then(if (selected) Modifier.background(BookmarkTheme.colors.selectedFill, segmentShape) else Modifier)
+                    .selectable(selected = selected, role = Role.RadioButton, onClick = { onSelect(index) })
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -169,7 +171,7 @@ fun SegmentedControl(
                     style = BookmarkTheme.text.chipLabel,
                     textAlign = TextAlign.Center,
                     color = if (selected) {
-                        BookmarkTheme.colors.onAccent
+                        BookmarkTheme.colors.onSelectedFill
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant
                     },
@@ -179,14 +181,14 @@ fun SegmentedControl(
     }
 }
 
-/** Uppercase Geist Mono section label, as used across Settings. */
+/** The quiet lowercase label above a group of rows (Settings, import preview). */
 @Composable
-fun MonoSectionHeader(text: String, modifier: Modifier = Modifier) {
+fun SectionHeader(text: String, modifier: Modifier = Modifier) {
     Text(
-        text = text.uppercase(),
-        style = BookmarkTheme.text.monoSection,
-        color = BookmarkTheme.colors.monoLabel,
-        modifier = modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 6.dp),
+        text = text.lowercase(),
+        style = BookmarkTheme.text.sectionLabel,
+        color = BookmarkTheme.colors.mutedLabel,
+        modifier = modifier.padding(start = 26.dp, end = 20.dp, top = 20.dp, bottom = 9.dp),
     )
 }
 
@@ -199,7 +201,7 @@ fun SettingsGroup(modifier: Modifier = Modifier, content: @Composable ColumnScop
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .glass(BookmarkShapes.settingsGroup),
+            .panel(BookmarkShapes.settingsGroup),
         content = content,
     )
 }
@@ -207,5 +209,5 @@ fun SettingsGroup(modifier: Modifier = Modifier, content: @Composable ColumnScop
 /** Hairline divider between rows inside a [SettingsGroup]. */
 @Composable
 fun RowDivider(modifier: Modifier = Modifier) {
-    HorizontalDivider(modifier = modifier, thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
+    HorizontalDivider(modifier = modifier, thickness = 1.dp, color = BookmarkTheme.colors.hairline)
 }

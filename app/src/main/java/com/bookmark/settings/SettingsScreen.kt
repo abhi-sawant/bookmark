@@ -36,7 +36,7 @@ import com.bookmark.account.data.AuthState
 import com.bookmark.core.model.ThemeMode
 import com.bookmark.core.model.UserPreferences
 import com.bookmark.core.ui.components.DesignSwitch
-import com.bookmark.core.ui.components.MonoSectionHeader
+import com.bookmark.core.ui.components.SectionHeader
 import com.bookmark.core.ui.components.RowDivider
 import com.bookmark.core.ui.components.ScreenHeader
 import com.bookmark.core.ui.components.SegmentedControl
@@ -69,7 +69,6 @@ fun SettingsScreen(
     onSyncNow: () -> Unit,
     onSignOut: () -> Unit,
     onSearch: () -> Unit,
-    onOverflow: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -78,7 +77,6 @@ fun SettingsScreen(
             title = "Settings",
             count = null,
             onSearch = onSearch,
-            onOverflow = onOverflow,
         )
         Column(
             modifier = Modifier
@@ -86,7 +84,7 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 120.dp),
         ) {
-            MonoSectionHeader("Sync", modifier = Modifier.padding(top = 8.dp))
+            SectionHeader("Sync", modifier = Modifier.padding(top = 8.dp))
             SettingsGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
                 when (authState) {
                     AuthState.SignedOut -> SettingsRow(
@@ -113,13 +111,14 @@ fun SettingsScreen(
                         SettingsRow(
                             title = "Sign out",
                             enabled = true,
+                            destructive = true,
                             onClick = onSignOut,
                         )
                     }
                 }
             }
 
-            MonoSectionHeader("Backup")
+            SectionHeader("Backup")
             SettingsGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
                 SettingsRow(
                     leadingIcon = Icons.Outlined.FileDownload,
@@ -140,7 +139,7 @@ fun SettingsScreen(
                 )
             }
 
-            MonoSectionHeader("Previews")
+            SectionHeader("Previews")
             SettingsGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
                 SettingsRow(
                     title = "Fetch link previews automatically",
@@ -166,7 +165,7 @@ fun SettingsScreen(
                 )
             }
 
-            MonoSectionHeader("Appearance")
+            SectionHeader("Appearance")
             SettingsGroup(modifier = Modifier.padding(horizontal = 16.dp)) {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
                     Text(
@@ -230,6 +229,7 @@ private fun SettingsRow(
     subtitle: String? = null,
     enabled: Boolean = true,
     leadingIcon: ImageVector? = null,
+    destructive: Boolean = false,
     onClick: (() -> Unit)? = null,
     switchChecked: Boolean? = null,
     onSwitchCheckedChange: ((Boolean) -> Unit)? = null,
@@ -256,16 +256,16 @@ private fun SettingsRow(
         if (leadingIcon != null) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(11.dp))
+                    .background(BookmarkTheme.colors.accentSoft),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = leadingIcon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = alpha),
-                    modifier = Modifier.size(22.dp),
+                    tint = BookmarkTheme.colors.onAccentSoft.copy(alpha = alpha),
+                    modifier = Modifier.size(20.dp),
                 )
             }
         }
@@ -273,7 +273,7 @@ private fun SettingsRow(
             Text(
                 text = title,
                 style = BookmarkTheme.text.rowTitle,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
+                color = (if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface).copy(alpha = alpha),
             )
             if (subtitle != null) {
                 Text(

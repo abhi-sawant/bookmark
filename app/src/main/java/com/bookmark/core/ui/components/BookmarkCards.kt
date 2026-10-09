@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -48,7 +49,7 @@ import com.bookmark.core.model.MetadataState
 import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.Dimens
-import com.bookmark.core.ui.theme.glass
+import com.bookmark.core.ui.theme.panel
 import com.bookmark.core.ui.theme.parseCategoryColor
 import java.io.File
 
@@ -83,15 +84,14 @@ fun BookmarkGridCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .glass(BookmarkShapes.card)
+            .clip(BookmarkShapes.thumbnailLarge)
             .testTag(BOOKMARK_ITEM_TEST_TAG)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick,
                 onClickLabel = "Open ${bookmark.title}",
                 onLongClickLabel = "Bookmark actions",
-            )
-            .padding(8.dp),
+            ),
     ) {
         run {
             // A real thumbnail sizes to its own aspect ratio, which is what
@@ -133,7 +133,7 @@ fun BookmarkGridCard(
                 )
                 if (bookmark.isPinned) PinBadge(Modifier.align(Alignment.TopStart).padding(8.dp))
             }
-            Column(modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 11.dp, bottom = 6.dp)) {
+            Column(modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 10.dp, bottom = 2.dp)) {
                 Text(
                     text = bookmark.title,
                     style = BookmarkTheme.text.cardTitle,
@@ -149,11 +149,11 @@ fun BookmarkGridCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 5.dp),
+                        modifier = Modifier.padding(top = 4.dp),
                     )
                 }
                 Row(
-                    modifier = Modifier.padding(top = 9.dp),
+                    modifier = Modifier.padding(top = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
@@ -174,7 +174,7 @@ fun BookmarkGridCard(
     }
 }
 
-/** Compact row: a frosted card with a 72dp thumbnail, title and `site - Category`. */
+/** Compact row: a hairline card with a 64dp thumbnail, title and `site - Category`. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BookmarkListRow(
@@ -189,8 +189,8 @@ fun BookmarkListRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 5.dp)
-            .glass(RoundedCornerShape(24.dp))
+            .padding(horizontal = Dimens.gridOuterPadding, vertical = 4.dp)
+            .panel(RoundedCornerShape(18.dp))
             .testTag(BOOKMARK_ITEM_TEST_TAG)
             .combinedClickable(
                 onClick = onClick,
@@ -198,18 +198,18 @@ fun BookmarkListRow(
                 onClickLabel = "Open ${bookmark.title}",
                 onLongClickLabel = "Bookmark actions",
             )
-            .padding(9.dp),
+            .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Box(modifier = Modifier.size(Dimens.listThumbnail).clip(BookmarkShapes.thumbnailLarge)) {
+        Box(modifier = Modifier.size(Dimens.listThumbnail).clip(BookmarkShapes.thumbnailMedium)) {
             BookmarkThumbnail(
                 bookmark = bookmark,
                 thumbnailPath = thumbnailPath,
                 monogramFontSize = androidx.compose.ui.unit.TextUnit(24f, androidx.compose.ui.unit.TextUnitType.Sp),
                 modifier = Modifier.fillMaxSize(),
             )
-            if (bookmark.isPinned) PinBadge(Modifier.align(Alignment.TopStart).padding(5.dp), size = 20.dp)
+            if (bookmark.isPinned) PinBadge(Modifier.align(Alignment.TopStart).padding(4.dp), size = 20.dp)
         }
         Column(modifier = Modifier.weight(1f).padding(end = 4.dp)) {
             Text(
@@ -242,22 +242,22 @@ fun BookmarkListRow(
     }
 }
 
-/** Small frosted disc marking a pinned bookmark on its thumbnail. */
+/** Small rounded chip marking a pinned bookmark on its thumbnail. */
 @Composable
 private fun PinBadge(modifier: Modifier = Modifier, size: androidx.compose.ui.unit.Dp = 26.dp) {
     Box(
         modifier = modifier
             .size(size)
-            .clip(CircleShape)
-            .background(Color(0x6B0A0A14))
-            .border(1.dp, Color.White.copy(alpha = 0.28f), CircleShape),
+            .shadow(3.dp, RoundedCornerShape(size * 0.34f))
+            .clip(RoundedCornerShape(size * 0.34f))
+            .background(BookmarkTheme.colors.cardSurface),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = Icons.Outlined.Flag,
             contentDescription = "Pinned",
-            tint = Color.White,
-            modifier = Modifier.size(size * 0.5f),
+            tint = BookmarkTheme.colors.accent,
+            modifier = Modifier.size(size * 0.54f),
         )
     }
 }

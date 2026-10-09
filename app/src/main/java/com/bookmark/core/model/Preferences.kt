@@ -12,13 +12,13 @@ enum class SortOrder {
     TITLE_AZ,
     CATEGORY;
 
-    /** The label shown in the mono affordance beside the filter row. */
+    /** The label shown on the sort button under the filter row. */
     val shortLabel: String
         get() = when (this) {
-            NEWEST -> "NEWEST"
-            OLDEST -> "OLDEST"
+            NEWEST -> "Newest"
+            OLDEST -> "Oldest"
             TITLE_AZ -> "A–Z"
-            CATEGORY -> "CATEGORY"
+            CATEGORY -> "Category"
         }
 }
 
