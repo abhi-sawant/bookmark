@@ -1,6 +1,12 @@
-# Bookmark – Local-First Link Saving for Android
+# Bookmark – Local-First Link Saving
 
-A fast, privacy-first Android app for saving and organizing bookmarks. Share a URL from any app, and Bookmark instantly stores it locally with automatically fetched metadata (title, description, thumbnail). Everything lives on your device—there's no account, no sync, and no telemetry.
+A fast, privacy-first app for saving and organizing bookmarks, for Android and the web. Share a URL from any app, and Bookmark instantly stores it locally with automatically fetched metadata (title, description, thumbnail). Everything lives on your device; an account is optional and only used to sync across devices and the web app. There is no telemetry.
+
+| Part | Where | What |
+|---|---|---|
+| Android app | [`android/`](android) | Kotlin + Jetpack Compose, local-first (Room) |
+| Web app (PWA) | [`web/`](web) | Vite + React + TypeScript, served at bookmark.slowatcoding.com |
+| Sync API | [`backend/`](backend) | PHP + MySQL, served at api.bookmark.slowatcoding.com |
 
 ## Overview
 
@@ -78,7 +84,7 @@ Bookmark solves a simple problem elegantly: you see a link you want to keep, you
    ```
 
 2. **Configure signing (release builds)**
-   - Create `keystore.properties` in the project root:
+   - Create `keystore.properties` in `android/`:
      ```properties
      storeFile=keystore/release.keystore
      storePassword=<your-keystore-password>
@@ -89,6 +95,7 @@ Bookmark solves a simple problem elegantly: you see a link you want to keep, you
 3. **Build**
    ```bash
    # Debug
+   cd android
    ./gradlew app:assembleDebug
 
    # Release
@@ -100,11 +107,28 @@ Bookmark solves a simple problem elegantly: you see a link you want to keep, you
    ./gradlew app:installDebug
    ```
 
+## Web app
+
+The web app (`web/`) is an installable PWA with the same Slate design as the Android app on a phone-sized screen, and a sidebar layout plus keyboard shortcuts on desktop. It keeps its own local copy of your data (IndexedDB) and syncs with the same account and API as the app.
+
+The one functional difference: **the web app does not fetch link previews or thumbnails** (browsers can't read other sites' pages). A bookmark added on the web shows a generated tile; open the Android app after syncing and it fetches the real thumbnail and syncs it back.
+
+```bash
+cd web
+pnpm install
+pnpm dev          # http://localhost:5173 (needs the API's CORS list to include it)
+pnpm test         # unit tests (URL normalising, sync engine against a fake server, backup)
+pnpm build        # static site in web/dist, see docs/MILESWEB_DEPLOYMENT_GUIDE.md section 11
+```
+
+Desktop shortcuts: `n` new bookmark, `/` search, `g` then `h` / `c` / `s` for Home / Categories / Settings, drop a link on the window to add it.
+
 ## Project Structure
 
 ```
-app/
-  src/
+android/                     # Android app (Gradle root; run ./gradlew from here)
+  app/
+    src/
     main/
       java/com/bookmark/
         bookmarks/           # Bookmark CRUD, list, grid, detail views
@@ -118,7 +142,10 @@ app/
       res/                   # Resources, icons, strings
     test/                    # Unit tests
     androidTest/             # Integration tests
-macrobenchmark/              # Performance benchmarks
+  macrobenchmark/            # Performance benchmarks
+backend/                     # PHP sync API
+web/                         # Web app (Vite + React PWA)
+docs/                        # Handover, deployment guide, design explorations
 ```
 
 **Package-by-feature** structure keeps code co-located and reduces coupling.
@@ -244,6 +271,8 @@ All data is stored in app-private storage. The app makes **zero outbound request
 - About / licenses
 
 ## Development
+
+Gradle commands below run from `android/`.
 
 ### Running Tests
 ```bash

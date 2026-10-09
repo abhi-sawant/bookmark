@@ -1,0 +1,25 @@
+.screen { display: flex; flex-direction: column; min-height: 100%; padding-bottom: calc(120px + var(--safe-bottom)); }
+.controls-row { display: flex; align-items: center; justify-content: space-between; padding: 14px var(--gutter) 12px; }
+.sort-btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 8px; margin-left: -8px; border-radius: 10px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.sort-btn:hover { background: var(--hover); }
+.view-toggle { display: flex; gap: 2px; padding: 3px; border-radius: 11px; background: var(--hairline); }
+.view-toggle button { display: grid; place-items: center; width: 36px; height: 30px; border-radius: 8px; color: var(--muted); }
+.view-toggle button[aria-checked='true'] { background: var(--card); color: var(--ink); }
+.search-top { display: flex; align-items: center; gap: 12px; padding: 8px 16px 14px; padding-top: calc(8px + var(--safe-top)); }
+.search-field { flex: 1; display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 18px; border-radius: 16px; }
+.search-field input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 15.5px; caret-color: var(--accent); }
+.search-field input::-webkit-search-cancel-button { display: none; }
+.search-field button { color: var(--muted); display: grid; }
+.desktop-search { display: flex; align-items: center; gap: 8px; width: 320px; min-height: 40px; padding: 0 12px; border-radius: 14px; color: var(--muted); }
+.desktop-search:focus-within { border-color: var(--accent); }
+.desktop-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 14.5px; color: var(--ink); }
+.desktop-search input::-webkit-search-cancel-button { display: none; }
+.desktop-search button { display: grid; color: var(--muted); }
+.desktop-search kbd { font: inherit; font-size: 12px; font-weight: 600; padding: 1px 7px; border-radius: 6px; border: 1px solid var(--hairline); }
+
+.account { display: flex; flex-direction: column; gap: 16px; max-width: 440px; margin: 0 auto; padding: calc(64px + var(--safe-top)) 24px 24px; }
+.account-links { display: flex; flex-direction: column; align-items: center; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner { width: 28px; height: 28px; margin: 12px auto; border-radius: 50%; border: 3px solid var(--hairline); border-top-color: var(--accent); animation: spin 0.8s linear infinite; }
+.device-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-top: 1px solid var(--hairline); }
+.device-row:first-child { border-top: 0; }

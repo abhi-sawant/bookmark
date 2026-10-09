@@ -31,6 +31,14 @@ define('DB_PASS', 'changeme');            // CHANGE ME - the database user's pas
 // links (password reset emails) and absolute thumbnail URLs.
 define('APP_BASE_URL', 'https://api.bookmark.slowatcoding.com'); // CHANGE ME
 
+// Browser origins allowed to call the API (the web app). Exact match, no
+// wildcards. Remove the localhost entry on production if you never develop
+// the web app against the live API.
+define('CORS_ALLOWED_ORIGINS', [
+    'https://bookmark.slowatcoding.com',
+    'http://localhost:5173', // Vite dev server
+]);
+
 // -----------------------------------------------------------------------
 // SMTP (used for password reset emails, sent via vendored PHPMailer)
 // -----------------------------------------------------------------------

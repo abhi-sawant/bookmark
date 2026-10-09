@@ -2,6 +2,7 @@
 /**
  * bootstrap.php - required at the top of every endpoint file.
  *
+ * - Answers CORS preflight and adds CORS headers for allowed web origins.
  * - Enforces HTTPS.
  * - Sets Content-Type: application/json (unless the endpoint defines
  *   BOOTSTRAP_HTML_MODE = true before including this file, e.g. the HTML
@@ -16,6 +17,30 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/response.php';
 require_once __DIR__ . '/validate.php';
 require_once __DIR__ . '/auth.php';
+
+// -----------------------------------------------------------------------
+// CORS - lets the web app (a different origin) call the API from a browser.
+// Origins are matched exactly against CORS_ALLOWED_ORIGINS. Preflight
+// (OPTIONS) is answered here, before auth and method checks, because the
+// browser sends it without the Authorization header.
+// -----------------------------------------------------------------------
+// Existing deployments keep their own config.php, which may predate the
+// CORS_ALLOWED_ORIGINS setting, so fall back to the production web origin.
+$corsAllowed = defined('CORS_ALLOWED_ORIGINS')
+    ? CORS_ALLOWED_ORIGINS
+    : ['https://bookmark.slowatcoding.com'];
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if ($origin !== '' && in_array($origin, $corsAllowed, true)) {
+    header('Access-Control-Allow-Origin: ' . $origin);
+    header('Vary: Origin');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Authorization, Content-Type');
+    header('Access-Control-Max-Age: 86400');
+}
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
 
 // -----------------------------------------------------------------------
 // Enforce HTTPS

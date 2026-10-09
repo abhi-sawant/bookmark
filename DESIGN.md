@@ -1,12 +1,13 @@
 # Design system — Slate
 
-The visual language of the Android app. Chosen from three candidates (kept in
+The visual language of the Android app and the web app. Chosen from three candidates (kept in
 [docs/design/slate-candidates.html](docs/design/slate-candidates.html), with the two
 unchosen directions, Paper and Ribbon). It replaces the earlier "Aurora" look
 (glass, orbs, gradients; prototype archived in `docs/design/`).
 
-Source of truth in code: `app/src/main/java/com/bookmark/core/ui/theme/`
-(`Color.kt`, `Type.kt`, `Shape.kt`, `Surfaces.kt`, `Theme.kt`).
+Source of truth in code: `android/app/src/main/java/com/bookmark/core/ui/theme/`
+(`Color.kt`, `Type.kt`, `Shape.kt`, `Surfaces.kt`, `Theme.kt`). The web app mirrors
+these tokens in `web/src/theme/`.
 
 ## Principles
 
