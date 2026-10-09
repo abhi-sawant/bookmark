@@ -31,6 +31,7 @@ class SettingsRepository @Inject constructor(
         val sortOrder = stringPreferencesKey("sort_order")
         val lastUsedCategory = stringPreferencesKey("last_used_category")
         val fetchPreviews = booleanPreferencesKey("fetch_previews")
+        val skippedUpdateVersion = stringPreferencesKey("skipped_update_version")
     }
 
     val preferences: Flow<UserPreferences> = context.dataStore.data.map { prefs ->
@@ -44,6 +45,10 @@ class SettingsRepository @Inject constructor(
             fetchPreviewsAutomatically = prefs[Keys.fetchPreviews] ?: true,
         )
     }
+
+    val skippedUpdateVersion: Flow<String?> = context.dataStore.data.map { it[Keys.skippedUpdateVersion] }
+
+    suspend fun setSkippedUpdateVersion(version: String) = put(Keys.skippedUpdateVersion, version)
 
     suspend fun setThemeMode(mode: ThemeMode) = put(Keys.themeMode, mode.name)
     suspend fun setDynamicColor(enabled: Boolean) = put(Keys.dynamicColor, enabled)

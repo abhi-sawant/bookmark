@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.1 — 2026-10-09
+
+### Added
+- **Update notifications.** When the app opens it checks GitHub for a newer release. If one is available, a popup shows the changelog with three choices: **Update** (opens the release page to download), **Not now** (asks again next time) and **Skip this version** (stays quiet until a newer one is out). If you're offline, nothing happens.
+
 ## 2.0.0 — 2026-10-09
 
 ### Changed

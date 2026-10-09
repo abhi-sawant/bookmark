@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.lifecycle.ViewModel
@@ -18,21 +19,47 @@ import com.bookmark.benchmark.seedBenchmarkBookmarksIfRequested
 import com.bookmark.bookmarks.data.BookmarkDao
 import com.bookmark.core.model.UserPreferences
 import com.bookmark.core.ui.theme.BookmarkTheme
+import com.bookmark.core.util.LinkActions
 import com.bookmark.settings.SettingsRepository
+import com.bookmark.update.AvailableUpdate
+import com.bookmark.update.UpdateDialog
+import com.bookmark.update.UpdateRepository
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
     settingsRepository: SettingsRepository,
+    private val updateRepository: UpdateRepository,
 ) : ViewModel() {
     val preferences: StateFlow<UserPreferences> = settingsRepository.preferences
         .stateIn(viewModelScope, SharingStarted.Eagerly, UserPreferences())
+
+    private val _update = MutableStateFlow<AvailableUpdate?>(null)
+    val update: StateFlow<AvailableUpdate?> = _update.asStateFlow()
+
+    // One check per app open; the ViewModel survives rotation, so it is not repeated.
+    init {
+        viewModelScope.launch { _update.value = updateRepository.checkForUpdate() }
+    }
+
+    fun dismissUpdate() {
+        _update.value = null
+    }
+
+    fun skipUpdate() {
+        val version = _update.value?.version ?: return
+        _update.value = null
+        viewModelScope.launch { updateRepository.skipVersion(version) }
+    }
 }
 
 @AndroidEntryPoint
@@ -63,6 +90,19 @@ class MainActivity : ComponentActivity() {
                 // real users -- TalkBack reads contentDescription, not this.
                 Box(modifier = Modifier.fillMaxSize().semantics { testTagsAsResourceId = true }) {
                     com.bookmark.navigation.BookmarkNavHost()
+                }
+                val update by viewModel.update.collectAsStateWithLifecycle()
+                update?.let {
+                    val context = LocalContext.current
+                    UpdateDialog(
+                        update = it,
+                        onUpdate = {
+                            LinkActions.open(context, it.url)
+                            viewModel.dismissUpdate()
+                        },
+                        onNotNow = viewModel::dismissUpdate,
+                        onSkip = viewModel::skipUpdate,
+                    )
                 }
             }
         }
