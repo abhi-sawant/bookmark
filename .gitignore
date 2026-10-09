@@ -16,3 +16,4 @@ local.properties
 /keystore
 keystore.properties
 /releases
+/.idea/deviceManager.xml
