@@ -141,8 +141,12 @@ interface BookmarkDao {
      * The bit values are [com.bookmark.core.model.ManualField]: TITLE=1,
      * DESCRIPTION=2, THUMBNAIL=4.
      *
-     * `updatedAt` is deliberately left alone: a background fetch is not a user
-     * edit, and bumping it would misreport when the bookmark last changed.
+     * `updatedAt` is left alone -- a background fetch is not a user edit -- with
+     * one exception: when a thumbnail is stored for a bookmark the server has no
+     * thumbnail for (`remoteThumbnailUrl IS NULL`, e.g. one added on the web,
+     * which never fetches previews), `updatedAt` is bumped to [now]. That makes
+     * the row dirty so the next sync uploads the thumbnail and every other
+     * device gets it; without it the fetched thumbnail would stay on this phone.
      *
      * `remoteThumbnailUrl` resets to null in lockstep with `thumbnailPath`
      * (both guarded by the same CASE): whatever was previously uploaded is for
@@ -173,6 +177,10 @@ interface BookmarkDao {
             remoteThumbnailUrl = CASE
                 WHEN (manualFields & 4) = 0 THEN NULL
                 ELSE remoteThumbnailUrl END,
+            updatedAt = CASE
+                WHEN (manualFields & 4) = 0 AND :thumbnailPath IS NOT NULL
+                    AND remoteThumbnailUrl IS NULL THEN MAX(updatedAt, :now)
+                ELSE updatedAt END,
             siteName = COALESCE(:siteName, siteName),
             imageCandidates = :imageCandidates,
             metadataState = :state,

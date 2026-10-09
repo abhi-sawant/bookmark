@@ -152,10 +152,11 @@ class ApplyMetadataTest {
     }
 
     @Test
-    fun aFetchDoesNotBumpUpdatedAt() = runBlocking {
+    fun aFetchDoesNotBumpUpdatedAtWhenTheServerAlreadyHasAThumbnail() = runBlocking {
         // A background fetch is not a user edit; bumping updatedAt would
         // misreport when the bookmark last changed.
         insert(ManualField.NONE)
+        dao.setRemoteThumbnailUrl(ID, "https://api.example/uploads/thumbnails/1/b1.webp")
         applyFetched()
 
         assertEquals(1L, dao.findById(ID)!!.updatedAt)
@@ -204,6 +205,31 @@ class ApplyMetadataTest {
 
         assertEquals(1, dao.countByStates(listOf(MetadataState.FAILED, MetadataState.FALLBACK)))
         assertEquals(0, dao.countByStates(listOf(MetadataState.SUCCESS)))
+    }
+
+    @Test
+    fun aFetchedThumbnailMarksTheRowDirtySoItUploads() = runBlocking {
+        // A bookmark added on the web: no thumbnail on the server (remoteThumbnailUrl is null).
+        insert(ManualField.NONE)
+        dao.markSynced(ID, 1L)
+        assertEquals(0, dao.findDirty().size)
+
+        applyFetched()
+
+        val row = dao.findById(ID)!!
+        assertEquals(999L, row.updatedAt)
+        assertEquals(listOf(ID), dao.findDirty().map { it.id })
+    }
+
+    @Test
+    fun aLockedThumbnailDoesNotDirtyTheRow() = runBlocking {
+        insert(ManualField.THUMBNAIL)
+        dao.markSynced(ID, 1L)
+
+        applyFetched()
+
+        assertEquals(1L, dao.findById(ID)!!.updatedAt)
+        assertEquals(0, dao.findDirty().size)
     }
 
     private companion object {
