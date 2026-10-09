@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.0.0 — 2026-10-09
+
+### Added
+- **Web app.** Your bookmarks are now available in a browser at bookmark.slowatcoding.com, an installable PWA with the same look as the app and a desktop layout (sidebar, search box, keyboard shortcuts). Sign in with the same account to sync. The web app doesn't fetch link previews; bookmarks added there show a generated tile until the Android app fetches a thumbnail.
+
+### Changed
+- Repo layout: the Android project moved to `android/`; the web app is in `web/`; the backend stays in `backend/`.
+- A thumbnail fetched on the phone for a bookmark the server has no thumbnail for (for example one added on the web) is now uploaded on the next sync, so it appears on every device.
+
+### Backend
+- `backend/bootstrap.php` and `backend/config.php` updated: the API now answers CORS preflight requests and allows the web app's origin. No database/schema changes. Upload the new `bootstrap.php` (keep your existing `config.php`; the code falls back to the production origin if the new `CORS_ALLOWED_ORIGINS` setting is absent). See `docs/MILESWEB_DEPLOYMENT_GUIDE.md` (sections 4 and 11).
+
 ## 2.0.1 — 2026-10-09
 
 ### Added

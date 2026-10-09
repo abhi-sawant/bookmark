@@ -76,7 +76,7 @@ Two further build notes:
   via `android.sourceSets`.
 - AGP 9 removed `isMinifyEnabled` and `proguardFiles`. Release shrinking is
   `buildTypes { release { optimization { enable = true } } }` and keep rules live
-  in `app/src/main/keepRules/`. Baseline profiles moved to
+  in `android/app/src/main/keepRules/`. Baseline profiles moved to
   `buildType.baselineProfile { }` — relevant to M6.
 
 ### Known compiler bug
@@ -235,7 +235,7 @@ real image existed, which cropped every thumbnail into the wrong box.
 
 ### The fixture corpus
 
-`app/src/test/resources/fixtures/` holds 41 saved `<head>` blocks: 28 fetched
+`android/app/src/test/resources/fixtures/` holds 41 saved `<head>` blocks: 28 fetched
 from real sites, 13 hand-written for edge cases the wild does not reliably
 serve (base href, ISO-8859-1, malformed JSON-LD, `@graph`, seven `og:image`
 tags, over-long fields, icons-only). Inline CSS and non-JSON-LD script bodies
@@ -605,7 +605,7 @@ test device (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`). Fixed by explicitly
 signing both with the same `release` key.
 
 Baseline profile generation (`./gradlew :app:generateReleaseBaselineProfile`)
-now succeeds and writes `app/src/release/generated/baselineProfiles/baseline-prof.txt`
+now succeeds and writes `android/app/src/release/generated/baselineProfiles/baseline-prof.txt`
 (6,766 lines, committed).
 
 ### Coil `ImageLoader` — cache config + grid→detail hand-off
@@ -658,7 +658,7 @@ which the previous same-`File`-model approach didn't guarantee.
 
 ### StrictMode
 
-New `app/src/debug/java/com/bookmark/debug/StrictModeInit.kt` (real:
+New `android/app/src/debug/java/com/bookmark/debug/StrictModeInit.kt` (real:
 `penaltyDeath()` on disk/network on main thread) and its `src/release/java`
 no-op twin, called unconditionally as the first line of
 `BookmarkApp.onCreate()`. **Verified the guard actually fires**, not just

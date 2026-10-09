@@ -134,11 +134,18 @@ delete it afterward if you'd rather not have `schema.sql` sitting there.
    define('APP_BASE_URL', 'https://api.bookmark.slowatcoding.com'); // no trailing slash
    ```
 
-4. For the SMTP section, see **Section 6** below — come back and fill that
+4. **CORS (web app).** The browser web app lives on a different origin, so the API
+   must allow it. `config.php` has a `CORS_ALLOWED_ORIGINS` list (the web app's
+   origin plus `http://localhost:5173` for local development). If you are
+   upgrading an existing deployment and keeping your old `config.php`, nothing
+   breaks: `bootstrap.php` falls back to `https://bookmark.slowatcoding.com`. Add
+   the list yourself only if the web app is served from a different origin, or
+   to drop the localhost entry on production.
+5. For the SMTP section, see **Section 6** below — come back and fill that
    in once you've created the mailbox there. For now you can leave the SMTP
    placeholders as-is; registration, login, and sync will all work without
    them. Only "forgot password" emails need SMTP configured.
-5. Click **Save Changes**.
+6. Click **Save Changes**.
 
 ---
 
@@ -324,7 +331,7 @@ on to the app. If something doesn't match, see **Troubleshooting** below.
 The Android app is already configured to talk to
 `https://api.bookmark.slowatcoding.com/`. If you used a different domain,
 find `API_BASE_URL` in the app's source
-(`app/src/main/java/com/bookmark/core/network/ApiJson.kt`) and update it to
+(`android/app/src/main/java/com/bookmark/core/network/ApiJson.kt`) and update it to
 match your actual subdomain, then rebuild:
 
 ```bash
@@ -335,6 +342,40 @@ export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
 Install the resulting APK (`app/build/outputs/apk/debug/app-debug.apk`) on
 your device(s), open Settings → the new "Sign in to sync" row, and sign in
 with the same account on each device you want to keep in sync.
+
+---
+
+## 11. Deploy the web app (bookmark.slowatcoding.com)
+
+The web app is a static site (Vite build) served from its own subdomain. It
+talks to the API above, so deploy and verify the backend first (including the
+CORS note in section 4).
+
+1. In cPanel, create the subdomain `bookmark.slowatcoding.com` (same steps as
+   section 1; its document root is separate from the API's). Enable SSL for it
+   as in section 6.
+2. Build locally:
+
+   ```bash
+   cd web
+   pnpm install
+   pnpm build
+   ```
+
+3. Upload the **contents** of `web/dist/` (not the folder itself) to the new
+   subdomain's document root, replacing the previous files. `dist/` includes a
+   `.htaccess` (HTTPS redirect, single-page-app fallback, caching, security
+   headers); make sure hidden files are shown in File Manager so it uploads.
+4. Open `https://bookmark.slowatcoding.com`, sign in, and check that bookmarks
+   appear. If sign-in fails with a network error, check the browser console for a
+   CORS message and re-read section 4.
+
+Updating later is the same: build, upload `dist/`. The app's service worker picks
+up the new version and shows a "A new version is available · Reload" prompt.
+
+If the API host ever changes, set `VITE_API_BASE` when building and update the
+`connect-src`/`img-src` hosts in `web/public/.htaccess` and `API_ORIGIN` in
+`web/vite.config.ts`.
 
 ---
 
