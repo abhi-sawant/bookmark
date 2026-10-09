@@ -1,0 +1,109 @@
+/* Slate design tokens. Mirrors android/.../core/ui/theme (Color.kt, Type.kt, Shape.kt). */
+
+@font-face {
+  font-family: 'Hanken Grotesk';
+  src: url('../assets/fonts/hanken_grotesk.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+  --bg: #f2f3f4;
+  --card: #ffffff;
+  --raised: #ffffff;
+  --ink: #0f1214;
+  --muted: #6a7076;
+  --hairline: #e3e5e8;
+  --hover: #e9ebed;
+  --accent: #0b7a54;
+  --on-accent: #ffffff;
+  --accent-soft: #e4ede9;
+  --on-accent-soft: #0b7a54;
+  --selected-fill: #0f1214;
+  --on-selected-fill: #f2f3f4;
+  --pending-pill: #e3e5e8;
+  --on-pending-pill: #4a5157;
+  --failure: #fbe4e2;
+  --on-failure: #5a100d;
+  --on-failure-variant: #8a3b37;
+  --selected-option: #e4ede9;
+  --skeleton: #e3e5e8;
+  --skeleton-hl: #f2f3f4;
+  --error: #c4352f;
+  --outline: #c9cdd1;
+  --surface-high: #ffffff;
+  --secondary-container: #e3e5e8;
+  --scrim: rgba(0, 0, 0, 0.32);
+  --detail-scrim: rgba(0, 0, 0, 0.55);
+
+  /* Category swatches / monogram palette */
+  --sw-0: #fb923c;
+  --sw-1: #38bdf8;
+  --sw-2: #a78bfa;
+  --sw-3: #6c8cff;
+  --sw-4: #f472b6;
+  --sw-5: #8f96c4;
+  --sw-6: #facc15;
+  --sw-7: #34d399;
+
+  /* Shape (dp -> px 1:1) */
+  --r-card: 20px;
+  --r-settings-group: 22px;
+  --r-row: 18px;
+  --r-dialog: 28px;
+  --r-sheet: 28px;
+  --r-field: 14px;
+  --r-chip: 12px;
+  --r-thumb-lg: 18px;
+  --r-thumb-md: 14px;
+  --r-fab: 19px;
+  --r-button: 16px;
+  --r-button-sm: 12px;
+  --r-icon-button: 14px;
+
+  --gutter: 20px;
+  --grid-gap: 12px;
+  --font: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0b0d0e;
+  --card: #141718;
+  --raised: #141718;
+  --ink: #eceff0;
+  --muted: #8b9298;
+  --hairline: #222729;
+  --hover: #1d2123;
+  --accent: #5ee0a9;
+  --on-accent: #06231a;
+  --accent-soft: #12231c;
+  --on-accent-soft: #5ee0a9;
+  --selected-fill: #eceff0;
+  --on-selected-fill: #0b0d0e;
+  --pending-pill: #222729;
+  --on-pending-pill: #b4bbc0;
+  --failure: #3a1210;
+  --on-failure: #ffd9d6;
+  --on-failure-variant: #e5a9a5;
+  --selected-option: #12231c;
+  --skeleton: #1d2123;
+  --skeleton-hl: #2a3033;
+  --error: #ff8a84;
+  --outline: #3a4144;
+  --surface-high: #181c1d;
+  --secondary-container: #222729;
+}
+
+/* True black (OLED): the dark palette on a #000 ground. */
+:root[data-theme='dark'][data-black='true'] {
+  --bg: #000000;
+  --card: #0c0e0f;
+  --raised: #0c0e0f;
+  --hairline: #1b1f20;
+  --surface-high: #121516;
+}

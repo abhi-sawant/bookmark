@@ -1,0 +1,38 @@
+# Bookmark web app -- Apache config for the cPanel subdomain docroot (bookmark.slowatcoding.com).
+
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Force HTTPS
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Single-page app: anything that is not a real file or directory serves index.html
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ /index.html [L]
+</IfModule>
+
+# Hashed build assets never change: cache them for a year.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(js|css|woff2?|ttf|png|svg)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  # ...but the entry points must always be revalidated so a new deploy is picked up.
+  <FilesMatch "^(index\.html|sw\.js|registerSW\.js|manifest\.webmanifest|workbox-.*\.js|favicon\.svg|icon-.*\.png|apple-touch-icon\.png)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set X-Frame-Options "DENY"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+  # Scripts/styles are same-origin only; data and thumbnails come from the API host.
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://api.bookmark.slowatcoding.com; connect-src 'self' https://api.bookmark.slowatcoding.com; font-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+</IfModule>
+
+AddType application/manifest+json .webmanifest
+AddType font/ttf .ttf
