@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.1.0 — Unreleased
+
+### Changed
+- More tracking parameters are stripped when you save a link (Instagram `igsh`, Google `gbraid`/`wbraid`, HubSpot and Marketo tokens), so the same page saved from different sources is recognised as already saved.
+
 ## 3.0.0 — 2026-10-09
 
 ### Added

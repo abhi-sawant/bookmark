@@ -47,6 +47,9 @@ describe('UrlNormalizer', () => {
     expect(isValid('')).toBe(false)
     expect(isValid('ftp://example.com')).toBe(false)
   })
+  it('strips newsletter and social share tracking params', () => {
+    expect(normalize('https://example.com/a?igsh=1&mkt_tok=2&_hsenc=3&gbraid=4&id=7')).toBe('https://example.com/a?id=7')
+  })
   it('registrable domain handles multi-part suffixes', () => {
     expect(registrableDomain('https://news.ycombinator.com')).toBe('ycombinator.com')
     expect(registrableDomain('https://www.bbc.co.uk/news')).toBe('bbc.co.uk')
