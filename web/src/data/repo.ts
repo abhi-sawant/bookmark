@@ -290,6 +290,38 @@ export async function setPinned(id: string, pinned: boolean): Promise<void> {
   notifyChanged()
 }
 
+// ---------------------------------------------------------------------------
+// Bulk edits (selection mode). One sync notification for the whole batch.
+// ---------------------------------------------------------------------------
+
+async function updateMany(ids: string[], change: (b: Bookmark) => Bookmark): Promise<Bookmark[]> {
+  const wanted = new Set(ids)
+  const now = Date.now()
+  const before = useData.getState().bookmarks.filter((b) => wanted.has(b.id))
+  for (const b of before) await putBookmark({ ...change(b), updatedAt: now })
+  if (before.length > 0) notifyChanged()
+  return before
+}
+
+export const setPinnedMany = (ids: string[], pinned: boolean) => updateMany(ids, (b) => ({ ...b, isPinned: pinned }))
+
+export const moveMany = (ids: string[], categoryId: string) => updateMany(ids, (b) => ({ ...b, categoryId }))
+
+/** Adds [tags] to each bookmark, keeping its existing tags (normalised, capped at 10). */
+export const addTagsMany = (ids: string[], tags: string[]) =>
+  updateMany(ids, (b) => ({ ...b, tags: normalizeTags([...b.tags, ...tags]) }))
+
+/** Moves every bookmark in [ids] to Trash; the returned function restores exactly those. */
+export async function trashMany(ids: string[]): Promise<{ count: number; undo: () => Promise<void> }> {
+  const moved = await updateMany(ids, (b) => ({ ...b, trashedAt: Date.now() }))
+  return {
+    count: moved.length,
+    undo: async () => {
+      for (const b of moved) await restoreFromTrash(b.id)
+    },
+  }
+}
+
 /** Applies fetched preview fields and marks the row dirty so they sync to the other devices. */
 export async function applyFetchedMetadata(id: string, patch: Partial<Bookmark>): Promise<void> {
   const b = useData.getState().bookmarks.find((x) => x.id === id)

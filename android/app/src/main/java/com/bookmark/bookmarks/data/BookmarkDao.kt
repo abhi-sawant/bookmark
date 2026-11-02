@@ -108,6 +108,9 @@ interface BookmarkDao {
     @Query("SELECT * FROM bookmarks WHERE trashedAt IS NOT NULL")
     suspend fun findAllTrashed(): List<BookmarkEntity>
 
+    @Query("UPDATE bookmarks SET tags = :tags, updatedAt = :now WHERE id = :id")
+    suspend fun setTags(id: String, tags: String?, now: Long)
+
     @Query("UPDATE bookmarks SET isUnread = :unread, updatedAt = :now WHERE id = :id")
     suspend fun setUnread(id: String, unread: Boolean, now: Long)
 

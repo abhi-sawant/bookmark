@@ -2,7 +2,7 @@ import { type Bookmark } from '@/data/models'
 import { categoryOf, useData } from '@/data/repo'
 import { copyLink, deleteWithUndo, openLink, shareLink, togglePin, toggleUnread } from '@/app/actions'
 import { formatDayMonth, formatDayMonthLong } from '@/app/format'
-import { openEdit, useUi } from '@/app/uiStore'
+import { openEdit, startSelect, useUi } from '@/app/uiStore'
 import { Icon, type IconName } from '@/components/Icon'
 import { Thumbnail } from '@/components/Thumbnail'
 import { CategoryDot, IconButton, PrimaryButton, SecondaryButton, Sheet } from '@/components/ui'
@@ -42,6 +42,7 @@ export function ContextSheet({ id }: { id: string }) {
       </div>
       <div role="menu" style={{ margin: '0 calc(-1 * var(--gutter))' }}>
         <ActionRow icon="openInNew" label="Open" onClick={then(() => openLink(b))} />
+        <ActionRow icon="check" label="Select" onClick={then(() => startSelect(b.id))} />
         <ActionRow icon="edit" label="Edit" onClick={() => { close(); openEdit(b.id) }} />
         <ActionRow icon="viewList" label="Change category" onClick={() => { close(); openEdit(b.id) }} />
         <ActionRow icon="contentCopy" label="Copy link" onClick={then(() => copyLink(b))} />

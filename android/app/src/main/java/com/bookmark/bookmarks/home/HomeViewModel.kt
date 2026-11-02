@@ -9,6 +9,7 @@ import com.bookmark.core.model.Bookmark
 import com.bookmark.core.model.Category
 import com.bookmark.core.model.CategoryWithCount
 import com.bookmark.core.model.SortOrder
+import com.bookmark.core.util.Tags
 import com.bookmark.core.util.UrlNormalizer
 import com.bookmark.core.model.ViewMode
 import com.bookmark.settings.SettingsRepository
@@ -35,14 +36,25 @@ data class HomeUiState(
     val totalCount: Int = 0,
     val viewMode: ViewMode = ViewMode.GRID,
     val unreadOnly: Boolean = false,
+    /** Bulk-select mode: tapping toggles instead of opening. */
+    val selecting: Boolean = false,
+    val selectedIds: Set<String> = emptySet(),
     val sortOrder: SortOrder = SortOrder.NEWEST,
     val loaded: Boolean = false,
 ) {
     val isEmpty: Boolean get() = loaded && totalCount == 0
 }
 
-/** A bookmark the user just deleted, held so the Snackbar can put it back. */
-data class PendingUndo(val bookmark: Bookmark)
+/** Bookmarks the user just moved to Trash, held so the Snackbar can put them back. */
+data class PendingUndo(val bookmarks: List<Bookmark>) {
+    val bookmark: Bookmark get() = bookmarks.first()
+}
+
+private data class Controls(
+    val categoryId: String?,
+    val unreadOnly: Boolean,
+    val selectedIds: Set<String>?,
+)
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -53,6 +65,9 @@ class HomeViewModel @Inject constructor(
 
     private val selectedCategoryId = MutableStateFlow<String?>(null)
     private val unreadOnly = MutableStateFlow(false)
+
+    /** Null when not selecting; otherwise the selected bookmark ids. */
+    private val selection = MutableStateFlow<Set<String>?>(null)
 
     private val _undo = MutableStateFlow<PendingUndo?>(null)
     val undo: StateFlow<PendingUndo?> = _undo
@@ -77,17 +92,19 @@ class HomeViewModel @Inject constructor(
         bookmarks,
         categoryRepository.observeAllWithCounts(),
         bookmarkRepository.observeTotalCount(),
-        combine(selectedCategoryId, unreadOnly) { categoryId, onlyUnread -> categoryId to onlyUnread },
+        combine(selectedCategoryId, unreadOnly, selection, ::Controls),
         settingsRepository.preferences,
-    ) { items, categories, total, (categoryId, onlyUnread), preferences ->
+    ) { items, categories, total, controls, preferences ->
         HomeUiState(
             bookmarks = items,
             categories = categories,
             categoriesById = categories.associate { it.category.id to it.category },
-            selectedCategoryId = categoryId,
+            selectedCategoryId = controls.categoryId,
             totalCount = total,
             viewMode = preferences.viewMode,
-            unreadOnly = onlyUnread,
+            unreadOnly = controls.unreadOnly,
+            selecting = controls.selectedIds != null,
+            selectedIds = controls.selectedIds.orEmpty(),
             sortOrder = preferences.sortOrder,
             loaded = true,
         )
@@ -139,6 +156,52 @@ class HomeViewModel @Inject constructor(
         settingsRepository.setSortOrder(order)
     }
 
+    // ---- Bulk select ----
+
+    fun startSelection(bookmark: Bookmark) {
+        selection.value = setOf(bookmark.id)
+    }
+
+    fun toggleSelected(bookmark: Bookmark) {
+        val current = selection.value ?: return
+        selection.value = if (bookmark.id in current) current - bookmark.id else current + bookmark.id
+    }
+
+    fun clearSelection() {
+        selection.value = null
+    }
+
+    private fun selectedBookmarks(): List<Bookmark> {
+        val ids = selection.value.orEmpty()
+        return uiState.value.bookmarks.filter { it.id in ids }
+    }
+
+    fun pinSelected() = viewModelScope.launch {
+        val chosen = selectedBookmarks()
+        // If everything selected is already pinned the action unpins, like a toggle.
+        bookmarkRepository.setPinnedAll(chosen.map { it.id }, pinned = !chosen.all { it.isPinned })
+        selection.value = null
+    }
+
+    fun moveSelected(categoryId: String) = viewModelScope.launch {
+        bookmarkRepository.setCategoryAll(selection.value.orEmpty(), categoryId)
+        selection.value = null
+    }
+
+    fun tagSelected(text: String) = viewModelScope.launch {
+        val tags = Tags.parse(text)
+        if (tags.isNotEmpty()) bookmarkRepository.addTagsAll(selection.value.orEmpty(), tags)
+        selection.value = null
+    }
+
+    fun trashSelected() = viewModelScope.launch {
+        val chosen = selectedBookmarks()
+        if (chosen.isEmpty()) return@launch
+        bookmarkRepository.trashAll(chosen.map { it.id })
+        _undo.value = PendingUndo(chosen)
+        selection.value = null
+    }
+
     fun markOpened(bookmark: Bookmark) = viewModelScope.launch {
         bookmarkRepository.markOpened(bookmark)
     }
@@ -162,11 +225,11 @@ class HomeViewModel @Inject constructor(
     /** Moves to Trash, with a Snackbar undo. It can also be restored from Settings > Trash. */
     fun delete(bookmark: Bookmark) = viewModelScope.launch {
         bookmarkRepository.trash(bookmark.id)
-        _undo.value = PendingUndo(bookmark)
+        _undo.value = PendingUndo(listOf(bookmark))
     }
 
     fun undoDelete() = viewModelScope.launch {
-        _undo.value?.let { bookmarkRepository.restoreFromTrash(it.bookmark.id) }
+        _undo.value?.let { bookmarkRepository.restoreAllFromTrash(it.bookmarks.map(Bookmark::id)) }
         _undo.value = null
     }
 

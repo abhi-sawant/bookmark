@@ -173,7 +173,11 @@ fun BookmarkNavHost() {
     LaunchedEffect(bookmarkUndo) {
         val pending = bookmarkUndo ?: return@LaunchedEffect
         val result = snackbarHostState.showSnackbar(
-            message = "Moved “${pending.bookmark.title.take(30)}” to Trash",
+            message = if (pending.bookmarks.size == 1) {
+                "Moved “${pending.bookmark.title.take(30)}” to Trash"
+            } else {
+                "Moved ${pending.bookmarks.size} bookmarks to Trash"
+            },
             actionLabel = "Undo",
             duration = SnackbarDuration.Short,
         )
@@ -292,6 +296,12 @@ fun BookmarkNavHost() {
                     onBookmarkLongPress = { sheet = SheetState.Context(it) },
                     onSearch = { navController.navigate(SearchRoute) },
                     onUnreadOnlyChange = homeViewModel::setUnreadOnly,
+                    onToggleSelect = homeViewModel::toggleSelected,
+                    onClearSelection = homeViewModel::clearSelection,
+                    onPinSelected = homeViewModel::pinSelected,
+                    onMoveSelected = homeViewModel::moveSelected,
+                    onTagSelected = homeViewModel::tagSelected,
+                    onTrashSelected = homeViewModel::trashSelected,
                     onSurprise = { pickSurprise(homeState.bookmarks)?.let { sheet = SheetState.Detail(it) } },
                     clipboardSuggestion = clipboardSuggestion,
                     onSaveClipboard = homeViewModel::saveClipboardSuggestion,
@@ -462,6 +472,10 @@ fun BookmarkNavHost() {
             onEdit = {
                 addEditViewModel.startEdit(current.bookmark)
                 sheet = SheetState.AddEdit
+            },
+            onSelect = {
+                homeViewModel.startSelection(current.bookmark)
+                sheet = SheetState.None
             },
             onChangeCategory = {
                 addEditViewModel.startEdit(current.bookmark)

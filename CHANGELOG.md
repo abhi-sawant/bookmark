@@ -11,6 +11,7 @@
 - **Surprise me.** A button on Home opens a random bookmark from the older half of your collection, so older saves resurface (Android and web).
 - **Unread dot.** New bookmarks show an accent dot until you open them. Opening a link clears it; "Mark as read/unread" is in the long-press menu, and an Unread chip filters Home (and Search). Unread state syncs. Existing bookmarks start as read. **Requires the backend update below.**
 - **Trash.** Deleting a bookmark now moves it to Trash (Settings > Trash) instead of removing it. It stays for 30 days, can be restored or deleted for good, and Trash can be emptied. Trash syncs between devices and is included in backups. Saving a link that is in Trash brings it back. **Requires the backend update below.**
+- **Select several bookmarks.** Choose "Select" in a bookmark's long-press menu, tap more bookmarks, then Pin, Move, Tag or Delete them in one go (deleted ones go to Trash with Undo). Android and web.
 
 ### Changed
 - More tracking parameters are stripped when you save a link (Instagram `igsh`, Google `gbraid`/`wbraid`, HubSpot and Marketo tokens), so the same page saved from different sources is recognised as already saved.

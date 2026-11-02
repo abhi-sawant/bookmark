@@ -274,3 +274,9 @@ button.settings-row:hover, .settings-row.clickable:hover { background: var(--hov
 .unread-dot.sm { top: 4px; right: 4px; width: 9px; height: 9px; }
 .trash-row { display: flex; gap: 12px; padding: 12px; border-radius: 18px; }
 .trash-actions { display: flex; gap: 4px; margin: 6px 0 -6px -10px; }
+.grid-card.selected, .list-row.selected { outline: 3px solid var(--accent); outline-offset: -3px; border-radius: 18px; }
+.select-badge { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--on-accent); }
+.select-badge.sm { top: 4px; right: 4px; width: 20px; height: 20px; }
+.selection-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; align-items: center; gap: 4px; padding: 8px 12px calc(8px + var(--safe-bottom)); background: var(--card); border-top: 1px solid var(--hairline); overflow-x: auto; }
+.selection-bar .count { margin-right: auto; padding: 0 8px; font-weight: 700; white-space: nowrap; }
+@media (min-width: 900px) { .selection-bar { left: 272px; } }

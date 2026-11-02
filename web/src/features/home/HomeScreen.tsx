@@ -1,8 +1,8 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { type SortOrder } from '@/data/models'
 import { categoryOf, useData } from '@/data/repo'
-import { openAdd, useUi } from '@/app/uiStore'
+import { clearSelect, openAdd, useUi } from '@/app/uiStore'
 import { usePrefs } from '@/app/prefs'
 import { useIsDesktop } from '@/app/hooks'
 import { BookmarkGridCard, BookmarkListRow, MasonryGrid } from '@/components/BookmarkCards'
@@ -13,6 +13,7 @@ import { DesktopSearchBox } from '../search/DesktopSearchBox'
 import { SearchFilterChips } from '../search/SearchFilterChips'
 import { CategoryChips } from './CategoryChips'
 import { ClipboardChip } from './ClipboardChip'
+import { SelectionBar } from './SelectionBar'
 import { SORT_LABELS, sortBookmarks } from './selectors'
 import { pickSurprise } from './surprise'
 import { useBookmarkHandlers } from './useBookmarkActions'
@@ -26,6 +27,15 @@ export function HomeScreen() {
   const query = useUi((s) => s.searchQuery)
   const { viewMode, sortOrder, set: setPref } = usePrefs()
   const [unreadOnly, setUnreadOnly] = useState(false)
+  const selecting = useUi((s) => s.selecting)
+  // Escape leaves bulk-select mode, and so does leaving the screen.
+  useEffect(() => {
+    if (!selecting) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && clearSelect()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selecting])
+  useEffect(() => clearSelect, [])
   const desktop = useIsDesktop()
   const navigate = useNavigate()
   const { onOpen, onActions } = useBookmarkHandlers()
@@ -141,7 +151,9 @@ export function HomeScreen() {
         </>
       )}
 
-      {!isEmpty && !desktop ? (
+      {selecting ? <SelectionBar /> : null}
+
+      {!isEmpty && !desktop && !selecting ? (
         <button type="button" className="fab" aria-label="Add bookmark" onClick={() => openAdd()}>
           <Icon name="add" size={26} />
         </button>

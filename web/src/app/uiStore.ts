@@ -14,6 +14,9 @@ interface UiState {
   searchQuery: string
   /** Search chips (Pinned, No category, This week). In memory only. */
   searchFilters: SearchFilters
+  /** Bulk-select mode: tapping a bookmark toggles it instead of opening it. */
+  selecting: boolean
+  selectedIds: string[]
   addEdit: AddEditState | null
   context: string | null
   detail: string | null
@@ -28,6 +31,8 @@ export const useUi = create<UiState>((set) => ({
   filterCategory: null,
   searchQuery: '',
   searchFilters: NO_FILTERS,
+  selecting: false,
+  selectedIds: [],
   addEdit: null,
   context: null,
   detail: null,
@@ -40,3 +45,12 @@ export const useUi = create<UiState>((set) => ({
 
 export const openAdd = (prefill?: AddEditState['prefill']) => useUi.getState().set('addEdit', { prefill })
 export const openEdit = (editId: string) => useUi.getState().set('addEdit', { editId })
+
+/** Enters bulk-select mode with [id] already selected. */
+export const startSelect = (id: string) => useUi.setState({ selecting: true, selectedIds: [id] })
+export const clearSelect = () => useUi.setState({ selecting: false, selectedIds: [] })
+export const toggleSelect = (id: string) =>
+  useUi.setState((s) => {
+    const selectedIds = s.selectedIds.includes(id) ? s.selectedIds.filter((x) => x !== id) : [...s.selectedIds, id]
+    return { selectedIds }
+  })

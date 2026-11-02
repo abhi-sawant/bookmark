@@ -305,6 +305,42 @@ class BookmarkRepository @Inject constructor(
         syncEnqueuer.scheduleDebounced()
     }
 
+    // ---- Bulk edits (selection mode): one sync schedule for the whole batch. ----
+
+    suspend fun setPinnedAll(ids: Collection<String>, pinned: Boolean) = withContext(io) {
+        val now = System.currentTimeMillis()
+        ids.forEach { dao.setPinned(it, pinned, now) }
+        syncEnqueuer.scheduleDebounced()
+    }
+
+    suspend fun setCategoryAll(ids: Collection<String>, categoryId: String) = withContext(io) {
+        val now = System.currentTimeMillis()
+        ids.forEach { dao.setCategory(it, categoryId, now) }
+        syncEnqueuer.scheduleDebounced()
+    }
+
+    /** Adds [tags] to each bookmark, keeping the tags it already has (normalised, capped). */
+    suspend fun addTagsAll(ids: Collection<String>, tags: List<String>) = withContext(io) {
+        val now = System.currentTimeMillis()
+        ids.forEach { id ->
+            val current = dao.findById(id) ?: return@forEach
+            dao.setTags(id, Tags.encode(Tags.normalize(Tags.decode(current.tags) + tags)), now)
+        }
+        syncEnqueuer.scheduleDebounced()
+    }
+
+    suspend fun trashAll(ids: Collection<String>) = withContext(io) {
+        val now = System.currentTimeMillis()
+        ids.forEach { dao.setTrashedAt(it, now, now) }
+        syncEnqueuer.scheduleDebounced()
+    }
+
+    suspend fun restoreAllFromTrash(ids: Collection<String>) = withContext(io) {
+        val now = System.currentTimeMillis()
+        ids.forEach { dao.setTrashedAt(it, null, now) }
+        syncEnqueuer.scheduleDebounced()
+    }
+
     suspend fun setUnread(id: String, unread: Boolean) = withContext(io) {
         dao.setUnread(id, unread, System.currentTimeMillis())
         syncEnqueuer.scheduleDebounced()
