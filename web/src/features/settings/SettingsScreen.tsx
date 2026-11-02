@@ -55,7 +55,7 @@ export function SettingsScreen() {
   const bookmarks = useData((s) => s.bookmarks)
   const categories = useData((s) => s.categories)
   const { syncing, lastSyncedAt, error } = useSyncStatus()
-  const { theme, trueBlack, set: setPref } = usePrefs()
+  const { theme, trueBlack, clipboardChip, set: setPref } = usePrefs()
   const toast = useSnackbar((s) => s.show)
   const setUi = useUi((s) => s.set)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -107,6 +107,11 @@ export function SettingsScreen() {
         <Row icon="fileUpload" title="Import backup" sub="Merge or replace, with a preview first" onClick={() => fileInput.current?.click()} />
       </Group>
       <input ref={fileInput} type="file" accept=".zip,application/zip" hidden onChange={(e) => { void onPickBackup(e.target.files?.[0]); e.target.value = '' }} />
+
+      <Section title="saving" />
+      <Group>
+        <Row title="Suggest copied links" sub="Show a Save chip on Home when you have copied a link. Only works once the browser allows clipboard access." trailing={<Switch label="Suggest copied links" checked={clipboardChip} onChange={(v) => setPref('clipboardChip', v)} />} onClick={() => setPref('clipboardChip', !clipboardChip)} />
+      </Group>
 
       <Section title="appearance" />
       <Group>

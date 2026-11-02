@@ -11,6 +11,7 @@ import { EmptyState, IconButton, Menu, PrimaryButton, ScreenHeader } from '@/com
 import { SearchResults } from '../search/SearchResults'
 import { DesktopSearchBox } from '../search/DesktopSearchBox'
 import { CategoryChips } from './CategoryChips'
+import { ClipboardChip } from './ClipboardChip'
 import { SORT_LABELS, sortBookmarks } from './selectors'
 import { useBookmarkHandlers } from './useBookmarkActions'
 
@@ -50,6 +51,8 @@ export function HomeScreen() {
           <IconButton icon="search" label="Search" disabled={bookmarks.length === 0} onClick={() => navigate('/search')} />
         )}
       </ScreenHeader>
+
+      <ClipboardChip />
 
       {isEmpty ? (
         <EmptyState

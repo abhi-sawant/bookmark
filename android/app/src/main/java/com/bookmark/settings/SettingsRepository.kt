@@ -31,6 +31,7 @@ class SettingsRepository @Inject constructor(
         val sortOrder = stringPreferencesKey("sort_order")
         val lastUsedCategory = stringPreferencesKey("last_used_category")
         val fetchPreviews = booleanPreferencesKey("fetch_previews")
+        val clipboardChip = booleanPreferencesKey("clipboard_chip")
         val skippedUpdateVersion = stringPreferencesKey("skipped_update_version")
     }
 
@@ -43,6 +44,7 @@ class SettingsRepository @Inject constructor(
             sortOrder = prefs[Keys.sortOrder]?.toEnum(SortOrder.entries) ?: SortOrder.NEWEST,
             lastUsedCategoryId = prefs[Keys.lastUsedCategory],
             fetchPreviewsAutomatically = prefs[Keys.fetchPreviews] ?: true,
+            showClipboardChip = prefs[Keys.clipboardChip] ?: true,
         )
     }
 
@@ -57,6 +59,7 @@ class SettingsRepository @Inject constructor(
     suspend fun setSortOrder(order: SortOrder) = put(Keys.sortOrder, order.name)
     suspend fun setLastUsedCategory(id: String) = put(Keys.lastUsedCategory, id)
     suspend fun setFetchPreviews(enabled: Boolean) = put(Keys.fetchPreviews, enabled)
+    suspend fun setClipboardChip(enabled: Boolean) = put(Keys.clipboardChip, enabled)
 
     private suspend fun <T> put(key: Preferences.Key<T>, value: T) {
         context.dataStore.edit { it[key] = value }

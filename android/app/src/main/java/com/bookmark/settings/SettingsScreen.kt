@@ -61,6 +61,7 @@ fun SettingsScreen(
     onDynamicColorChange: (Boolean) -> Unit,
     onTrueBlackChange: (Boolean) -> Unit,
     onFetchPreviewsChange: (Boolean) -> Unit,
+    onClipboardChipChange: (Boolean) -> Unit,
     onRefreshAll: () -> Unit,
     onClearThumbnails: () -> Unit,
     onExportBackup: () -> Unit,
@@ -147,6 +148,14 @@ fun SettingsScreen(
                         "No servers of ours are involved.",
                     switchChecked = preferences.fetchPreviewsAutomatically,
                     onSwitchCheckedChange = onFetchPreviewsChange,
+                )
+                RowDivider()
+                SettingsRow(
+                    title = "Suggest copied links",
+                    subtitle = "Show a Save chip on Home when you have copied a link. " +
+                        "The clipboard is only read while the app is open.",
+                    switchChecked = preferences.showClipboardChip,
+                    onSwitchCheckedChange = onClipboardChipChange,
                 )
                 RowDivider()
                 SettingsRow(

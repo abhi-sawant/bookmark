@@ -137,6 +137,13 @@ fun BookmarkNavHost() {
     val categoryError by categoriesViewModel.error.collectAsStateWithLifecycle()
     val categoryUndo by categoriesViewModel.undo.collectAsStateWithLifecycle()
     val bookmarkUndo by homeViewModel.undo.collectAsStateWithLifecycle()
+    val clipboardSuggestion by homeViewModel.clipboardSuggestion.collectAsStateWithLifecycle()
+    // Android only lets a focused app read the clipboard, so wait for window focus
+    // rather than ON_RESUME (which can fire before focus is granted).
+    val windowFocused = androidx.compose.ui.platform.LocalWindowInfo.current.isWindowFocused
+    LaunchedEffect(windowFocused) {
+        if (windowFocused) homeViewModel.offerClipboard(LinkActions.clipboardUrl(context))
+    }
     val preferences by settingsViewModel.preferences.collectAsStateWithLifecycle()
     val settingsSummary by settingsViewModel.summary.collectAsStateWithLifecycle()
     val importSheetState by settingsViewModel.importSheetState.collectAsStateWithLifecycle()
@@ -276,6 +283,9 @@ fun BookmarkNavHost() {
                     },
                     onBookmarkLongPress = { sheet = SheetState.Context(it) },
                     onSearch = { navController.navigate(SearchRoute) },
+                    clipboardSuggestion = clipboardSuggestion,
+                    onSaveClipboard = homeViewModel::saveClipboardSuggestion,
+                    onDismissClipboard = homeViewModel::dismissClipboardSuggestion,
                     onAdd = {
                         addEditViewModel.startAdd()
                         addEditViewModel.offerClipboard(LinkActions.clipboardUrl(context))
@@ -305,6 +315,7 @@ fun BookmarkNavHost() {
                     onDynamicColorChange = settingsViewModel::setDynamicColor,
                     onTrueBlackChange = settingsViewModel::setTrueBlack,
                     onFetchPreviewsChange = settingsViewModel::setFetchPreviews,
+                    onClipboardChipChange = settingsViewModel::setClipboardChip,
                     onRefreshAll = settingsViewModel::refreshAll,
                     onClearThumbnails = settingsViewModel::clearThumbnails,
                     onExportBackup = { exportLauncher.launch("bookmarks-${backupDateStamp()}.zip") },

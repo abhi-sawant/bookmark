@@ -9,6 +9,7 @@ import com.bookmark.core.model.Bookmark
 import com.bookmark.core.model.Category
 import com.bookmark.core.model.CategoryWithCount
 import com.bookmark.core.model.SortOrder
+import com.bookmark.core.util.UrlNormalizer
 import com.bookmark.core.model.ViewMode
 import com.bookmark.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -53,6 +55,14 @@ class HomeViewModel @Inject constructor(
     private val _undo = MutableStateFlow<PendingUndo?>(null)
     val undo: StateFlow<PendingUndo?> = _undo
 
+    private val _clipboardSuggestion = MutableStateFlow<String?>(null)
+
+    /** A copied link offered as a one-tap save chip, or null. */
+    val clipboardSuggestion: StateFlow<String?> = _clipboardSuggestion
+
+    /** The last link the user dismissed or saved, so the chip does not come straight back. */
+    private var handledClipboardUrl: String? = null
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private val bookmarks = combine(
         selectedCategoryId,
@@ -78,6 +88,40 @@ class HomeViewModel @Inject constructor(
             loaded = true,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
+
+    /**
+     * Offers [text] as a save chip when it is a valid link that is not already
+     * saved and was not already handled. Never saves on its own.
+     */
+    fun offerClipboard(text: String?) = viewModelScope.launch {
+        val candidate = text?.trim().orEmpty()
+        val enabled = settingsRepository.preferences.first().showClipboardChip
+        if (!enabled || candidate.isEmpty() || !UrlNormalizer.isValid(candidate)) {
+            _clipboardSuggestion.value = null
+            return@launch
+        }
+        val normalized = UrlNormalizer.normalize(candidate)
+        if (normalized == handledClipboardUrl || bookmarkRepository.findByNormalizedUrl(candidate) != null) {
+            _clipboardSuggestion.value = null
+            return@launch
+        }
+        _clipboardSuggestion.value = candidate
+    }
+
+    fun dismissClipboardSuggestion() {
+        _clipboardSuggestion.value?.let { handledClipboardUrl = UrlNormalizer.normalize(it) }
+        _clipboardSuggestion.value = null
+    }
+
+    /** One-tap save into the last used category (or Unsorted). */
+    fun saveClipboardSuggestion() = viewModelScope.launch {
+        val url = _clipboardSuggestion.value ?: return@launch
+        handledClipboardUrl = UrlNormalizer.normalize(url)
+        _clipboardSuggestion.value = null
+        val lastUsed = settingsRepository.preferences.first().lastUsedCategoryId
+        val categoryId = lastUsed?.takeIf { uiState.value.categoriesById.containsKey(it) } ?: Category.UNSORTED_ID
+        bookmarkRepository.save(rawUrl = url, categoryId = categoryId)
+    }
 
     fun selectCategory(categoryId: String?) {
         selectedCategoryId.value = categoryId

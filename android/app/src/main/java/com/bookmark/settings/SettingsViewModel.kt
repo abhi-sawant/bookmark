@@ -110,6 +110,10 @@ class SettingsViewModel @Inject constructor(
         settingsRepository.setTrueBlack(enabled)
     }
 
+    fun setClipboardChip(enabled: Boolean) = viewModelScope.launch {
+        settingsRepository.setClipboardChip(enabled)
+    }
+
     fun setFetchPreviews(enabled: Boolean) = viewModelScope.launch {
         settingsRepository.setFetchPreviews(enabled)
         // Spec 11 promises the app is *100% network-silent* with this off, not

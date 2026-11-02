@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.SwapVert
@@ -44,6 +45,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.bookmark.core.model.Bookmark
 import com.bookmark.core.model.SortOrder
@@ -82,6 +84,10 @@ fun HomeScreen(
     onSearch: () -> Unit,
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
+    /** A copied link offered as a one-tap save, or null. */
+    clipboardSuggestion: String? = null,
+    onSaveClipboard: () -> Unit = {},
+    onDismissClipboard: () -> Unit = {},
     /** Grid-to-detail thumbnail morph (spec 10). Null outside a shared-transition layout. */
     sharedTransitionScope: SharedTransitionScope? = null,
     /** The bookmark currently shown in the detail sheet, if any -- its grid card hides its own
@@ -99,6 +105,14 @@ fun HomeScreen(
                 onSearch = onSearch,
                 searchEnabled = state.totalCount > 0,
             )
+
+            if (clipboardSuggestion != null) {
+                ClipboardChip(
+                    url = clipboardSuggestion,
+                    onSave = onSaveClipboard,
+                    onDismiss = onDismissClipboard,
+                )
+            }
 
             if (state.isEmpty) {
                 EmptyHome(onAdd = onAdd, modifier = Modifier.weight(1f))
@@ -179,6 +193,62 @@ fun HomeScreen(
                     .padding(end = Dimens.fabEndMargin, bottom = Dimens.fabBottomMargin),
             )
         }
+    }
+}
+
+/** "Copied link -- Save" chip. Offers, never pastes or saves on its own. */
+@Composable
+private fun ClipboardChip(url: String, onSave: () -> Unit, onDismiss: () -> Unit) {
+    val colors = BookmarkTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Dimens.gridOuterPadding, vertical = 6.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(colors.accentSoft)
+            .padding(start = 14.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Link,
+            contentDescription = null,
+            tint = colors.onAccentSoft,
+            modifier = Modifier.size(18.dp),
+        )
+        Column(modifier = Modifier.weight(1f).padding(vertical = 8.dp)) {
+            Text(
+                text = "Save copied link?",
+                style = BookmarkTheme.text.rowTitle,
+                color = colors.onAccentSoft,
+            )
+            Text(
+                text = url,
+                style = BookmarkTheme.text.caption,
+                color = colors.onAccentSoft,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Text(
+            text = "Save",
+            style = BookmarkTheme.text.rowTitle,
+            color = colors.accent,
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .clickable(role = Role.Button, onClick = onSave)
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+        )
+        Icon(
+            imageVector = Icons.Outlined.Close,
+            contentDescription = "Dismiss",
+            tint = colors.onAccentSoft,
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .clickable(role = Role.Button, onClick = onDismiss)
+                .padding(12.dp)
+                .size(18.dp),
+        )
     }
 }
 
