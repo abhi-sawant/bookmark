@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">Bookmarks</string>
     <string name="share_into_category">Bookmarks: %1$s</string>
+    <string name="widget_title">Bookmarks</string>
+    <string name="widget_save_clipboard">Save copied link</string>
+    <string name="widget_empty">Nothing saved yet. Copy a link and tap Save.</string>
+    <string name="widget_description">Your pinned and latest bookmarks, and a button that saves the link you copied.</string>
 </resources>

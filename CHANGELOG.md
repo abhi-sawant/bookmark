@@ -14,6 +14,7 @@
 - **Select several bookmarks.** Choose "Select" in a bookmark's long-press menu, tap more bookmarks, then Pin, Move, Tag or Delete them in one go (deleted ones go to Trash with Undo). Android and web.
 - **Check links.** Settings > Check links asks each saved site whether its page still exists. Bookmarks whose page is gone (404/410) show "Link may be broken" and can be listed with the Broken links chip in Search. Inconclusive answers (timeouts, blocked requests) are never reported as broken. On Android the phone checks directly; on the web the check runs through your sync server. Results stay on the device. **The web check requires the backend update below.**
 - **Open from the long-press menu (Android).** The bookmark actions sheet now has an Open row, like the web app.
+- **Home-screen widget (Android).** Add the "Bookmarks" widget to see your pinned and latest bookmarks, tap one to open it, or tap "Save copied link" to save whatever link you just copied.
 
 ### Changed
 - More tracking parameters are stripped when you save a link (Instagram `igsh`, Google `gbraid`/`wbraid`, HubSpot and Marketo tokens), so the same page saved from different sources is recognised as already saved.
