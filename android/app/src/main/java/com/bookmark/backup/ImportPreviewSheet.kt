@@ -71,12 +71,22 @@ fun ImportPreviewSheet(
                 RowDivider()
                 PreviewCountRow("Categories", preview.categoriesInFile)
             }
-            SegmentedControl(
-                options = listOf("Merge", "Replace everything"),
-                selectedIndex = ImportMode.entries.indexOf(selectedMode),
-                onSelect = { index -> onModeChange(ImportMode.entries[index]) },
-                modifier = Modifier.padding(top = 16.dp),
-            )
+            if (preview.parsed.fromBrowser) {
+                Text(
+                    text = "Folders become categories; links outside a folder go to Unsorted. " +
+                        "Links you already have are skipped.",
+                    style = BookmarkTheme.text.rowSubtitle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 14.dp),
+                )
+            } else {
+                SegmentedControl(
+                    options = listOf("Merge", "Replace everything"),
+                    selectedIndex = ImportMode.entries.indexOf(selectedMode),
+                    onSelect = { index -> onModeChange(ImportMode.entries[index]) },
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+            }
             Row(
                 modifier = Modifier.padding(top = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),

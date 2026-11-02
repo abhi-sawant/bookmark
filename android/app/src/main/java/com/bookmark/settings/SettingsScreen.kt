@@ -137,8 +137,8 @@ fun SettingsScreen(
                 RowDivider()
                 SettingsRow(
                     leadingIcon = Icons.Outlined.FileUpload,
-                    title = "Import backup",
-                    subtitle = "Merge or replace, with a preview first",
+                    title = "Import backup or browser bookmarks",
+                    subtitle = "A backup zip, or a bookmarks.html from Chrome, Firefox, Safari or Edge",
                     enabled = true,
                     onClick = onImportBackup,
                 )

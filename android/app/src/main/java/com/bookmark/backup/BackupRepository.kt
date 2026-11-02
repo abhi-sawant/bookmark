@@ -29,6 +29,8 @@ data class ParsedBackup(
     val manifest: BackupManifestDto,
     val bookmarks: List<BookmarkBackupDto>,
     val categories: List<CategoryBackupDto>,
+    /** A browser bookmarks.html export: merge only, never "Replace everything". */
+    val fromBrowser: Boolean = false,
 )
 
 data class ImportPreview(
@@ -106,9 +108,9 @@ class BackupRepository @Inject constructor(
     /** Parses only the (small) JSON entries -- thumbnail bytes are never held in memory. */
     suspend fun previewImport(source: Uri): ImportPreviewResult = withContext(io) {
         runCatching {
-            val parsed = readBackupJson(source)
+            val parsed = readImportFile(source)
                 ?: return@withContext ImportPreviewResult.Failure(
-                    "This doesn't look like a Bookmarks backup.",
+                    "This doesn't look like a Bookmarks backup or a browser bookmarks file.",
                 )
             val existingUrls = bookmarkDao.allUrls().map(UrlNormalizer::normalize).toSet()
             val newCount = parsed.bookmarks.count { UrlNormalizer.normalize(it.url) !in existingUrls }
@@ -122,7 +124,7 @@ class BackupRepository @Inject constructor(
                     parsed = parsed,
                 ),
             )
-        }.getOrElse { ImportPreviewResult.Failure("This doesn't look like a Bookmarks backup.") }
+        }.getOrElse { ImportPreviewResult.Failure("This doesn't look like a Bookmarks backup or a browser bookmarks file.") }
     }
 
     suspend fun commitImport(source: Uri, parsed: ParsedBackup, mode: ImportMode): ImportCommitResult =
@@ -141,10 +143,17 @@ class BackupRepository @Inject constructor(
     private suspend fun mergeImport(parsed: ParsedBackup): List<BookmarkBackupDto> =
         database.withTransaction {
             val existingUrls = bookmarkDao.allUrls().map(UrlNormalizer::normalize).toSet()
+            // A category in the file with the same name as an existing one (names are
+            // unique, ignoring case) maps onto it instead of being created again.
+            val remap = mutableMapOf<String, String>()
             parsed.categories.forEach { dto ->
-                if (categoryDao.findById(dto.id) == null) categoryDao.insert(dto.toEntity())
+                if (categoryDao.findById(dto.id) != null) return@forEach
+                val sameName = categoryDao.findByName(dto.name)
+                if (sameName != null) remap[dto.id] = sameName.id else categoryDao.insert(dto.toEntity())
             }
-            val toInsert = parsed.bookmarks.filter { UrlNormalizer.normalize(it.url) !in existingUrls }
+            val toInsert = parsed.bookmarks
+                .filter { UrlNormalizer.normalize(it.url) !in existingUrls }
+                .map { dto -> remap[dto.categoryId]?.let { dto.copy(categoryId = it) } ?: dto }
             toInsert.forEach { dto -> bookmarkDao.insert(dto.toEntity()) }
             toInsert
         }
@@ -194,6 +203,18 @@ class BackupRepository @Inject constructor(
         }
     }
 
+    /** A backup zip, or a browser's bookmarks.html: told apart by the zip magic number. */
+    private fun readImportFile(uri: Uri): ParsedBackup? {
+        val head = context.contentResolver.openInputStream(uri)?.use { it.readNBytes(4) } ?: return null
+        val isZip = head.size == 4 && head[0] == 'P'.code.toByte() && head[1] == 'K'.code.toByte()
+        if (isZip) return readBackupJson(uri)
+        val text = context.contentResolver.openInputStream(uri)?.use {
+            String(it.readNBytes(MAX_HTML_BYTES), Charsets.UTF_8)
+        } ?: return null
+        if (!BookmarksHtmlParser.looksLikeBookmarksHtml(text)) return null
+        return BookmarksHtmlParser.parse(text).takeIf { it.bookmarks.isNotEmpty() }
+    }
+
     private fun readBackupJson(uri: Uri): ParsedBackup? {
         val entries = mutableMapOf<String, String>()
         context.contentResolver.openInputStream(uri)?.use { input ->
@@ -234,5 +255,8 @@ class BackupRepository @Inject constructor(
 
     private companion object {
         val JSON_ENTRY_NAMES = setOf("manifest.json", "bookmarks.json", "categories.json")
+
+        /** A bookmarks export is a few hundred KB; this stops a wrong file from filling memory. */
+        const val MAX_HTML_BYTES = 20 * 1024 * 1024
     }
 }

@@ -131,11 +131,11 @@ export function SettingsScreen() {
       <Section title="backup" />
       <Group>
         <Row icon="fileDownload" title="Export backup" sub={`${plural(bookmarks.length, 'bookmark')} · ${plural(categories.length, 'category', 'categories')}`} onClick={exportBackup} />
-        <Row icon="fileUpload" title="Import backup" sub="Merge or replace, with a preview first" onClick={() => fileInput.current?.click()} />
+        <Row icon="fileUpload" title="Import backup or browser bookmarks" sub="A backup zip, or a bookmarks.html exported from Chrome, Firefox, Safari or Edge" onClick={() => fileInput.current?.click()} />
         <Row icon="refresh" title="Check links" sub={linkProgress ?? (linkSummary.checked > 0 ? `${linkSummary.checked} checked · ${linkSummary.broken} broken · ${linkSummary.unreachable} unreachable` : 'Asks each saved site whether the page still exists (through your sync server)')} disabled={linkProgress !== null} onClick={() => void runLinkCheck()} />
         <Row icon="delete" title="Trash" sub="Deleted bookmarks stay for 30 days" onClick={() => navigate('/trash')} />
       </Group>
-      <input ref={fileInput} type="file" accept=".zip,application/zip" hidden onChange={(e) => { void onPickBackup(e.target.files?.[0]); e.target.value = '' }} />
+      <input ref={fileInput} type="file" accept=".zip,.html,.htm,application/zip,text/html" hidden onChange={(e) => { void onPickBackup(e.target.files?.[0]); e.target.value = '' }} />
 
       <Section title="saving" />
       <Group>

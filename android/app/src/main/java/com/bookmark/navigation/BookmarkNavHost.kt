@@ -340,7 +340,7 @@ fun BookmarkNavHost() {
                     onRefreshAll = settingsViewModel::refreshAll,
                     onClearThumbnails = settingsViewModel::clearThumbnails,
                     onExportBackup = { exportLauncher.launch("bookmarks-${backupDateStamp()}.zip") },
-                    onImportBackup = { importLauncher.launch(arrayOf("application/zip")) },
+                    onImportBackup = { importLauncher.launch(arrayOf("application/zip", "text/html")) },
                     onOpenTrash = { navController.navigate(TrashRoute) },
                     linkCheckSummary = linkCheckSummary,
                     onCheckLinks = settingsViewModel::checkLinks,

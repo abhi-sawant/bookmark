@@ -1,6 +1,7 @@
 import { normalizeTags } from '@/core/util/tags'
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
 import { normalize } from '@/core/util/urlNormalizer'
+import { looksLikeBookmarksHtml, parseBookmarksHtml } from './bookmarksHtml'
 import { getDb } from './db'
 import { type Bookmark, type Category, type Tombstone, UNSORTED_ID } from './models'
 import { allBookmarks, internal, useData } from './repo'
@@ -9,7 +10,7 @@ import { normalizeCategoryHex } from './swatches'
 /** Same camelCase zip as Android's backup, so a backup made on either opens on the other. */
 export const BACKUP_FORMAT_VERSION = 1
 
-interface BackupBookmark {
+export interface BackupBookmark {
   id: string
   url: string
   originalUrl: string
@@ -35,7 +36,7 @@ interface BackupBookmark {
   updatedAt: number
 }
 
-interface BackupCategory {
+export interface BackupCategory {
   id: string
   name: string
   colorHex: string
@@ -94,9 +95,18 @@ export interface ParsedBackup {
   bookmarks: BackupBookmark[]
   categories: BackupCategory[]
   files: Record<string, Uint8Array>
+  /** 'html' for a browser bookmarks export; those can only be merged, never used to replace everything. */
+  source?: 'backup' | 'html'
 }
 
 export function parseBackup(bytes: Uint8Array): ParsedBackup {
+  // A browser's bookmarks export is plain HTML, not a zip.
+  const head = strFromU8(bytes.subarray(0, 4096))
+  if (looksLikeBookmarksHtml(head)) {
+    const parsed = parseBookmarksHtml(strFromU8(bytes))
+    if (parsed.bookmarks.length === 0) throw new BackupFormatError('No web links were found in this file.')
+    return parsed
+  }
   let files: Record<string, Uint8Array>
   try {
     files = unzipSync(bytes)
