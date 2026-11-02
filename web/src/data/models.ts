@@ -37,7 +37,13 @@ export interface Bookmark {
   syncedUpdatedAt: number | null
   /** A thumbnail picked on this device that has not been uploaded yet. */
   pendingThumbnail?: Blob | null
+  /** Result of the last "Check links" run. Device-local: never synced. */
+  linkStatus?: LinkStatus
+  linkCheckedAt?: number
 }
+
+/** ok: answered 2xx/3xx. broken: 404/410 (or the host does not exist). error: inconclusive, not treated as broken. */
+export type LinkStatus = 'ok' | 'broken' | 'error'
 
 export interface Category {
   id: string

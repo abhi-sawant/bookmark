@@ -256,6 +256,9 @@ class BookmarkRepository @Inject constructor(
         dao.delete(bookmark.toEntity())
     }
 
+    /** Every live bookmark, for batch jobs (link checking). */
+    fun observeAllLive(): Flow<List<Bookmark>> = observe(null, SortOrder.NEWEST)
+
     fun observeTrashed(): Flow<List<Bookmark>> = dao.observeTrashed().map { list -> list.map(BookmarkEntity::toDomain) }
 
     /** Moves to Trash (a soft delete that syncs). Files are kept so a restore is complete. */

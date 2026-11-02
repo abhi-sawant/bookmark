@@ -280,3 +280,4 @@ button.settings-row:hover, .settings-row.clickable:hover { background: var(--hov
 .selection-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; align-items: center; gap: 4px; padding: 8px 12px calc(8px + var(--safe-bottom)); background: var(--card); border-top: 1px solid var(--hairline); overflow-x: auto; }
 .selection-bar .count { margin-right: auto; padding: 0 8px; font-weight: 700; white-space: nowrap; }
 @media (min-width: 900px) { .selection-bar { left: 272px; } }
+.broken-note { margin-top: 4px; color: var(--error); }

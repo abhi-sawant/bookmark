@@ -399,6 +399,7 @@ private fun BookmarkGrid(
                 onClick = { onOpen(bookmark) },
                 onLongClick = { onLongPress(bookmark) },
                 selected = bookmark.id in state.selectedIds,
+                linkBroken = bookmark.id in state.brokenIds,
                 sharedTransitionScope = sharedTransitionScope,
                 isSharedThumbnailVisible = bookmark.id != openDetailBookmarkId,
                 reducedMotion = reducedMotion,
@@ -431,6 +432,7 @@ private fun BookmarkList(
                 onClick = { onOpen(bookmark) },
                 onLongClick = { onLongPress(bookmark) },
                 selected = bookmark.id in state.selectedIds,
+                linkBroken = bookmark.id in state.brokenIds,
             )
         }
     }

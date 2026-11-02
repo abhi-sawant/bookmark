@@ -3,6 +3,7 @@ import { type SearchFilters } from '../home/selectors'
 
 const CHIPS: { key: keyof SearchFilters; label: string }[] = [
   { key: 'unread', label: 'Unread' },
+  { key: 'broken', label: 'Broken links' },
   { key: 'pinned', label: 'Pinned' },
   { key: 'unsorted', label: 'No category' },
   { key: 'thisWeek', label: 'This week' },

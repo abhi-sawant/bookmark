@@ -93,6 +93,7 @@ export function BookmarkGridCard({ bookmark: b, category, onOpen, onActions, fix
           <CategoryDot color={category.colorHex} />
           <span className="clamp-1">{b.siteName ?? category.name}</span>
         </div>
+        {b.linkStatus === 'broken' ? <div className="t-site broken-note">Link may be broken</div> : null}
       </div>
     </a>
   )
@@ -118,6 +119,7 @@ export function BookmarkListRow({ bookmark: b, category, onOpen, onActions }: Ca
           <CategoryDot color={category.colorHex} />
           <span className="site clamp-1">{`${b.siteName ?? ''}${b.siteName ? ' · ' : ''}${category.name}`}</span>
         </div>
+        {b.linkStatus === 'broken' ? <div className="t-site broken-note">Link may be broken</div> : null}
       </div>
     </a>
   )

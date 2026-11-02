@@ -227,6 +227,11 @@ export async function applyPullPage(page: PullResponse): Promise<void> {
     const incoming = bookmarkFromDto(dto)
     // Keep a thumbnail picked here that has not been uploaded yet.
     if (local?.pendingThumbnail && !incoming.thumbnailUrl) incoming.pendingThumbnail = local.pendingThumbnail
+    // Link-check results are device-local, so a pulled row must not wipe them.
+    if (local && local.url === incoming.url) {
+      incoming.linkStatus = local.linkStatus
+      incoming.linkCheckedAt = local.linkCheckedAt
+    }
     await internal.putBookmark(incoming)
   }
 

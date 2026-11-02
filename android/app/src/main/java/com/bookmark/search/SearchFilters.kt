@@ -14,15 +14,22 @@ data class SearchFilters(
     val thisWeek: Boolean = false,
     /** Not opened since it was saved. */
     val unreadOnly: Boolean = false,
+    /** The last link check found the page gone. */
+    val brokenOnly: Boolean = false,
 ) {
-    val isActive: Boolean get() = pinnedOnly || unsortedOnly || thisWeek || unreadOnly
+    val isActive: Boolean get() = pinnedOnly || unsortedOnly || thisWeek || unreadOnly || brokenOnly
 
-    fun apply(list: List<Bookmark>, now: Long = System.currentTimeMillis()): List<Bookmark> =
+    fun apply(
+        list: List<Bookmark>,
+        now: Long = System.currentTimeMillis(),
+        brokenIds: Set<String> = emptySet(),
+    ): List<Bookmark> =
         list.filter { b ->
             (!pinnedOnly || b.isPinned) &&
                 (!unsortedOnly || b.categoryId == Category.UNSORTED_ID) &&
                 (!thisWeek || b.createdAt >= now - WEEK_MS) &&
-                (!unreadOnly || b.isUnread)
+                (!unreadOnly || b.isUnread) &&
+                (!brokenOnly || b.id in brokenIds)
         }
 
     companion object {

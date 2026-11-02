@@ -1,5 +1,10 @@
 // Wire formats of the sync API (snake_case, epoch-millisecond timestamps).
 
+/** POST check_links.php: one result per url, in request order. */
+export interface LinkCheckResponse {
+  results: { url: string; status: 'ok' | 'broken' | 'error'; http_status: number | null }[]
+}
+
 /** POST metadata.php: what the server read from the page. Every field can be null. */
 export interface MetadataResponse {
   title: string | null

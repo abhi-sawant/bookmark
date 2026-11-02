@@ -10,6 +10,7 @@ import com.bookmark.core.model.Category
 import com.bookmark.core.model.CategoryWithCount
 import com.bookmark.core.model.SortOrder
 import com.bookmark.core.util.Tags
+import com.bookmark.linkcheck.LinkCheckDao
 import com.bookmark.core.util.UrlNormalizer
 import com.bookmark.core.model.ViewMode
 import com.bookmark.settings.SettingsRepository
@@ -39,6 +40,8 @@ data class HomeUiState(
     /** Bulk-select mode: tapping toggles instead of opening. */
     val selecting: Boolean = false,
     val selectedIds: Set<String> = emptySet(),
+    /** Bookmarks the last link check found gone (404/410). */
+    val brokenIds: Set<String> = emptySet(),
     val sortOrder: SortOrder = SortOrder.NEWEST,
     val loaded: Boolean = false,
 ) {
@@ -61,6 +64,7 @@ class HomeViewModel @Inject constructor(
     private val bookmarkRepository: BookmarkRepository,
     private val categoryRepository: CategoryRepository,
     private val settingsRepository: SettingsRepository,
+    private val linkCheckDao: LinkCheckDao,
 ) : ViewModel() {
 
     private val selectedCategoryId = MutableStateFlow<String?>(null)
@@ -88,7 +92,7 @@ class HomeViewModel @Inject constructor(
         .flatMapLatest { (categoryId, sort) -> bookmarkRepository.observe(categoryId, sort) }
         .combine(unreadOnly) { items, onlyUnread -> if (onlyUnread) items.filter { it.isUnread } else items }
 
-    val uiState: StateFlow<HomeUiState> = combine(
+    private val baseState = combine(
         bookmarks,
         categoryRepository.observeAllWithCounts(),
         bookmarkRepository.observeTotalCount(),
@@ -108,6 +112,10 @@ class HomeViewModel @Inject constructor(
             sortOrder = preferences.sortOrder,
             loaded = true,
         )
+    }
+
+    val uiState: StateFlow<HomeUiState> = combine(baseState, linkCheckDao.observeBrokenIds()) { state, broken ->
+        state.copy(brokenIds = broken.toSet())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
     /**

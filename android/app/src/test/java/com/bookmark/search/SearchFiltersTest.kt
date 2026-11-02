@@ -35,6 +35,7 @@ class SearchFiltersTest {
         assertEquals(listOf("unsorted"), SearchFilters(unsortedOnly = true).apply(list, now).map { it.id })
         assertEquals(listOf("pinned", "unsorted"), SearchFilters(thisWeek = true).apply(list, now).map { it.id })
         assertEquals(listOf("old"), SearchFilters(unreadOnly = true).apply(list, now).map { it.id })
+        assertEquals(listOf("unsorted"), SearchFilters(brokenOnly = true).apply(list, now, brokenIds = setOf("unsorted")).map { it.id })
     }
 
     @Test

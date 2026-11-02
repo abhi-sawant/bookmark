@@ -248,6 +248,19 @@ class MigrationTest {
         db.close()
     }
 
+    @Test
+    fun migrate6To7CreatesTheLinkChecksTable() {
+        helper.createDatabase(TEST_DB, 6).close()
+        val db = helper.runMigrationsAndValidate(TEST_DB, 7, true, MIGRATION_6_7)
+        db.execSQL("INSERT INTO link_checks (bookmarkId, status, httpCode, checkedAt) VALUES ('b1', 'BROKEN', 404, 1)")
+        db.query("SELECT status, httpCode FROM link_checks WHERE bookmarkId = 'b1'").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("BROKEN", cursor.getString(0))
+            assertEquals(404, cursor.getInt(1))
+        }
+        db.close()
+    }
+
     private companion object {
         const val TEST_DB = "migration-test.db"
     }

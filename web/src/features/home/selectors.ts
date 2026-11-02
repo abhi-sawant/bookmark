@@ -45,15 +45,17 @@ export interface SearchFilters {
   thisWeek: boolean
   /** Not opened since it was saved. */
   unread: boolean
+  /** The last link check found the page gone. */
+  broken: boolean
 }
-export const NO_FILTERS: SearchFilters = { pinned: false, unsorted: false, thisWeek: false, unread: false }
-export const hasActiveFilters = (f: SearchFilters): boolean => f.pinned || f.unsorted || f.thisWeek || f.unread
+export const NO_FILTERS: SearchFilters = { pinned: false, unsorted: false, thisWeek: false, unread: false, broken: false }
+export const hasActiveFilters = (f: SearchFilters): boolean => f.pinned || f.unsorted || f.thisWeek || f.unread || f.broken
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 
 export function applyFilters(list: Bookmark[], f: SearchFilters, now = Date.now()): Bookmark[] {
   if (!hasActiveFilters(f)) return list
   return list.filter(
-    (b) => (!f.pinned || b.isPinned) && (!f.unsorted || b.categoryId === UNSORTED_ID) && (!f.thisWeek || b.createdAt >= now - WEEK_MS) && (!f.unread || b.isUnread),
+    (b) => (!f.pinned || b.isPinned) && (!f.unsorted || b.categoryId === UNSORTED_ID) && (!f.thisWeek || b.createdAt >= now - WEEK_MS) && (!f.unread || b.isUnread) && (!f.broken || b.linkStatus === 'broken'),
   )
 }
 

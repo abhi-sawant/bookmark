@@ -12,12 +12,13 @@
 - **Unread dot.** New bookmarks show an accent dot until you open them. Opening a link clears it; "Mark as read/unread" is in the long-press menu, and an Unread chip filters Home (and Search). Unread state syncs. Existing bookmarks start as read. **Requires the backend update below.**
 - **Trash.** Deleting a bookmark now moves it to Trash (Settings > Trash) instead of removing it. It stays for 30 days, can be restored or deleted for good, and Trash can be emptied. Trash syncs between devices and is included in backups. Saving a link that is in Trash brings it back. **Requires the backend update below.**
 - **Select several bookmarks.** Choose "Select" in a bookmark's long-press menu, tap more bookmarks, then Pin, Move, Tag or Delete them in one go (deleted ones go to Trash with Undo). Android and web.
+- **Check links.** Settings > Check links asks each saved site whether its page still exists. Bookmarks whose page is gone (404/410) show "Link may be broken" and can be listed with the Broken links chip in Search. Inconclusive answers (timeouts, blocked requests) are never reported as broken. On Android the phone checks directly; on the web the check runs through your sync server. Results stay on the device. **The web check requires the backend update below.**
 
 ### Changed
 - More tracking parameters are stripped when you save a link (Instagram `igsh`, Google `gbraid`/`wbraid`, HubSpot and Marketo tokens), so the same page saved from different sources is recognised as already saved.
 
 ### Backend
-- New `backend/api/metadata.php` and `backend/safe_fetch.php` (SSRF-protected fetching). Run `backend/sql/migrations/001_rate_limit_metadata.sql` and `002_bookmark_tags.sql` and `003_bookmark_unread.sql` and `004_bookmark_trash.sql` first (tags, the unread flag and Trash need the new `tags`, `is_unread` and `trashed_at` columns, and `sync/push.php` + `sync/pull.php` updated). Full checklist: `docs/SERVER_CHANGES_3.1.0.md`.
+- New `backend/api/metadata.php`, `backend/api/check_links.php` and `backend/safe_fetch.php` (SSRF-protected fetching). Run `backend/sql/migrations/001_rate_limit_metadata.sql` and `002_bookmark_tags.sql` and `003_bookmark_unread.sql` and `004_bookmark_trash.sql` first (tags, the unread flag and Trash need the new `tags`, `is_unread` and `trashed_at` columns, and `sync/push.php` + `sync/pull.php` updated). Full checklist: `docs/SERVER_CHANGES_3.1.0.md`.
 
 ## 3.0.0 — 2026-10-09
 

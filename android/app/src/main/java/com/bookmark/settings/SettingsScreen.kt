@@ -68,6 +68,8 @@ fun SettingsScreen(
     onExportBackup: () -> Unit,
     onImportBackup: () -> Unit,
     onOpenTrash: () -> Unit,
+    linkCheckSummary: String,
+    onCheckLinks: () -> Unit,
     onSignIn: () -> Unit,
     onSyncNow: () -> Unit,
     onSignOut: () -> Unit,
@@ -173,6 +175,13 @@ fun SettingsScreen(
                     subtitle = "${plural(summary.eligibleRefreshCount, "bookmark")} eligible",
                     enabled = true,
                     onClick = onRefreshAll,
+                )
+                RowDivider()
+                SettingsRow(
+                    title = "Check links",
+                    subtitle = linkCheckSummary,
+                    enabled = true,
+                    onClick = onCheckLinks,
                 )
                 RowDivider()
                 SettingsRow(

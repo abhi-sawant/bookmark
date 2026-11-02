@@ -8,6 +8,7 @@ import com.bookmark.categories.data.CategoryRepository
 import com.bookmark.core.model.Bookmark
 import com.bookmark.core.model.CategoryWithCount
 import com.bookmark.core.model.SortOrder
+import com.bookmark.linkcheck.LinkCheckDao
 import com.bookmark.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -42,12 +43,14 @@ class SearchViewModel @Inject constructor(
     private val bookmarkRepository: BookmarkRepository,
     private val categoryRepository: CategoryRepository,
     private val settingsRepository: SettingsRepository,
+    private val linkCheckDao: LinkCheckDao,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SearchUiState())
     val uiState: StateFlow<SearchUiState> = _state.asStateFlow()
 
     private var searchJob: Job? = null
+    private var brokenIds: Set<String> = emptySet()
 
     init {
         viewModelScope.launch {
@@ -58,6 +61,9 @@ class SearchViewModel @Inject constructor(
     }
 
     init {
+        viewModelScope.launch {
+            linkCheckDao.observeBrokenIds().collect { brokenIds = it.toSet() }
+        }
         viewModelScope.launch {
             settingsRepository.recentSearches.collect { recents ->
                 _state.update { it.copy(recentSearches = recents) }
@@ -128,7 +134,7 @@ class SearchViewModel @Inject constructor(
                 } else {
                     bookmarkRepository.search(query, categoryId)
                 }
-                results = filters.apply(found)
+                results = filters.apply(found, brokenIds = brokenIds)
             }
             _state.update {
                 it.copy(

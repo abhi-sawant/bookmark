@@ -1,9 +1,10 @@
-import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '@/account/session'
 import { signOut } from '@/account/service'
 import { BackupFormatError, backupFileName, buildBackup, downloadBlob, parseBackup } from '@/data/backup'
 import { allBookmarks, useData } from '@/data/repo'
+import { checkLinks, summarizeLinkChecks } from '@/data/linkcheck'
 import { relativeTime, plural } from '@/app/format'
 import { usePrefs } from '@/app/prefs'
 import { useUi } from '@/app/uiStore'
@@ -70,11 +71,22 @@ export function SettingsScreen() {
   const { syncing, lastSyncedAt, error } = useSyncStatus()
   const { theme, trueBlack, clipboardChip, serverPreviews, set: setPref } = usePrefs()
   const toast = useSnackbar((s) => s.show)
+  const linkSummary = useMemo(() => summarizeLinkChecks(bookmarks), [bookmarks])
   const setUi = useUi((s) => s.set)
   const fileInput = useRef<HTMLInputElement>(null)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
   const [devices, setDevices] = useState(false)
+  const [linkProgress, setLinkProgress] = useState<string | null>(null)
   const [signingOut, setSigningOut] = useState(false)
+
+  async function runLinkCheck() {
+    if (!email) return toast('Sign in to check links: the check runs through your sync server.')
+    setLinkProgress('Checking…')
+    const finished = await checkLinks((done, total) => setLinkProgress(`Checking ${done}/${total}…`))
+    setLinkProgress(null)
+    const s = summarizeLinkChecks(useData.getState().bookmarks)
+    toast(finished ? `Checked ${s.checked} links: ${s.broken} broken.` : "Couldn't finish checking links. Try again later.")
+  }
 
   function exportBackup() {
     try {
@@ -118,6 +130,7 @@ export function SettingsScreen() {
       <Group>
         <Row icon="fileDownload" title="Export backup" sub={`${plural(bookmarks.length, 'bookmark')} · ${plural(categories.length, 'category', 'categories')}`} onClick={exportBackup} />
         <Row icon="fileUpload" title="Import backup" sub="Merge or replace, with a preview first" onClick={() => fileInput.current?.click()} />
+        <Row icon="refresh" title="Check links" sub={linkProgress ?? (linkSummary.checked > 0 ? `${linkSummary.checked} checked · ${linkSummary.broken} broken · ${linkSummary.unreachable} unreachable` : 'Asks each saved site whether the page still exists (through your sync server)')} disabled={linkProgress !== null} onClick={() => void runLinkCheck()} />
         <Row icon="delete" title="Trash" sub="Deleted bookmarks stay for 30 days" onClick={() => navigate('/trash')} />
       </Group>
       <input ref={fileInput} type="file" accept=".zip,application/zip" hidden onChange={(e) => { void onPickBackup(e.target.files?.[0]); e.target.value = '' }} />

@@ -132,6 +132,13 @@ fun SearchScreen(
                     onClick = { onFiltersChange(state.filters.copy(unreadOnly = !state.filters.unreadOnly)) },
                 )
             }
+            item(key = "broken") {
+                CategoryChip(
+                    label = "Broken links",
+                    selected = state.filters.brokenOnly,
+                    onClick = { onFiltersChange(state.filters.copy(brokenOnly = !state.filters.brokenOnly)) },
+                )
+            }
             item(key = "pinned") {
                 CategoryChip(
                     label = "Pinned",

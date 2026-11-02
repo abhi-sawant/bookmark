@@ -72,8 +72,12 @@ describe('search filters', () => {
     const l = [mk({ id: 'u', isUnread: true }), mk({ id: 'r' })]
     expect(searchBookmarks(l, '', null, { ...NO_FILTERS, unread: true }).map((b) => b.id)).toEqual(['u'])
   })
+  it('the Broken links chip keeps only pages the last check found gone', () => {
+    const l = [mk({ id: 'b', linkStatus: 'broken' }), mk({ id: 'o', linkStatus: 'ok' }), mk({ id: 'n' })]
+    expect(searchBookmarks(l, '', null, { ...NO_FILTERS, broken: true }).map((b) => b.id)).toEqual(['b'])
+  })
   it('chips combine and an empty query with no chips finds nothing', () => {
-    expect(searchBookmarks(list, '', null, { pinned: true, unsorted: true, thisWeek: false, unread: false }, now)).toEqual([])
+    expect(searchBookmarks(list, '', null, { ...NO_FILTERS, pinned: true, unsorted: true }, now)).toEqual([])
     expect(searchBookmarks(list, '', null, NO_FILTERS, now)).toEqual([])
   })
   it('chips also narrow text results', () => {

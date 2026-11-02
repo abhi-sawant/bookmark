@@ -15,6 +15,9 @@ import com.bookmark.bookmarks.data.BookmarkRepository
 import com.bookmark.categories.data.CategoryRepository
 import com.bookmark.core.model.ThemeMode
 import com.bookmark.core.model.UserPreferences
+import com.bookmark.linkcheck.LinkCheckDao
+import com.bookmark.linkcheck.LinkCheckEnqueuer
+import com.bookmark.linkcheck.LinkStatus
 import com.bookmark.metadata.work.MetadataEnqueuer
 import com.bookmark.metadata.work.RefreshAllWorker
 import com.bookmark.sync.data.SyncStateStore
@@ -26,6 +29,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -56,6 +60,8 @@ class SettingsViewModel @Inject constructor(
     private val accountRepository: AccountRepository,
     private val syncStateStore: SyncStateStore,
     private val syncEnqueuer: SyncEnqueuer,
+    private val linkCheckDao: LinkCheckDao,
+    private val linkCheckEnqueuer: LinkCheckEnqueuer,
 ) : ViewModel() {
 
     val preferences: StateFlow<UserPreferences> = settingsRepository.preferences
@@ -81,6 +87,17 @@ class SettingsViewModel @Inject constructor(
         BackupSummary(bookmarkCount, categories.size, eligible, thumbnailBytes)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BackupSummary())
 
+    /** The "Check links" row's subtitle: what the last run found. */
+    val linkCheckSummary: StateFlow<String> = linkCheckDao.observeAll().map { checks ->
+        if (checks.isEmpty()) {
+            "Asks each saved site whether the page still exists"
+        } else {
+            val broken = checks.count { it.status == LinkStatus.BROKEN }
+            val unreachable = checks.count { it.status == LinkStatus.ERROR }
+            "${checks.size} checked · $broken broken · $unreachable unreachable"
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "")
+
     private val _importSheetState = MutableStateFlow<ImportSheetState>(ImportSheetState.None)
     val importSheetState: StateFlow<ImportSheetState> = _importSheetState.asStateFlow()
 
@@ -96,6 +113,11 @@ class SettingsViewModel @Inject constructor(
             oneShotCounts.value =
                 bookmarkRepository.countByStates(RefreshAllWorker.ELIGIBLE) to bookmarkRepository.thumbnailBytes()
         }
+    }
+
+    fun checkLinks() {
+        linkCheckEnqueuer.enqueue()
+        _message.value = "Checking your links in the background"
     }
 
     fun setThemeMode(mode: ThemeMode) = viewModelScope.launch {

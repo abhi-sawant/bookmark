@@ -154,6 +154,7 @@ fun BookmarkNavHost() {
     }
     val preferences by settingsViewModel.preferences.collectAsStateWithLifecycle()
     val settingsSummary by settingsViewModel.summary.collectAsStateWithLifecycle()
+    val linkCheckSummary by settingsViewModel.linkCheckSummary.collectAsStateWithLifecycle()
     val importSheetState by settingsViewModel.importSheetState.collectAsStateWithLifecycle()
     val backupMessage by settingsViewModel.message.collectAsStateWithLifecycle()
     val settingsAuthState by settingsViewModel.authState.collectAsStateWithLifecycle()
@@ -341,6 +342,8 @@ fun BookmarkNavHost() {
                     onExportBackup = { exportLauncher.launch("bookmarks-${backupDateStamp()}.zip") },
                     onImportBackup = { importLauncher.launch(arrayOf("application/zip")) },
                     onOpenTrash = { navController.navigate(TrashRoute) },
+                    linkCheckSummary = linkCheckSummary,
+                    onCheckLinks = settingsViewModel::checkLinks,
                     onSignIn = { navController.navigate(AccountRoute) },
                     onSyncNow = settingsViewModel::syncNow,
                     onSignOut = settingsViewModel::signOut,

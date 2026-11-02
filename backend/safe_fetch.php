@@ -21,6 +21,9 @@ const SAFE_FETCH_CONNECT_TIMEOUT = 4;
 const SAFE_FETCH_TIMEOUT = 8;
 const SAFE_FETCH_USER_AGENT = 'Mozilla/5.0 (compatible; BookmarkPreviewBot/1.0)';
 
+/** Error code for SafeFetchException when the host name does not resolve at all. */
+const SAFE_FETCH_ERR_DNS = 1;
+
 class SafeFetchException extends RuntimeException
 {
 }
@@ -97,7 +100,7 @@ function safe_fetch_resolve(string $host): string
     }
 
     if ($addresses === []) {
-        throw new SafeFetchException('The host could not be resolved.');
+        throw new SafeFetchException('The host could not be resolved.', SAFE_FETCH_ERR_DNS);
     }
     foreach ($addresses as $address) {
         if (!safe_fetch_is_public_ip($address)) {

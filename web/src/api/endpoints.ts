@@ -1,5 +1,5 @@
 import { apiRequest } from './client'
-import type { AuthResponse, DeviceDto, MetadataResponse, PullResponse, PushRequest, PushResponse } from './dto'
+import type { AuthResponse, DeviceDto, LinkCheckResponse, MetadataResponse, PullResponse, PushRequest, PushResponse } from './dto'
 
 export const AccountApi = {
   login: (email: string, password: string, deviceName: string) =>
@@ -31,4 +31,9 @@ export const MetadataApi = {
   /** Asks the server to read a page's preview. Browsers cannot do this themselves (CORS). */
   fetch: (url: string, bookmarkId: string) =>
     apiRequest<MetadataResponse>('metadata.php', { method: 'POST', body: { url, bookmark_id: bookmarkId }, auth: true }),
+}
+
+export const LinkCheckApi = {
+  /** Asks the server whether up to 10 pages still exist (browsers cannot check other sites themselves). */
+  check: (urls: string[]) => apiRequest<LinkCheckResponse>('check_links.php', { method: 'POST', body: { urls }, auth: true }),
 }

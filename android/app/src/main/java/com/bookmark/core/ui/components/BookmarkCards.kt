@@ -76,6 +76,8 @@ fun BookmarkGridCard(
     modifier: Modifier = Modifier,
     /** Bulk-select mode: this card is part of the selection. */
     selected: Boolean = false,
+    /** The last link check found this page gone (404/410). */
+    linkBroken: Boolean = false,
     /** Grid-to-detail thumbnail morph (spec 10). Null outside a shared-transition layout. */
     sharedTransitionScope: SharedTransitionScope? = null,
     /** False while this bookmark's detail sheet is open -- its hero image is the
@@ -172,6 +174,7 @@ fun BookmarkGridCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                if (linkBroken) BrokenLinkLabel(Modifier.padding(top = 6.dp))
                 if (bookmark.metadataState == MetadataState.PENDING) {
                     PendingPill(modifier = Modifier.padding(top = 9.dp))
                 }
@@ -191,6 +194,7 @@ fun BookmarkListRow(
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
     selected: Boolean = false,
+    linkBroken: Boolean = false,
 ) {
     val categoryColor = parseCategoryColor(category?.colorHex)
     Row(
@@ -248,8 +252,20 @@ fun BookmarkListRow(
                     PendingPill()
                 }
             }
+            if (linkBroken) BrokenLinkLabel(Modifier.padding(top = 4.dp))
         }
     }
+}
+
+/** "Link broken" note: the last link check got a 404 or 410 for this page. */
+@Composable
+private fun BrokenLinkLabel(modifier: Modifier = Modifier) {
+    Text(
+        text = "Link may be broken",
+        style = BookmarkTheme.text.siteLine,
+        color = MaterialTheme.colorScheme.error,
+        modifier = modifier,
+    )
 }
 
 /** Accent outline around a selected card (bulk-select mode). */
