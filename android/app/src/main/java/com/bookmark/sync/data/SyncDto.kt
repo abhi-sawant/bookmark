@@ -25,6 +25,7 @@ data class BookmarkSyncDto(
     val createdAt: Long,
     val updatedAt: Long,
     val tags: List<String> = emptyList(),
+    val isUnread: Boolean = false,
 )
 
 @Serializable
@@ -113,6 +114,7 @@ fun BookmarkEntity.toSyncDto(thumbnailUrl: String?) = BookmarkSyncDto(
     createdAt = createdAt,
     updatedAt = updatedAt,
     tags = Tags.decode(tags),
+    isUnread = isUnread,
 )
 
 /**
@@ -151,6 +153,7 @@ fun BookmarkSyncDto.toEntity(syncedUpdatedAt: Long?) = BookmarkEntity(
     remoteThumbnailUrl = thumbnailUrl,
     syncedUpdatedAt = syncedUpdatedAt,
     tags = Tags.encode(Tags.normalize(tags)),
+    isUnread = isUnread,
 )
 
 fun CategoryEntity.toSyncDto() = CategorySyncDto(

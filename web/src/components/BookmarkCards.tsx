@@ -74,6 +74,7 @@ export function BookmarkGridCard({ bookmark: b, category, onOpen, onActions, fix
           <Icon name="flag" size={16} />
         </span>
       ) : null}
+      {b.isUnread ? <span className="unread-dot" role="img" aria-label="Unread" /> : null}
       <div className="text">
         <div className="t-card-title clamp-2">{b.title}</div>
         {b.description?.trim() ? <div className="t-card-desc desc clamp-2">{b.description}</div> : null}
@@ -97,6 +98,7 @@ export function BookmarkListRow({ bookmark: b, category, onOpen, onActions }: Ca
             <Icon name="flag" size={12} />
           </span>
         ) : null}
+        {b.isUnread ? <span className="unread-dot sm" role="img" aria-label="Unread" /> : null}
       </div>
       <div className="col">
         <div className="t-card-title clamp-2">{b.title}</div>

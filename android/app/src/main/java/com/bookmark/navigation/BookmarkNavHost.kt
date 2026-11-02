@@ -139,6 +139,11 @@ fun BookmarkNavHost() {
     val categoryUndo by categoriesViewModel.undo.collectAsStateWithLifecycle()
     val bookmarkUndo by homeViewModel.undo.collectAsStateWithLifecycle()
     val clipboardSuggestion by homeViewModel.clipboardSuggestion.collectAsStateWithLifecycle()
+    // Opening a link clears its unread dot.
+    val openBookmark: (Bookmark) -> Unit = {
+        homeViewModel.markOpened(it)
+        LinkActions.open(context, it.url)
+    }
     // Android only lets a focused app read the clipboard, so wait for window focus
     // rather than ON_RESUME (which can fire before focus is granted).
     val windowFocused = androidx.compose.ui.platform.LocalWindowInfo.current.isWindowFocused
@@ -279,11 +284,12 @@ fun BookmarkNavHost() {
                         if (it.metadataState == MetadataState.FAILED) {
                             sheet = SheetState.Detail(it)
                         } else {
-                            LinkActions.open(context, it.url)
+                            openBookmark(it)
                         }
                     },
                     onBookmarkLongPress = { sheet = SheetState.Context(it) },
                     onSearch = { navController.navigate(SearchRoute) },
+                    onUnreadOnlyChange = homeViewModel::setUnreadOnly,
                     onSurprise = { pickSurprise(homeState.bookmarks)?.let { sheet = SheetState.Detail(it) } },
                     clipboardSuggestion = clipboardSuggestion,
                     onSaveClipboard = homeViewModel::saveClipboardSuggestion,
@@ -400,7 +406,7 @@ fun BookmarkNavHost() {
                         if (it.metadataState == MetadataState.FAILED) {
                             sheet = SheetState.Detail(it)
                         } else {
-                            LinkActions.open(context, it.url)
+                            openBookmark(it)
                         }
                     },
                     onBookmarkLongPress = { sheet = SheetState.Context(it) },
@@ -458,6 +464,10 @@ fun BookmarkNavHost() {
                 homeViewModel.togglePin(current.bookmark)
                 sheet = SheetState.None
             },
+            onToggleUnread = {
+                homeViewModel.setUnread(current.bookmark, !current.bookmark.isUnread)
+                sheet = SheetState.None
+            },
             onRetryFetch = if (current.bookmark.metadataState == MetadataState.FALLBACK) {
                 {
                     homeViewModel.retryFetch(current.bookmark)
@@ -483,7 +493,7 @@ fun BookmarkNavHost() {
                 ?.let { runCatching { FailureCause.valueOf(it) }.getOrNull() }
                 .userMessage(),
             onDismiss = { sheet = SheetState.None },
-            onOpen = { LinkActions.open(context, current.bookmark.url) },
+            onOpen = { openBookmark(current.bookmark) },
             onShare = { LinkActions.share(context, current.bookmark.url, current.bookmark.title) },
             onEdit = {
                 addEditViewModel.startEdit(current.bookmark)

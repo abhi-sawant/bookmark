@@ -121,6 +121,8 @@ class BookmarkRepository @Inject constructor(
             createdAt = now,
             updatedAt = now,
             tags = Tags.encode(Tags.normalize(tags)),
+            // New saves start unread; opening the link clears it.
+            isUnread = true,
         )
 
         try {
@@ -264,6 +266,16 @@ class BookmarkRepository @Inject constructor(
             SyncTombstoneEntity(bookmark.id, TombstoneType.BOOKMARK.name, System.currentTimeMillis()),
         )
         syncEnqueuer.scheduleDebounced()
+    }
+
+    suspend fun setUnread(id: String, unread: Boolean) = withContext(io) {
+        dao.setUnread(id, unread, System.currentTimeMillis())
+        syncEnqueuer.scheduleDebounced()
+    }
+
+    /** The link was opened: clear the unread dot (a no-op for an already-read bookmark). */
+    suspend fun markOpened(bookmark: Bookmark) {
+        if (bookmark.isUnread) setUnread(bookmark.id, false)
     }
 
     suspend fun setPinned(id: String, pinned: Boolean) = withContext(io) {

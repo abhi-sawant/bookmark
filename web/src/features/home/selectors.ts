@@ -43,15 +43,17 @@ export interface SearchFilters {
   unsorted: boolean
   /** Saved in the last seven days. */
   thisWeek: boolean
+  /** Not opened since it was saved. */
+  unread: boolean
 }
-export const NO_FILTERS: SearchFilters = { pinned: false, unsorted: false, thisWeek: false }
-export const hasActiveFilters = (f: SearchFilters): boolean => f.pinned || f.unsorted || f.thisWeek
+export const NO_FILTERS: SearchFilters = { pinned: false, unsorted: false, thisWeek: false, unread: false }
+export const hasActiveFilters = (f: SearchFilters): boolean => f.pinned || f.unsorted || f.thisWeek || f.unread
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 
 export function applyFilters(list: Bookmark[], f: SearchFilters, now = Date.now()): Bookmark[] {
   if (!hasActiveFilters(f)) return list
   return list.filter(
-    (b) => (!f.pinned || b.isPinned) && (!f.unsorted || b.categoryId === UNSORTED_ID) && (!f.thisWeek || b.createdAt >= now - WEEK_MS),
+    (b) => (!f.pinned || b.isPinned) && (!f.unsorted || b.categoryId === UNSORTED_ID) && (!f.thisWeek || b.createdAt >= now - WEEK_MS) && (!f.unread || b.isUnread),
   )
 }
 

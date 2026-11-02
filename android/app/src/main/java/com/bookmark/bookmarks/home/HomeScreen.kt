@@ -53,6 +53,7 @@ import com.bookmark.core.model.SortOrder
 import com.bookmark.core.model.ViewMode
 import com.bookmark.core.ui.components.BookmarkGridCard
 import com.bookmark.core.ui.components.BookmarkListRow
+import com.bookmark.core.ui.components.CategoryChip
 import com.bookmark.core.ui.components.CategoryFilterRow
 import com.bookmark.core.ui.components.PrimaryButton
 import com.bookmark.core.ui.components.ScreenHeader
@@ -85,6 +86,7 @@ fun HomeScreen(
     onSearch: () -> Unit,
     onAdd: () -> Unit,
     onSurprise: () -> Unit = {},
+    onUnreadOnlyChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
     /** A copied link offered as a one-tap save, or null. */
     clipboardSuggestion: String? = null,
@@ -162,6 +164,12 @@ fun HomeScreen(
                         )
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        CategoryChip(
+                            label = "Unread",
+                            selected = state.unreadOnly,
+                            onClick = { onUnreadOnlyChange(!state.unreadOnly) },
+                            height = 32.dp,
+                        )
                         Row(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(10.dp))
@@ -170,16 +178,12 @@ fun HomeScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(5.dp),
                         ) {
+                            // Icon only: the row is already tight on a narrow phone.
                             Icon(
                                 imageVector = Icons.Outlined.Shuffle,
-                                contentDescription = null,
+                                contentDescription = "Surprise me",
                                 tint = BookmarkTheme.colors.mutedLabel,
-                                modifier = Modifier.size(16.dp),
-                            )
-                            Text(
-                                text = "Surprise me",
-                                style = BookmarkTheme.text.caption,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(18.dp),
                             )
                         }
                         ViewModeToggle(viewMode = state.viewMode, onSetViewMode = onSetViewMode)

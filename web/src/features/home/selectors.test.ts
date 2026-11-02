@@ -3,7 +3,7 @@ import { NO_FILTERS, addRecentSearch, searchBookmarks, sortBookmarks } from './s
 
 const mk = (o: Partial<Bookmark>): Bookmark => ({
   id: o.id ?? 'x', url: 'https://example.com', originalUrl: 'https://example.com', title: 'T', description: null, siteName: null,
-  thumbnailUrl: null, thumbnailWidth: null, thumbnailHeight: null, accentColor: null, imageCandidates: [], tags: [], categoryId: 'unsorted',
+  thumbnailUrl: null, thumbnailWidth: null, thumbnailHeight: null, accentColor: null, imageCandidates: [], tags: [], isUnread: false, categoryId: 'unsorted',
   manualFields: 0, isPinned: false, createdAt: 1, updatedAt: 1, syncedUpdatedAt: null, ...o,
 })
 const cat = (id: string, sortOrder: number): Category => ({ id, name: id, colorHex: '#000000', iconKey: null, sortOrder, isDefault: false, createdAt: 1, updatedAt: 1, syncedUpdatedAt: null })
@@ -68,8 +68,12 @@ describe('search filters', () => {
     expect(searchBookmarks(list, '', null, { ...NO_FILTERS, unsorted: true }, now).map((b) => b.id)).toEqual(['unsorted'])
     expect(searchBookmarks(list, '', null, { ...NO_FILTERS, thisWeek: true }, now).map((b) => b.id).sort()).toEqual(['pinned', 'unsorted'])
   })
+  it('the Unread chip keeps only unopened bookmarks', () => {
+    const l = [mk({ id: 'u', isUnread: true }), mk({ id: 'r' })]
+    expect(searchBookmarks(l, '', null, { ...NO_FILTERS, unread: true }).map((b) => b.id)).toEqual(['u'])
+  })
   it('chips combine and an empty query with no chips finds nothing', () => {
-    expect(searchBookmarks(list, '', null, { pinned: true, unsorted: true, thisWeek: false }, now)).toEqual([])
+    expect(searchBookmarks(list, '', null, { pinned: true, unsorted: true, thisWeek: false, unread: false }, now)).toEqual([])
     expect(searchBookmarks(list, '', null, NO_FILTERS, now)).toEqual([])
   })
   it('chips also narrow text results', () => {

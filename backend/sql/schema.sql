@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS bookmarks (
     manual_fields     TINYINT UNSIGNED NOT NULL DEFAULT 0,
     is_pinned         TINYINT(1) NOT NULL DEFAULT 0,
     tags              TEXT NULL,
+    is_unread         TINYINT(1) NOT NULL DEFAULT 0,
     created_at        DATETIME(6) NOT NULL,
     updated_at        DATETIME(6) NOT NULL,
     deleted_at        DATETIME(6) NULL,

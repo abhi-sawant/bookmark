@@ -95,6 +95,8 @@ data class BookmarkEntity(
     val syncedUpdatedAt: Long? = null,
     /** Newline-joined tags, see [com.bookmark.core.util.Tags]. Synced. */
     val tags: String? = null,
+    /** Not opened since it was saved. Synced; bumping it bumps [updatedAt]. */
+    @ColumnInfo(defaultValue = "0") val isUnread: Boolean = false,
 ) {
     fun toDomain() = Bookmark(
         id = id,
@@ -119,6 +121,7 @@ data class BookmarkEntity(
         createdAt = createdAt,
         updatedAt = updatedAt,
         tags = Tags.decode(tags),
+        isUnread = isUnread,
     )
 }
 
@@ -155,6 +158,7 @@ fun Bookmark.toEntity(remoteThumbnailUrl: String? = null, syncedUpdatedAt: Long?
     remoteThumbnailUrl = remoteThumbnailUrl,
     syncedUpdatedAt = syncedUpdatedAt,
     tags = Tags.encode(tags),
+    isUnread = isUnread,
 )
 
 /**

@@ -101,6 +101,8 @@ foreach ($bookmarkRows as $row) {
             'manual_fields' => (int) $row['manual_fields'],
             // See the is_default comment above -- same JSON-boolean requirement.
             'is_pinned' => (bool) $row['is_pinned'],
+            // Absent column (migration not run yet) reads as false; see the is_default comment above.
+            'is_unread' => (bool) ($row['is_unread'] ?? 0),
             'created_at' => datetime_to_millis($row['created_at']),
             'updated_at' => datetime_to_millis($row['updated_at']),
         ];

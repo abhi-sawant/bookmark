@@ -24,6 +24,8 @@ export interface Bookmark {
   imageCandidates: string[]
   /** Normalised tags (core/util/tags). Synced. */
   tags: string[]
+  /** Saved but not opened yet; cleared when the link is opened. Synced. */
+  isUnread: boolean
   categoryId: string
   manualFields: number
   isPinned: boolean

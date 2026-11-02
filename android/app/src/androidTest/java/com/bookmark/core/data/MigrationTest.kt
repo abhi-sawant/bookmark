@@ -182,6 +182,39 @@ class MigrationTest {
         db.close()
     }
 
+    @Test
+    fun migrate4To5AddsUnreadDefaultingToRead() {
+        helper.createDatabase(TEST_DB, 4).use { db ->
+            db.execSQL(
+                """
+                INSERT INTO categories (id, name, colorHex, iconKey, sortOrder, isDefault, createdAt, updatedAt)
+                VALUES ('unsorted', 'Unsorted', '#7D918D', NULL, 0, 1, 500, 500)
+                """.trimIndent(),
+            )
+            db.execSQL(
+                """
+                INSERT INTO bookmarks
+                    (id, url, originalUrl, title, description, siteName, thumbnailPath,
+                     faviconPath, accentColor, thumbnailWidth, thumbnailHeight, imageCandidates,
+                     categoryId, metadataState, failureCause, fetchAttempts, lastFetchAt,
+                     manualFields, isPinned, createdAt, updatedAt, tags)
+                VALUES ('b1', 'https://example.com/a', 'https://example.com/a', 'Kept',
+                        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+                        'unsorted', 'SUCCESS', NULL, 0, NULL, 0, 0, 100, 200, 'kotlin')
+                """.trimIndent(),
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(TEST_DB, 5, true, MIGRATION_4_5)
+        db.query("SELECT title, tags, isUnread FROM bookmarks WHERE id = 'b1'").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("Kept", cursor.getString(0))
+            assertEquals("kotlin", cursor.getString(1))
+            assertEquals("existing bookmarks start as read", 0, cursor.getInt(2))
+        }
+        db.close()
+    }
+
     private companion object {
         const val TEST_DB = "migration-test.db"
     }

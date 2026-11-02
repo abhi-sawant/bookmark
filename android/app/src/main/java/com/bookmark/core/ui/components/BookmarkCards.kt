@@ -132,6 +132,7 @@ fun BookmarkGridCard(
                     },
                 )
                 if (bookmark.isPinned) PinBadge(Modifier.align(Alignment.TopStart).padding(8.dp))
+                if (bookmark.isUnread) UnreadDot(Modifier.align(Alignment.TopEnd).padding(10.dp))
             }
             Column(modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 10.dp, bottom = 2.dp)) {
                 Text(
@@ -210,6 +211,7 @@ fun BookmarkListRow(
                 modifier = Modifier.fillMaxSize(),
             )
             if (bookmark.isPinned) PinBadge(Modifier.align(Alignment.TopStart).padding(4.dp), size = 20.dp)
+            if (bookmark.isUnread) UnreadDot(Modifier.align(Alignment.TopEnd).padding(4.dp), size = 9.dp)
         }
         Column(modifier = Modifier.weight(1f).padding(end = 4.dp)) {
             Text(
@@ -240,6 +242,21 @@ fun BookmarkListRow(
             }
         }
     }
+}
+
+/** Accent dot on the thumbnail corner: saved but not opened yet. */
+@Composable
+private fun UnreadDot(modifier: Modifier = Modifier, size: androidx.compose.ui.unit.Dp = 12.dp) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(BookmarkTheme.colors.cardSurface)
+            .padding(1.5.dp)
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(BookmarkTheme.colors.accent)
+            .semantics { contentDescription = "Unread" },
+    )
 }
 
 /** Small rounded chip marking a pinned bookmark on its thumbnail. */

@@ -37,6 +37,8 @@ export interface BookmarkDto {
   image_candidates: string[]
   /** Absent when talking to a server that predates tags. */
   tags?: string[]
+  /** Absent when talking to a server that predates the unread flag. */
+  is_unread?: boolean
   category_id: string
   manual_fields: number
   is_pinned: boolean

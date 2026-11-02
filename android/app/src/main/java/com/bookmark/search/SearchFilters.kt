@@ -12,14 +12,17 @@ data class SearchFilters(
     val unsortedOnly: Boolean = false,
     /** Saved in the last seven days. */
     val thisWeek: Boolean = false,
+    /** Not opened since it was saved. */
+    val unreadOnly: Boolean = false,
 ) {
-    val isActive: Boolean get() = pinnedOnly || unsortedOnly || thisWeek
+    val isActive: Boolean get() = pinnedOnly || unsortedOnly || thisWeek || unreadOnly
 
     fun apply(list: List<Bookmark>, now: Long = System.currentTimeMillis()): List<Bookmark> =
         list.filter { b ->
             (!pinnedOnly || b.isPinned) &&
                 (!unsortedOnly || b.categoryId == Category.UNSORTED_ID) &&
-                (!thisWeek || b.createdAt >= now - WEEK_MS)
+                (!thisWeek || b.createdAt >= now - WEEK_MS) &&
+                (!unreadOnly || b.isUnread)
         }
 
     companion object {

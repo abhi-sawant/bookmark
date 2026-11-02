@@ -96,6 +96,9 @@ interface BookmarkDao {
     @Query("UPDATE bookmarks SET isPinned = :pinned, updatedAt = :now WHERE id = :id")
     suspend fun setPinned(id: String, pinned: Boolean, now: Long)
 
+    @Query("UPDATE bookmarks SET isUnread = :unread, updatedAt = :now WHERE id = :id")
+    suspend fun setUnread(id: String, unread: Boolean, now: Long)
+
     @Query("UPDATE bookmarks SET categoryId = :categoryId, updatedAt = :now WHERE id = :id")
     suspend fun setCategory(id: String, categoryId: String, now: Long)
 

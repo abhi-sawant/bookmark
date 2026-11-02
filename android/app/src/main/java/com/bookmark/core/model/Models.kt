@@ -67,6 +67,8 @@ data class Bookmark(
     val createdAt: Long,
     val updatedAt: Long,
     val tags: List<String> = emptyList(),
+    /** Saved but not opened yet. Cleared when the link is opened. Synced. */
+    val isUnread: Boolean = false,
 ) {
     /**
      * Width over height of the stored thumbnail, or null when there is no image

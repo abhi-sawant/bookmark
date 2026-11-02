@@ -238,7 +238,7 @@ export function AddEditSheet({ state }: { state: AddEditState }) {
           </Menu>
         ) : null}
         <input ref={fileInput} type="file" accept="image/*" hidden onChange={(e) => { void pickFile(e.target.files?.[0]); e.target.value = '' }} />
-        {!editing ? <div className="t-row-sub muted" style={{ marginTop: 8 }}>Link previews aren&apos;t fetched on the web. Open the Android app after syncing to fetch one.</div> : null}
+        {!editing ? <div className="t-row-sub muted" style={{ marginTop: 8 }}>When you are signed in, a preview is fetched after you save. Otherwise the Android app fetches one after syncing.</div> : null}
       </div>
 
       <div className="sheet-actions">

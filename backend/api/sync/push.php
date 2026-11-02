@@ -191,6 +191,7 @@ function validate_bookmark_payload($raw): ?array
         'accent_color' => $accentColor !== null ? (int) $accentColor : null,
         'image_candidates' => $imageCandidates,
         'tags' => $tags,
+        'is_unread' => coerce_bool_int($raw['is_unread'] ?? 0),
         'category_id' => $categoryId,
         'manual_fields' => (int) $manualFields,
         'is_pinned' => coerce_bool_int($raw['is_pinned'] ?? 0),
@@ -285,12 +286,12 @@ try {
         'INSERT INTO bookmarks (
             user_id, id, url, original_url, title, description, site_name,
             thumbnail_url, thumbnail_width, thumbnail_height, accent_color,
-            image_candidates, category_id, manual_fields, is_pinned, tags,
+            image_candidates, category_id, manual_fields, is_pinned, tags, is_unread,
             created_at, updated_at, deleted_at
          ) VALUES (
             :user_id, :id, :url, :original_url, :title, :description, :site_name,
             :thumbnail_url, :thumbnail_width, :thumbnail_height, :accent_color,
-            :image_candidates, :category_id, :manual_fields, :is_pinned, :tags,
+            :image_candidates, :category_id, :manual_fields, :is_pinned, :tags, :is_unread,
             :created_at, :updated_at, NULL
          )'
     );
@@ -301,7 +302,7 @@ try {
             thumbnail_url = :thumbnail_url, thumbnail_width = :thumbnail_width,
             thumbnail_height = :thumbnail_height, accent_color = :accent_color,
             image_candidates = :image_candidates, category_id = :category_id,
-            manual_fields = :manual_fields, is_pinned = :is_pinned, tags = :tags,
+            manual_fields = :manual_fields, is_pinned = :is_pinned, tags = :tags, is_unread = :is_unread,
             updated_at = :updated_at
          WHERE user_id = :user_id AND id = :id'
     );
@@ -345,6 +346,7 @@ try {
             ':manual_fields' => $clean['manual_fields'],
             ':is_pinned' => $clean['is_pinned'],
             ':tags' => $clean['tags'],
+            ':is_unread' => $clean['is_unread'],
         ];
 
         if ($existing === false) {

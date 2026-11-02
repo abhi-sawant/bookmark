@@ -125,6 +125,13 @@ fun SearchScreen(
             contentPadding = PaddingValues(horizontal = 20.dp),
             modifier = Modifier.padding(bottom = 10.dp),
         ) {
+            item(key = "unread") {
+                CategoryChip(
+                    label = "Unread",
+                    selected = state.filters.unreadOnly,
+                    onClick = { onFiltersChange(state.filters.copy(unreadOnly = !state.filters.unreadOnly)) },
+                )
+            }
             item(key = "pinned") {
                 CategoryChip(
                     label = "Pinned",

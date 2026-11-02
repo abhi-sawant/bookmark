@@ -22,6 +22,7 @@ interface BackupBookmark {
   thumbnailHeight?: number | null
   imageCandidates?: string[]
   tags?: string[]
+  isUnread?: boolean
   categoryId: string
   metadataState?: string
   failureCause?: string | null
@@ -59,6 +60,7 @@ export function buildBackup(bookmarks: Bookmark[], categories: Category[], now =
     thumbnailHeight: x.thumbnailHeight,
     imageCandidates: x.imageCandidates,
     tags: x.tags,
+    isUnread: x.isUnread,
     categoryId: x.categoryId,
     metadataState: x.thumbnailUrl ? 'SUCCESS' : 'PENDING',
     failureCause: null,
@@ -195,6 +197,7 @@ export async function importBackup(parsed: ParsedBackup, mode: 'MERGE' | 'REPLAC
       accentColor: b.accentColor ?? null,
       imageCandidates: b.imageCandidates ?? [],
       tags: normalizeTags(b.tags ?? []),
+      isUnread: !!b.isUnread,
       categoryId: known.has(categoryId) ? categoryId : UNSORTED_ID,
       manualFields: b.manualFields ?? 0,
       isPinned: !!b.isPinned,

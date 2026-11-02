@@ -45,6 +45,7 @@ data class BookmarkBackupDto(
     val createdAt: Long,
     val updatedAt: Long,
     val tags: List<String> = emptyList(),
+    val isUnread: Boolean = false,
 )
 
 @Serializable
@@ -80,6 +81,7 @@ fun BookmarkEntity.toBackupDto() = BookmarkBackupDto(
     createdAt = createdAt,
     updatedAt = updatedAt,
     tags = Tags.decode(tags),
+    isUnread = isUnread,
 )
 
 fun BookmarkBackupDto.toEntity() = BookmarkEntity(
@@ -108,6 +110,7 @@ fun BookmarkBackupDto.toEntity() = BookmarkEntity(
     createdAt = createdAt,
     updatedAt = updatedAt,
     tags = Tags.encode(Tags.normalize(tags)),
+    isUnread = isUnread,
 )
 
 fun CategoryEntity.toBackupDto() = CategoryBackupDto(

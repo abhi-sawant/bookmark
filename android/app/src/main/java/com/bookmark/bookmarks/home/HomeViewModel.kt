@@ -34,6 +34,7 @@ data class HomeUiState(
     val selectedCategoryId: String? = null,
     val totalCount: Int = 0,
     val viewMode: ViewMode = ViewMode.GRID,
+    val unreadOnly: Boolean = false,
     val sortOrder: SortOrder = SortOrder.NEWEST,
     val loaded: Boolean = false,
 ) {
@@ -51,6 +52,7 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val selectedCategoryId = MutableStateFlow<String?>(null)
+    private val unreadOnly = MutableStateFlow(false)
 
     private val _undo = MutableStateFlow<PendingUndo?>(null)
     val undo: StateFlow<PendingUndo?> = _undo
@@ -69,14 +71,15 @@ class HomeViewModel @Inject constructor(
         settingsRepository.preferences.map { it.sortOrder },
     ) { categoryId, sort -> categoryId to sort }
         .flatMapLatest { (categoryId, sort) -> bookmarkRepository.observe(categoryId, sort) }
+        .combine(unreadOnly) { items, onlyUnread -> if (onlyUnread) items.filter { it.isUnread } else items }
 
     val uiState: StateFlow<HomeUiState> = combine(
         bookmarks,
         categoryRepository.observeAllWithCounts(),
         bookmarkRepository.observeTotalCount(),
-        selectedCategoryId,
+        combine(selectedCategoryId, unreadOnly) { categoryId, onlyUnread -> categoryId to onlyUnread },
         settingsRepository.preferences,
-    ) { items, categories, total, categoryId, preferences ->
+    ) { items, categories, total, (categoryId, onlyUnread), preferences ->
         HomeUiState(
             bookmarks = items,
             categories = categories,
@@ -84,6 +87,7 @@ class HomeViewModel @Inject constructor(
             selectedCategoryId = categoryId,
             totalCount = total,
             viewMode = preferences.viewMode,
+            unreadOnly = onlyUnread,
             sortOrder = preferences.sortOrder,
             loaded = true,
         )
@@ -133,6 +137,18 @@ class HomeViewModel @Inject constructor(
 
     fun setSortOrder(order: SortOrder) = viewModelScope.launch {
         settingsRepository.setSortOrder(order)
+    }
+
+    fun markOpened(bookmark: Bookmark) = viewModelScope.launch {
+        bookmarkRepository.markOpened(bookmark)
+    }
+
+    fun setUnread(bookmark: Bookmark, unread: Boolean) = viewModelScope.launch {
+        bookmarkRepository.setUnread(bookmark.id, unread)
+    }
+
+    fun setUnreadOnly(enabled: Boolean) {
+        unreadOnly.value = enabled
     }
 
     fun togglePin(bookmark: Bookmark) = viewModelScope.launch {

@@ -1,6 +1,6 @@
 import { type Bookmark } from '@/data/models'
 import { categoryOf, useData } from '@/data/repo'
-import { copyLink, deleteWithUndo, openLink, shareLink, togglePin } from '@/app/actions'
+import { copyLink, deleteWithUndo, openLink, shareLink, togglePin, toggleUnread } from '@/app/actions'
 import { formatDayMonth, formatDayMonthLong } from '@/app/format'
 import { openEdit, useUi } from '@/app/uiStore'
 import { Icon, type IconName } from '@/components/Icon'
@@ -47,6 +47,7 @@ export function ContextSheet({ id }: { id: string }) {
         <ActionRow icon="contentCopy" label="Copy link" onClick={then(() => copyLink(b))} />
         <ActionRow icon="share" label="Share" onClick={then(() => shareLink(b))} />
         <ActionRow icon="flag" label={b.isPinned ? 'Unpin' : 'Pin to top'} onClick={then(() => togglePin(b))} />
+        <ActionRow icon={b.isUnread ? 'markEmailRead' : 'markEmailUnread'} label={b.isUnread ? 'Mark as read' : 'Mark as unread'} onClick={then(() => toggleUnread(b))} />
         <ActionRow icon="delete" label="Delete" danger onClick={then(() => deleteWithUndo(b))} />
       </div>
     </Sheet>

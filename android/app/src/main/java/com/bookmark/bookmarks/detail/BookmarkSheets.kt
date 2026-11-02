@@ -30,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.MarkEmailRead
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Share
@@ -88,6 +89,7 @@ fun BookmarkContextSheet(
     onCopyLink: () -> Unit,
     onShare: () -> Unit,
     onTogglePin: () -> Unit,
+    onToggleUnread: () -> Unit,
     /**
      * Null unless [bookmark] is [MetadataState.FALLBACK] -- that's the only
      * state whose retry affordance lives here rather than the detail sheet
@@ -149,6 +151,11 @@ fun BookmarkContextSheet(
                 icon = Icons.Outlined.Flag,
                 label = if (bookmark.isPinned) "Unpin" else "Pin to top",
                 onClick = onTogglePin,
+            )
+            ContextRow(
+                icon = Icons.Outlined.MarkEmailRead,
+                label = if (bookmark.isUnread) "Mark as read" else "Mark as unread",
+                onClick = onToggleUnread,
             )
             if (onRetryFetch != null) {
                 ContextRow(Icons.Outlined.Refresh, "Retry fetch", onRetryFetch)

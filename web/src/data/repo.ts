@@ -100,7 +100,7 @@ export async function initData(): Promise<void> {
   }
   const bookmarks = await db.getAll('bookmarks')
   // Rows saved before tags existed have no `tags` field.
-  useData.setState({ loaded: true, bookmarks: bookmarks.map((b) => ({ ...b, tags: b.tags ?? [] })), categories: sortCategories(categories) })
+  useData.setState({ loaded: true, bookmarks: bookmarks.map((b) => ({ ...b, tags: b.tags ?? [], isUnread: b.isUnread ?? false })), categories: sortCategories(categories) })
 }
 
 /** Wipes every local row and re-seeds Unsorted (sign-out / account switch). */
@@ -191,6 +191,8 @@ export async function saveBookmark(input: SaveInput): Promise<SaveResult> {
     accentColor: input.thumbnail?.accentColor ?? null,
     imageCandidates: [],
     tags: normalizeTags(input.tags ?? []),
+    // New saves start unread; opening the link clears it.
+    isUnread: true,
     categoryId: input.categoryId,
     manualFields,
     isPinned: false,
@@ -237,6 +239,13 @@ export async function updateBookmark(id: string, edit: EditInput): Promise<void>
   }
   next.manualFields = manualFields
   await putBookmark(next)
+  notifyChanged()
+}
+
+export async function setUnread(id: string, unread: boolean): Promise<void> {
+  const b = useData.getState().bookmarks.find((x) => x.id === id)
+  if (!b || b.isUnread === unread) return
+  await putBookmark({ ...b, isUnread: unread, updatedAt: Date.now() })
   notifyChanged()
 }
 

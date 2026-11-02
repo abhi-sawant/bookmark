@@ -20,7 +20,7 @@ import com.bookmark.sync.data.SyncTombstoneEntity
         CategoryEntity::class,
         SyncTombstoneEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -126,5 +126,15 @@ class SeedCallback : RoomDatabase.Callback() {
 val MIGRATION_3_4 = object : Migration(3, 4) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE bookmarks ADD COLUMN tags TEXT")
+    }
+}
+
+/**
+ * v4 to v5: unread state. Every existing bookmark starts as read (0): the
+ * dot is for things saved from now on, not a backlog of the whole library.
+ */
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE bookmarks ADD COLUMN isUnread INTEGER NOT NULL DEFAULT 0")
     }
 }

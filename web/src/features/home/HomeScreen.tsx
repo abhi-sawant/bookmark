@@ -25,6 +25,7 @@ export function HomeScreen() {
   const setUi = useUi((s) => s.set)
   const query = useUi((s) => s.searchQuery)
   const { viewMode, sortOrder, set: setPref } = usePrefs()
+  const [unreadOnly, setUnreadOnly] = useState(false)
   const desktop = useIsDesktop()
   const navigate = useNavigate()
   const { onOpen, onActions } = useBookmarkHandlers()
@@ -33,8 +34,8 @@ export function HomeScreen() {
 
   const visible = useMemo(() => {
     const inCat = filter ? bookmarks.filter((b) => b.categoryId === filter) : bookmarks
-    return sortBookmarks(inCat, sortOrder, categories)
-  }, [bookmarks, categories, filter, sortOrder])
+    return sortBookmarks(unreadOnly ? inCat.filter((b) => b.isUnread) : inCat, sortOrder, categories)
+  }, [bookmarks, categories, filter, sortOrder, unreadOnly])
 
   const isEmpty = loaded && bookmarks.length === 0
   const searching = desktop && query.trim() !== ''
@@ -81,8 +82,17 @@ export function HomeScreen() {
                 </button>
                 <button
                   type="button"
-                  className="sort-btn"
+                  className={`chip ${unreadOnly ? 'active' : ''}`}
                   style={{ marginLeft: 'auto', marginRight: 8 }}
+                  aria-pressed={unreadOnly}
+                  onClick={() => setUnreadOnly((v) => !v)}
+                >
+                  Unread
+                </button>
+                <button
+                  type="button"
+                  className="sort-btn"
+                  style={{ marginRight: 8 }}
                   onClick={() => {
                     const pick = pickSurprise(visible)
                     if (pick) setUi('detail', pick.id)

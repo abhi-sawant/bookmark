@@ -1,8 +1,10 @@
 import { type Bookmark } from '@/data/models'
-import { deleteBookmark, setPinned } from '@/data/repo'
+import { deleteBookmark, setPinned, setUnread } from '@/data/repo'
 import { useSnackbar } from '@/components/ui'
 
+/** Opens the link in a new tab and clears its unread dot. */
 export function openLink(b: Bookmark): void {
+  if (b.isUnread) void setUnread(b.id, false)
   window.open(b.url, '_blank', 'noopener,noreferrer')
 }
 
@@ -28,6 +30,7 @@ export async function shareLink(b: Bookmark): Promise<void> {
 }
 
 export const togglePin = (b: Bookmark) => setPinned(b.id, !b.isPinned)
+export const toggleUnread = (b: Bookmark) => setUnread(b.id, !b.isUnread)
 
 /** Deletes immediately (no confirm) with an Undo snackbar; the delete is final when it closes. */
 export async function deleteWithUndo(b: Bookmark): Promise<void> {
