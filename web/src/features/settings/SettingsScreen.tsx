@@ -1,4 +1,4 @@
-import { type ReactNode, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '@/account/session'
 import { signOut } from '@/account/service'
@@ -11,9 +11,22 @@ import { Icon, type IconName } from '@/components/Icon'
 import { Dialog, PrimaryButton, ScreenHeader, Segmented, Switch, TextButton, useSnackbar } from '@/components/ui'
 import { syncNow, useSyncStatus } from '@/sync/engine'
 import { DevicesDialog } from './DevicesDialog'
+import { buildBookmarklet } from './bookmarklet'
 
 function Group({ children }: { children: ReactNode }) {
   return <div className="settings-group">{children}</div>
+}
+/** React 19 refuses `javascript:` hrefs, so the link's href is set on the element directly. */
+function BookmarkletLink() {
+  const ref = useRef<HTMLAnchorElement>(null)
+  useEffect(() => {
+    ref.current?.setAttribute('href', buildBookmarklet(window.location.origin))
+  }, [])
+  return (
+    <a ref={ref} className="bookmarklet-link" draggable onClick={(e) => e.preventDefault()}>
+      Save to Bookmarks
+    </a>
+  )
 }
 function Section({ title }: { title: string }) {
   return <div className="section-header t-section">{title}</div>
@@ -111,6 +124,17 @@ export function SettingsScreen() {
       <Section title="saving" />
       <Group>
         <Row title="Suggest copied links" sub="Show a Save chip on Home when you have copied a link. Only works once the browser allows clipboard access." trailing={<Switch label="Suggest copied links" checked={clipboardChip} onChange={(v) => setPref('clipboardChip', v)} />} onClick={() => setPref('clipboardChip', !clipboardChip)} />
+      </Group>
+
+      <Section title="bookmarklet" />
+      <Group>
+        <div className="settings-row" style={{ display: 'block' }}>
+          <div className="t-row-title">Save from any page</div>
+          <div className="t-row-sub muted" style={{ margin: '3px 0 12px' }}>
+            Drag this button to your browser&apos;s bookmarks bar. Click it on any page to open the add sheet with that page filled in.
+          </div>
+          <BookmarkletLink />
+        </div>
       </Group>
 
       <Section title="appearance" />

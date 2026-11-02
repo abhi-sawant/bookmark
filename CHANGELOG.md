@@ -4,6 +4,7 @@
 
 ### Added
 - **Copied-link chip on Home.** When you have copied a link, Home offers a one-tap "Save copied link?" chip (Android and web). It never saves on its own, is only read while the app is open, and can be turned off in Settings ("Suggest copied links").
+- **Bookmarklet (web).** Settings has a draggable "Save to Bookmarks" button. Drag it to your bookmarks bar and click it on any page to open the add sheet with that page filled in.
 
 ### Changed
 - More tracking parameters are stripped when you save a link (Instagram `igsh`, Google `gbraid`/`wbraid`, HubSpot and Marketo tokens), so the same page saved from different sources is recognised as already saved.

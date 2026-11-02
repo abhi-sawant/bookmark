@@ -263,3 +263,4 @@ button.settings-row:hover, .settings-row.clickable:hover { background: var(--hov
 .option-card.selected { background: var(--selected-option); border-color: var(--accent); }
 .move-select { display: flex; align-items: center; gap: 10px; margin-top: 10px; min-height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--hairline); background: var(--card); }
 .move-select select { flex: 1; border: 0; background: transparent; outline: 0; font-size: 15px; font-weight: 600; min-height: 42px; }
+.bookmarklet-link { display: inline-flex; align-items: center; min-height: 40px; padding: 0 18px; border-radius: 12px; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 14px; text-decoration: none; cursor: grab; }
