@@ -45,6 +45,8 @@ class BookmarkApp : Application(), Configuration.Provider, SingletonImageLoader.
         StrictModeInit.install()
         super.onCreate()
         applicationScope.launch {
+            // Trash older than 30 days goes for good, then orphaned files are swept.
+            bookmarkRepository.purgeExpiredTrash()
             // Cheap: list a directory and diff against the database (spec 7.4).
             bookmarkRepository.sweepOrphanThumbnails()
             directShareShortcuts.publish()

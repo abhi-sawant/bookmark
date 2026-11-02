@@ -3,7 +3,7 @@ import { NO_FILTERS, addRecentSearch, searchBookmarks, sortBookmarks } from './s
 
 const mk = (o: Partial<Bookmark>): Bookmark => ({
   id: o.id ?? 'x', url: 'https://example.com', originalUrl: 'https://example.com', title: 'T', description: null, siteName: null,
-  thumbnailUrl: null, thumbnailWidth: null, thumbnailHeight: null, accentColor: null, imageCandidates: [], tags: [], isUnread: false, categoryId: 'unsorted',
+  thumbnailUrl: null, thumbnailWidth: null, thumbnailHeight: null, accentColor: null, imageCandidates: [], tags: [], isUnread: false, trashedAt: null, categoryId: 'unsorted',
   manualFields: 0, isPinned: false, createdAt: 1, updatedAt: 1, syncedUpdatedAt: null, ...o,
 })
 const cat = (id: string, sortOrder: number): Category => ({ id, name: id, colorHex: '#000000', iconKey: null, sortOrder, isDefault: false, createdAt: 1, updatedAt: 1, syncedUpdatedAt: null })

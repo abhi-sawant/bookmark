@@ -20,7 +20,7 @@ import com.bookmark.sync.data.SyncTombstoneEntity
         CategoryEntity::class,
         SyncTombstoneEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -136,5 +136,16 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
 val MIGRATION_4_5 = object : Migration(4, 5) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE bookmarks ADD COLUMN isUnread INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+/**
+ * v5 to v6: Trash. A nullable timestamp -- null means the bookmark is live --
+ * so existing rows are unaffected. Every list, count and search query filters
+ * on it; sync and backup carry it.
+ */
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE bookmarks ADD COLUMN trashedAt INTEGER")
     }
 }

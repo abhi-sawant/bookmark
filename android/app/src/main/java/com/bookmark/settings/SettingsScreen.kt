@@ -19,6 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.Sync
@@ -66,6 +67,7 @@ fun SettingsScreen(
     onClearThumbnails: () -> Unit,
     onExportBackup: () -> Unit,
     onImportBackup: () -> Unit,
+    onOpenTrash: () -> Unit,
     onSignIn: () -> Unit,
     onSyncNow: () -> Unit,
     onSignOut: () -> Unit,
@@ -137,6 +139,14 @@ fun SettingsScreen(
                     subtitle = "Merge or replace, with a preview first",
                     enabled = true,
                     onClick = onImportBackup,
+                )
+                RowDivider()
+                SettingsRow(
+                    leadingIcon = Icons.Outlined.Delete,
+                    title = "Trash",
+                    subtitle = "Deleted bookmarks stay for 30 days",
+                    enabled = true,
+                    onClick = onOpenTrash,
                 )
             }
 

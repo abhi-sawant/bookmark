@@ -39,6 +39,8 @@ export interface BookmarkDto {
   tags?: string[]
   /** Absent when talking to a server that predates the unread flag. */
   is_unread?: boolean
+  /** Epoch millis while in Trash, else null/absent. */
+  trashed_at?: number | null
   category_id: string
   manual_fields: number
   is_pinned: boolean

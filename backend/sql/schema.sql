@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS bookmarks (
     is_pinned         TINYINT(1) NOT NULL DEFAULT 0,
     tags              TEXT NULL,
     is_unread         TINYINT(1) NOT NULL DEFAULT 0,
+    trashed_at        DATETIME(6) NULL,
     created_at        DATETIME(6) NOT NULL,
     updated_at        DATETIME(6) NOT NULL,
     deleted_at        DATETIME(6) NULL,

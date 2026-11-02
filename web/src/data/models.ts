@@ -26,6 +26,8 @@ export interface Bookmark {
   tags: string[]
   /** Saved but not opened yet; cleared when the link is opened. Synced. */
   isUnread: boolean
+  /** Epoch millis it was moved to Trash, or null while live. Synced as a soft delete. */
+  trashedAt: number | null
   categoryId: string
   manualFields: number
   isPinned: boolean

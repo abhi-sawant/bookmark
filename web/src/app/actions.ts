@@ -32,12 +32,12 @@ export async function shareLink(b: Bookmark): Promise<void> {
 export const togglePin = (b: Bookmark) => setPinned(b.id, !b.isPinned)
 export const toggleUnread = (b: Bookmark) => setUnread(b.id, !b.isUnread)
 
-/** Deletes immediately (no confirm) with an Undo snackbar; the delete is final when it closes. */
+/** Moves to Trash (no confirm) with an Undo snackbar; it stays in Trash for 30 days. */
 export async function deleteWithUndo(b: Bookmark): Promise<void> {
   const res = await deleteBookmark(b.id)
   if (!res) return
   const { undoable } = res
-  useSnackbar.getState().show(`Deleted “${b.title.slice(0, 30)}”`, {
+  useSnackbar.getState().show(`Moved “${b.title.slice(0, 30)}” to Trash`, {
     action: { label: 'Undo', run: () => void undoable.undo() },
     onTimeout: () => void undoable.commit(),
   })

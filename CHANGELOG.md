@@ -10,12 +10,13 @@
 - **Search chips and recent searches.** Search has quick chips (Pinned, No category, This week) that narrow results, or list everything they match when the box is empty. The last eight searches are remembered, shown when the box is empty, and can be cleared (Android and web).
 - **Surprise me.** A button on Home opens a random bookmark from the older half of your collection, so older saves resurface (Android and web).
 - **Unread dot.** New bookmarks show an accent dot until you open them. Opening a link clears it; "Mark as read/unread" is in the long-press menu, and an Unread chip filters Home (and Search). Unread state syncs. Existing bookmarks start as read. **Requires the backend update below.**
+- **Trash.** Deleting a bookmark now moves it to Trash (Settings > Trash) instead of removing it. It stays for 30 days, can be restored or deleted for good, and Trash can be emptied. Trash syncs between devices and is included in backups. Saving a link that is in Trash brings it back. **Requires the backend update below.**
 
 ### Changed
 - More tracking parameters are stripped when you save a link (Instagram `igsh`, Google `gbraid`/`wbraid`, HubSpot and Marketo tokens), so the same page saved from different sources is recognised as already saved.
 
 ### Backend
-- New `backend/api/metadata.php` and `backend/safe_fetch.php` (SSRF-protected fetching). Run `backend/sql/migrations/001_rate_limit_metadata.sql` and `002_bookmark_tags.sql` and `003_bookmark_unread.sql` first (tags and the unread flag need the new `tags` and `is_unread` columns, and `sync/push.php` + `sync/pull.php` updated). Full checklist: `docs/SERVER_CHANGES_3.1.0.md`.
+- New `backend/api/metadata.php` and `backend/safe_fetch.php` (SSRF-protected fetching). Run `backend/sql/migrations/001_rate_limit_metadata.sql` and `002_bookmark_tags.sql` and `003_bookmark_unread.sql` and `004_bookmark_trash.sql` first (tags, the unread flag and Trash need the new `tags`, `is_unread` and `trashed_at` columns, and `sync/push.php` + `sync/pull.php` updated). Full checklist: `docs/SERVER_CHANGES_3.1.0.md`.
 
 ## 3.0.0 — 2026-10-09
 

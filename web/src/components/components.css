@@ -272,3 +272,5 @@ button.settings-row:hover, .settings-row.clickable:hover { background: var(--hov
 .recent-item:hover, .recent-clear:hover { background: var(--hover); }
 .unread-dot { position: absolute; top: 10px; right: 10px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 1.5px solid var(--card); }
 .unread-dot.sm { top: 4px; right: 4px; width: 9px; height: 9px; }
+.trash-row { display: flex; gap: 12px; padding: 12px; border-radius: 18px; }
+.trash-actions { display: flex; gap: 4px; margin: 6px 0 -6px -10px; }

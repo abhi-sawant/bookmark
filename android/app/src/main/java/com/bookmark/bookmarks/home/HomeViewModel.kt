@@ -159,26 +159,20 @@ class HomeViewModel @Inject constructor(
         bookmarkRepository.setCategory(bookmark.id, categoryId)
     }
 
-    /** Hard delete with Snackbar undo (spec 14 Q2). */
+    /** Moves to Trash, with a Snackbar undo. It can also be restored from Settings > Trash. */
     fun delete(bookmark: Bookmark) = viewModelScope.launch {
-        bookmarkRepository.delete(bookmark)
+        bookmarkRepository.trash(bookmark.id)
         _undo.value = PendingUndo(bookmark)
     }
 
     fun undoDelete() = viewModelScope.launch {
-        _undo.value?.let { bookmarkRepository.restore(it.bookmark) }
+        _undo.value?.let { bookmarkRepository.restoreFromTrash(it.bookmark.id) }
         _undo.value = null
     }
 
-    /**
-     * The Snackbar expired without an undo, so the delete is now final and the
-     * thumbnail file can go. `delete` deliberately leaves the file behind so
-     * that undo restores a complete bookmark rather than a monogram tile.
-     */
+    /** The Snackbar expired without an undo: the bookmark simply stays in Trash. */
     fun clearUndo() {
-        val pending = _undo.value ?: return
         _undo.value = null
-        viewModelScope.launch { bookmarkRepository.discardDeleted(pending.bookmark) }
     }
 
     fun thumbnailFile(bookmark: Bookmark): File? =

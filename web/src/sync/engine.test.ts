@@ -2,7 +2,7 @@ import { useSession } from '@/account/session'
 import type { BookmarkDto, CategoryDto, PullResponse, PushRequest, PushResponse } from '@/api/dto'
 import { resetDbForTests } from '@/data/db'
 import { UNSORTED_ID } from '@/data/models'
-import { clearAllData, createCategory, deleteBookmark, deleteCategory, initData, saveBookmark, useData } from '@/data/repo'
+import { clearAllData, createCategory, deleteBookmark, deleteCategory, deleteForever, initData, saveBookmark, useData } from '@/data/repo'
 import { pull, push, syncNow } from './engine'
 
 /** A tiny in-memory server with the real LWW / soft-delete rules of push.php and pull.php. */
@@ -159,20 +159,38 @@ describe('sync engine', () => {
     expect(server.books.get('b1')!.category_id).toBe(UNSORTED_ID)
   })
 
-  it('sends a delete only after the undo window closes', async () => {
+  it('deleting moves to Trash and syncs trashed_at; restoring clears it; deleting forever tombstones', async () => {
     await saveBookmark({ rawUrl: 'https://example.com/c', categoryId: UNSORTED_ID })
     await push()
     const id = useData.getState().bookmarks[0].id
+
     const del = await deleteBookmark(id)
+    expect(useData.getState().bookmarks).toHaveLength(0)
+    expect(useData.getState().trashed).toHaveLength(1)
     await push()
-    expect(server.books.get(id)!.deleted_at).toBeUndefined() // still undoable
+    expect(server.books.get(id)!.trashed_at).toBeTypeOf('number')
+    expect(server.books.get(id)!.deleted_at).toBeUndefined() // trash is not a permanent delete
+
     await del!.undoable.undo()
     expect(useData.getState().bookmarks).toHaveLength(1)
+    await push()
+    expect(server.books.get(id)!.trashed_at).toBeNull()
 
-    const del2 = await deleteBookmark(id)
-    await del2!.undoable.commit()
+    await deleteBookmark(id)
+    await deleteForever([id])
+    expect(useData.getState().trashed).toHaveLength(0)
     await push()
     expect(server.books.get(id)!.deleted_at).toBeDefined()
+  })
+
+  it('a trashed bookmark pulled from another device lands in Trash, not on Home', async () => {
+    await saveBookmark({ rawUrl: 'https://example.com/e', categoryId: UNSORTED_ID })
+    await push()
+    const id = useData.getState().bookmarks[0].id
+    server.books.set(id, { ...server.books.get(id)!, trashed_at: 5, updated_at: Date.now() + 1000 })
+    await pull()
+    expect(useData.getState().bookmarks).toHaveLength(0)
+    expect(useData.getState().trashed.map((b) => b.id)).toEqual([id])
   })
 
   it('deleting a category with its bookmarks tombstones both', async () => {
@@ -201,7 +219,7 @@ describe('sync engine', () => {
     const rows = Array.from({ length: 1100 }, (_, i) => ({
       id: `n${i}`, url: `https://n${i}.example`, originalUrl: `https://n${i}.example`, title: `T${i}`, description: null,
       siteName: null, thumbnailUrl: null, thumbnailWidth: null, thumbnailHeight: null, accentColor: null,
-      imageCandidates: [], tags: [], isUnread: false, categoryId: UNSORTED_ID, manualFields: 0, isPinned: false, createdAt: 1, updatedAt: 2, syncedUpdatedAt: null,
+      imageCandidates: [], tags: [], isUnread: false, trashedAt: null, categoryId: UNSORTED_ID, manualFields: 0, isPinned: false, createdAt: 1, updatedAt: 2, syncedUpdatedAt: null,
     }))
     for (const r of rows) await internal.putBookmark(r)
     await push()

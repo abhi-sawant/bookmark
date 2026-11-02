@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate, useSearchParams } fr
 import { useSession } from '@/account/session'
 import { extract } from '@/core/util/urlExtractor'
 import { AccountScreen } from '@/features/account/AccountScreen'
+import { TrashScreen } from '@/features/trash/TrashScreen'
 import { AddEditSheet } from '@/features/bookmarks/AddEditSheet'
 import { ContextSheet, DetailSheet, DuplicateSheet } from '@/features/bookmarks/BookmarkSheets'
 import { CategoriesScreen } from '@/features/categories/CategoriesScreen'
@@ -80,6 +81,7 @@ export function App() {
             <Route path="/settings" element={<SettingsScreen />} />
             <Route path="/search" element={desktop ? <Navigate to="/" replace /> : <SearchScreen />} />
             <Route path="/account" element={<AccountScreen />} />
+            <Route path="/trash" element={<TrashScreen />} />
             <Route path="/add" element={<ShareTarget />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

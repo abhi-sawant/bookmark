@@ -68,6 +68,8 @@ import com.bookmark.metadata.FailureCause
 import com.bookmark.metadata.userMessage
 import com.bookmark.search.SearchScreen
 import com.bookmark.search.SearchViewModel
+import com.bookmark.trash.TrashScreen
+import com.bookmark.trash.TrashViewModel
 import com.bookmark.settings.ImportSheetState
 import com.bookmark.settings.SettingsScreen
 import com.bookmark.settings.SettingsViewModel
@@ -171,7 +173,7 @@ fun BookmarkNavHost() {
     LaunchedEffect(bookmarkUndo) {
         val pending = bookmarkUndo ?: return@LaunchedEffect
         val result = snackbarHostState.showSnackbar(
-            message = "Deleted “${pending.bookmark.title.take(30)}”",
+            message = "Moved “${pending.bookmark.title.take(30)}” to Trash",
             actionLabel = "Undo",
             duration = SnackbarDuration.Short,
         )
@@ -328,10 +330,23 @@ fun BookmarkNavHost() {
                     onClearThumbnails = settingsViewModel::clearThumbnails,
                     onExportBackup = { exportLauncher.launch("bookmarks-${backupDateStamp()}.zip") },
                     onImportBackup = { importLauncher.launch(arrayOf("application/zip")) },
+                    onOpenTrash = { navController.navigate(TrashRoute) },
                     onSignIn = { navController.navigate(AccountRoute) },
                     onSyncNow = settingsViewModel::syncNow,
                     onSignOut = settingsViewModel::signOut,
                     onSearch = { },
+                )
+            }
+
+            composable<TrashRoute> {
+                val trashViewModel: TrashViewModel = hiltViewModel()
+                val trashed by trashViewModel.items.collectAsStateWithLifecycle()
+                TrashScreen(
+                    items = trashed,
+                    onBack = { navController.popBackStack() },
+                    onRestore = trashViewModel::restore,
+                    onDeleteForever = trashViewModel::deleteForever,
+                    onEmptyTrash = trashViewModel::emptyTrash,
                 )
             }
 

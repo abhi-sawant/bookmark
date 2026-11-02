@@ -69,6 +69,8 @@ data class Bookmark(
     val tags: List<String> = emptyList(),
     /** Saved but not opened yet. Cleared when the link is opened. Synced. */
     val isUnread: Boolean = false,
+    /** When it was moved to Trash, or null. Trash is purged after [TrashPolicy.RETENTION_DAYS] days. */
+    val trashedAt: Long? = null,
 ) {
     /**
      * Width over height of the stored thumbnail, or null when there is no image

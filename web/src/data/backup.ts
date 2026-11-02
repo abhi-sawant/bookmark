@@ -3,7 +3,7 @@ import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
 import { normalize } from '@/core/util/urlNormalizer'
 import { getDb } from './db'
 import { type Bookmark, type Category, type Tombstone, UNSORTED_ID } from './models'
-import { internal, useData } from './repo'
+import { allBookmarks, internal, useData } from './repo'
 import { normalizeCategoryHex } from './swatches'
 
 /** Same camelCase zip as Android's backup, so a backup made on either opens on the other. */
@@ -23,6 +23,7 @@ interface BackupBookmark {
   imageCandidates?: string[]
   tags?: string[]
   isUnread?: boolean
+  trashedAt?: number | null
   categoryId: string
   metadataState?: string
   failureCause?: string | null
@@ -61,6 +62,7 @@ export function buildBackup(bookmarks: Bookmark[], categories: Category[], now =
     imageCandidates: x.imageCandidates,
     tags: x.tags,
     isUnread: x.isUnread,
+    trashedAt: x.trashedAt,
     categoryId: x.categoryId,
     metadataState: x.thumbnailUrl ? 'SUCCESS' : 'PENDING',
     failureCause: null,
@@ -119,7 +121,7 @@ export interface ImportPreview {
   categories: number
 }
 
-export function previewImport(parsed: ParsedBackup, existing: Bookmark[] = useData.getState().bookmarks): ImportPreview {
+export function previewImport(parsed: ParsedBackup, existing: Bookmark[] = allBookmarks()): ImportPreview {
   const have = new Set(existing.map((b) => normalize(b.url)))
   const alreadySaved = parsed.bookmarks.filter((b) => have.has(normalize(b.url))).length
   return { total: parsed.bookmarks.length, newCount: parsed.bookmarks.length - alreadySaved, alreadySaved, categories: parsed.categories.length }
@@ -144,9 +146,9 @@ export async function importBackup(parsed: ParsedBackup, mode: 'MERGE' | 'REPLAC
     // Tell the server about everything the replace removes, so it does not come back on the next sync.
     const fileBookmarkIds = new Set(parsed.bookmarks.map((b) => b.id))
     const fileCategoryIds = new Set(parsed.categories.map((c) => c.id))
-    for (const b of state.bookmarks) if (!fileBookmarkIds.has(b.id)) tombstones.push({ id: b.id, kind: 'bookmark', deletedAt: now })
+    for (const b of allBookmarks()) if (!fileBookmarkIds.has(b.id)) tombstones.push({ id: b.id, kind: 'bookmark', deletedAt: now })
     for (const c of state.categories) if (c.id !== UNSORTED_ID && !fileCategoryIds.has(c.id)) tombstones.push({ id: c.id, kind: 'category', deletedAt: now })
-    await internal.removeBookmarkRows(state.bookmarks.map((b) => b.id))
+    await internal.removeBookmarkRows(allBookmarks().map((b) => b.id))
     for (const c of state.categories) if (c.id !== UNSORTED_ID) await internal.removeCategoryRow(c.id)
   }
 
@@ -177,7 +179,7 @@ export async function importBackup(parsed: ParsedBackup, mode: 'MERGE' | 'REPLAC
     })
   }
 
-  const have = new Set(useData.getState().bookmarks.map((b) => normalize(b.url)))
+  const have = new Set(allBookmarks().map((b) => normalize(b.url)))
   const known = new Set(current().map((c) => c.id))
   for (const b of parsed.bookmarks) {
     const url = normalize(b.url)
@@ -198,6 +200,7 @@ export async function importBackup(parsed: ParsedBackup, mode: 'MERGE' | 'REPLAC
       imageCandidates: b.imageCandidates ?? [],
       tags: normalizeTags(b.tags ?? []),
       isUnread: !!b.isUnread,
+      trashedAt: b.trashedAt ?? null,
       categoryId: known.has(categoryId) ? categoryId : UNSORTED_ID,
       manualFields: b.manualFields ?? 0,
       isPinned: !!b.isPinned,

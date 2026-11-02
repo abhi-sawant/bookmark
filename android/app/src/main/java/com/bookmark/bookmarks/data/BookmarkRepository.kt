@@ -7,6 +7,7 @@ import com.bookmark.core.model.Bookmark
 import com.bookmark.core.model.BookmarkLimits
 import com.bookmark.core.model.ManualField
 import com.bookmark.core.model.MetadataState
+import com.bookmark.core.model.TrashPolicy
 import com.bookmark.core.model.SortOrder
 import com.bookmark.core.util.TitleFallback
 import com.bookmark.core.util.Tags
@@ -91,7 +92,14 @@ class BookmarkRepository @Inject constructor(
     ): SaveResult = withContext(io) {
         val normalized = UrlNormalizer.normalize(rawUrl)
 
-        dao.findByUrl(normalized)?.let { return@withContext SaveResult.Duplicate(it.toDomain()) }
+        dao.findByUrl(normalized)?.let { existing ->
+            if (existing.trashedAt == null) return@withContext SaveResult.Duplicate(existing.toDomain())
+            // The link is in Trash (its URL is still taken by the unique index):
+            // saving it again brings it back instead of reporting a duplicate.
+            dao.setTrashedAt(existing.id, null, System.currentTimeMillis())
+            syncEnqueuer.scheduleDebounced()
+            return@withContext SaveResult.Saved(requireNotNull(dao.findById(existing.id)).toDomain())
+        }
 
         val now = System.currentTimeMillis()
         val entity = BookmarkEntity(
@@ -246,6 +254,35 @@ class BookmarkRepository @Inject constructor(
      */
     suspend fun delete(bookmark: Bookmark) = withContext(io) {
         dao.delete(bookmark.toEntity())
+    }
+
+    fun observeTrashed(): Flow<List<Bookmark>> = dao.observeTrashed().map { list -> list.map(BookmarkEntity::toDomain) }
+
+    /** Moves to Trash (a soft delete that syncs). Files are kept so a restore is complete. */
+    suspend fun trash(id: String) = withContext(io) {
+        val now = System.currentTimeMillis()
+        dao.setTrashedAt(id, now, now)
+        syncEnqueuer.scheduleDebounced()
+    }
+
+    suspend fun restoreFromTrash(id: String) = withContext(io) {
+        dao.setTrashedAt(id, null, System.currentTimeMillis())
+        syncEnqueuer.scheduleDebounced()
+    }
+
+    /** Removes a trashed bookmark for good: the row, its files, and a sync tombstone. */
+    suspend fun deletePermanently(bookmark: Bookmark) = withContext(io) {
+        dao.delete(bookmark.toEntity())
+        discardDeleted(bookmark)
+    }
+
+    suspend fun emptyTrash() = withContext(io) {
+        dao.findAllTrashed().forEach { deletePermanently(it.toDomain()) }
+    }
+
+    /** Called at launch: anything trashed more than [TrashPolicy.RETENTION_DAYS] days ago goes for good. */
+    suspend fun purgeExpiredTrash(now: Long = System.currentTimeMillis()) = withContext(io) {
+        dao.findTrashedBefore(TrashPolicy.cutoff(now)).forEach { deletePermanently(it.toDomain()) }
     }
 
     /** Re-inserts a deleted bookmark verbatim, for Snackbar undo (spec 14 Q2). */

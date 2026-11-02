@@ -18,6 +18,9 @@ data object CategoriesRoute
 data object SettingsRoute
 
 @Serializable
+data object TrashRoute
+
+@Serializable
 data object SearchRoute
 
 /**

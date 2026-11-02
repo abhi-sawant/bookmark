@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useSession } from '@/account/session'
 import { signOut } from '@/account/service'
 import { BackupFormatError, backupFileName, buildBackup, downloadBlob, parseBackup } from '@/data/backup'
-import { useData } from '@/data/repo'
+import { allBookmarks, useData } from '@/data/repo'
 import { relativeTime, plural } from '@/app/format'
 import { usePrefs } from '@/app/prefs'
 import { useUi } from '@/app/uiStore'
@@ -78,7 +78,7 @@ export function SettingsScreen() {
 
   function exportBackup() {
     try {
-      downloadBlob(buildBackup(bookmarks, categories), backupFileName())
+      downloadBlob(buildBackup(allBookmarks(), categories), backupFileName())
       toast(`Exported ${plural(bookmarks.length, 'bookmark')} and ${plural(categories.length, 'category', 'categories')}.`)
     } catch {
       toast("Couldn't export a backup.")
@@ -118,6 +118,7 @@ export function SettingsScreen() {
       <Group>
         <Row icon="fileDownload" title="Export backup" sub={`${plural(bookmarks.length, 'bookmark')} · ${plural(categories.length, 'category', 'categories')}`} onClick={exportBackup} />
         <Row icon="fileUpload" title="Import backup" sub="Merge or replace, with a preview first" onClick={() => fileInput.current?.click()} />
+        <Row icon="delete" title="Trash" sub="Deleted bookmarks stay for 30 days" onClick={() => navigate('/trash')} />
       </Group>
       <input ref={fileInput} type="file" accept=".zip,application/zip" hidden onChange={(e) => { void onPickBackup(e.target.files?.[0]); e.target.value = '' }} />
 

@@ -103,6 +103,8 @@ foreach ($bookmarkRows as $row) {
             'is_pinned' => (bool) $row['is_pinned'],
             // Absent column (migration not run yet) reads as false; see the is_default comment above.
             'is_unread' => (bool) ($row['is_unread'] ?? 0),
+            // Epoch millis while the bookmark is in Trash, else null (also null before the migration runs).
+            'trashed_at' => isset($row['trashed_at']) ? datetime_to_millis($row['trashed_at']) : null,
             'created_at' => datetime_to_millis($row['created_at']),
             'updated_at' => datetime_to_millis($row['updated_at']),
         ];

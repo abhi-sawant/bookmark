@@ -97,6 +97,8 @@ data class BookmarkEntity(
     val tags: String? = null,
     /** Not opened since it was saved. Synced; bumping it bumps [updatedAt]. */
     @ColumnInfo(defaultValue = "0") val isUnread: Boolean = false,
+    /** Epoch millis it was moved to Trash, or null. Synced as a soft delete. */
+    val trashedAt: Long? = null,
 ) {
     fun toDomain() = Bookmark(
         id = id,
@@ -122,6 +124,7 @@ data class BookmarkEntity(
         updatedAt = updatedAt,
         tags = Tags.decode(tags),
         isUnread = isUnread,
+        trashedAt = trashedAt,
     )
 }
 
@@ -159,6 +162,7 @@ fun Bookmark.toEntity(remoteThumbnailUrl: String? = null, syncedUpdatedAt: Long?
     syncedUpdatedAt = syncedUpdatedAt,
     tags = Tags.encode(tags),
     isUnread = isUnread,
+    trashedAt = trashedAt,
 )
 
 /**
