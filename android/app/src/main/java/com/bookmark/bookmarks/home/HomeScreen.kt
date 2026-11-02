@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.Shuffle
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.DropdownMenu
@@ -83,6 +84,7 @@ fun HomeScreen(
     onBookmarkLongPress: (Bookmark) -> Unit,
     onSearch: () -> Unit,
     onAdd: () -> Unit,
+    onSurprise: () -> Unit = {},
     modifier: Modifier = Modifier,
     /** A copied link offered as a one-tap save, or null. */
     clipboardSuggestion: String? = null,
@@ -159,7 +161,29 @@ fun HomeScreen(
                             onSetSortOrder = onSetSortOrder,
                         )
                     }
-                    ViewModeToggle(viewMode = state.viewMode, onSetViewMode = onSetViewMode)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable(role = Role.Button, onClickLabel = "Open a random bookmark", onClick = onSurprise)
+                                .padding(vertical = 8.dp, horizontal = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Shuffle,
+                                contentDescription = null,
+                                tint = BookmarkTheme.colors.mutedLabel,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                text = "Surprise me",
+                                style = BookmarkTheme.text.caption,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                        ViewModeToggle(viewMode = state.viewMode, onSetViewMode = onSetViewMode)
+                    }
                 }
 
                 when (state.viewMode) {

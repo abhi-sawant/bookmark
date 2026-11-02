@@ -48,6 +48,7 @@ import com.bookmark.bookmarks.detail.BookmarkDetailSheet
 import com.bookmark.bookmarks.detail.DuplicateBookmarkSheet
 import com.bookmark.bookmarks.edit.AddEditBookmarkSheet
 import com.bookmark.bookmarks.edit.AddEditViewModel
+import com.bookmark.bookmarks.home.pickSurprise
 import com.bookmark.bookmarks.home.HomeScreen
 import com.bookmark.bookmarks.home.HomeViewModel
 import com.bookmark.categories.ui.CategoriesScreen
@@ -283,6 +284,7 @@ fun BookmarkNavHost() {
                     },
                     onBookmarkLongPress = { sheet = SheetState.Context(it) },
                     onSearch = { navController.navigate(SearchRoute) },
+                    onSurprise = { pickSurprise(homeState.bookmarks)?.let { sheet = SheetState.Detail(it) } },
                     clipboardSuggestion = clipboardSuggestion,
                     onSaveClipboard = homeViewModel::saveClipboardSuggestion,
                     onDismissClipboard = homeViewModel::dismissClipboardSuggestion,

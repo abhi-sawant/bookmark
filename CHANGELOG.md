@@ -8,6 +8,7 @@
 - **Link previews on the web.** When you are signed in, links added on the web now get a title, description and thumbnail, read by your sync server (browsers can't read other sites). A Settings switch ("Fetch link previews") turns it off. **Requires the backend update below.**
 - **Tags.** Add up to 10 tags (30 characters each) to any bookmark from the add/edit sheet, comma separated. Tags show in the bookmark details, are matched by search, and `#tag` in search lists bookmarks with exactly that tag. Tags sync between devices and are included in backups. **Requires the backend update below.**
 - **Search chips and recent searches.** Search has quick chips (Pinned, No category, This week) that narrow results, or list everything they match when the box is empty. The last eight searches are remembered, shown when the box is empty, and can be cleared (Android and web).
+- **Surprise me.** A button on Home opens a random bookmark from the older half of your collection, so older saves resurface (Android and web).
 
 ### Changed
 - More tracking parameters are stripped when you save a link (Instagram `igsh`, Google `gbraid`/`wbraid`, HubSpot and Marketo tokens), so the same page saved from different sources is recognised as already saved.

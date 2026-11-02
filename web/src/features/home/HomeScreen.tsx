@@ -14,6 +14,7 @@ import { SearchFilterChips } from '../search/SearchFilterChips'
 import { CategoryChips } from './CategoryChips'
 import { ClipboardChip } from './ClipboardChip'
 import { SORT_LABELS, sortBookmarks } from './selectors'
+import { pickSurprise } from './surprise'
 import { useBookmarkHandlers } from './useBookmarkActions'
 
 export function HomeScreen() {
@@ -77,6 +78,18 @@ export function HomeScreen() {
                 <button ref={sortBtn} type="button" className="sort-btn" onClick={() => setSortOpen(true)} aria-haspopup="menu" aria-expanded={sortOpen}>
                   <Icon name="swapVert" size={16} />
                   <span>{SORT_LABELS[sortOrder].short}</span>
+                </button>
+                <button
+                  type="button"
+                  className="sort-btn"
+                  style={{ marginLeft: 'auto', marginRight: 8 }}
+                  onClick={() => {
+                    const pick = pickSurprise(visible)
+                    if (pick) setUi('detail', pick.id)
+                  }}
+                >
+                  <Icon name="shuffle" size={16} />
+                  <span>Surprise me</span>
                 </button>
                 <div className="view-toggle" role="radiogroup" aria-label="Layout">
                   <button type="button" role="radio" aria-checked={viewMode === 'LIST'} aria-label="List" onClick={() => setPref('viewMode', 'LIST')}>

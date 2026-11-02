@@ -35,6 +35,7 @@ const ICONS = {
   check: ['outlined', 'check'],
   keyboard: ['outlined', 'keyboard'],
   image: ['outlined', 'image'],
+  shuffle: ['outlined', 'shuffle'],
 }
 
 const out = {}
