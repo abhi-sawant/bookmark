@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useUi } from '@/app/uiStore'
+import { NO_FILTERS } from '../home/selectors'
 import { IconButton } from '@/components/ui'
 import { Icon } from '@/components/Icon'
 import { CategoryChips } from '../home/CategoryChips'
+import { rememberSearch } from '@/app/recentSearches'
+import { SearchFilterChips } from './SearchFilterChips'
 import { SearchResults } from './SearchResults'
 
 /** Phone search: a full screen with its own back arrow; every visit starts with an empty query. */
@@ -14,6 +17,8 @@ export function SearchScreen() {
   const setUi = useUi((s) => s.set)
   const input = useRef<HTMLInputElement>(null)
   useEffect(() => input.current?.focus(), [])
+  // Chips are per visit, like the query.
+  useEffect(() => () => useUi.getState().set('searchFilters', NO_FILTERS), [])
 
   return (
     <div className="screen search-screen">
@@ -25,6 +30,7 @@ export function SearchScreen() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && rememberSearch(query)}
             placeholder="Search bookmarks"
             aria-label="Search bookmarks"
             enterKeyHint="search"
@@ -37,10 +43,13 @@ export function SearchScreen() {
           ) : null}
         </div>
       </div>
-      <div style={{ paddingBottom: 10 }}>
+      <div style={{ paddingBottom: 6 }}>
         <CategoryChips selected={filter} onSelect={(id) => setUi('filterCategory', id)} showCounts={false} />
       </div>
-      <SearchResults query={query} categoryId={filter} />
+      <div style={{ paddingBottom: 10 }}>
+        <SearchFilterChips />
+      </div>
+      <SearchResults query={query} categoryId={filter} onUseRecent={setQuery} />
     </div>
   )
 }

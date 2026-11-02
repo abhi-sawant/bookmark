@@ -389,6 +389,10 @@ fun BookmarkNavHost() {
                     onQueryChange = searchViewModel::onQueryChange,
                     onClearQuery = searchViewModel::clearQuery,
                     onSelectCategory = searchViewModel::selectCategory,
+                    onFiltersChange = searchViewModel::setFilters,
+                    onCommitQuery = searchViewModel::commitQuery,
+                    onUseRecent = searchViewModel::useRecentSearch,
+                    onClearRecents = searchViewModel::clearRecentSearches,
                     onBack = { navController.popBackStack() },
                     onOpenBookmark = {
                         if (it.metadataState == MetadataState.FAILED) {

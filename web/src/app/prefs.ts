@@ -12,6 +12,8 @@ interface Prefs {
   clipboardChip: boolean
   /** Ask the sync server to read link previews for links added on the web (needs sign-in). */
   serverPreviews: boolean
+  /** Newest first, at most 8. */
+  recentSearches: string[]
   set<K extends keyof Omit<Prefs, 'set'>>(key: K, value: Prefs[K]): void
 }
 
@@ -35,11 +37,12 @@ export const usePrefs = create<Prefs>((set, get) => ({
   lastUsedCategory: stored.lastUsedCategory ?? null,
   clipboardChip: stored.clipboardChip ?? true,
   serverPreviews: stored.serverPreviews ?? true,
+  recentSearches: Array.isArray(stored.recentSearches) ? stored.recentSearches : [],
   set(key, value) {
     set({ [key]: value } as Partial<Prefs>)
-    const { theme, trueBlack, viewMode, sortOrder, lastUsedCategory, clipboardChip, serverPreviews } = get()
+    const { theme, trueBlack, viewMode, sortOrder, lastUsedCategory, clipboardChip, serverPreviews, recentSearches } = get()
     try {
-      localStorage.setItem(KEY, JSON.stringify({ theme, trueBlack, viewMode, sortOrder, lastUsedCategory, clipboardChip, serverPreviews }))
+      localStorage.setItem(KEY, JSON.stringify({ theme, trueBlack, viewMode, sortOrder, lastUsedCategory, clipboardChip, serverPreviews, recentSearches }))
     } catch {
       // storage unavailable; preferences just won't persist
     }

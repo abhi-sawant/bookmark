@@ -10,6 +10,7 @@ import { Icon } from '@/components/Icon'
 import { EmptyState, IconButton, Menu, PrimaryButton, ScreenHeader } from '@/components/ui'
 import { SearchResults } from '../search/SearchResults'
 import { DesktopSearchBox } from '../search/DesktopSearchBox'
+import { SearchFilterChips } from '../search/SearchFilterChips'
 import { CategoryChips } from './CategoryChips'
 import { ClipboardChip } from './ClipboardChip'
 import { SORT_LABELS, sortBookmarks } from './selectors'
@@ -64,8 +65,11 @@ export function HomeScreen() {
         <>
           <CategoryChips selected={filter} onSelect={(id) => setUi('filterCategory', id)} />
           {searching ? (
-            <div style={{ paddingTop: 14 }}>
-              <SearchResults query={query} categoryId={filter} />
+            <div style={{ paddingTop: 8 }}>
+              <SearchFilterChips />
+              <div style={{ paddingTop: 6 }}>
+                <SearchResults query={query} categoryId={filter} onUseRecent={(q) => setUi('searchQuery', q)} />
+              </div>
             </div>
           ) : (
             <>

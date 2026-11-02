@@ -1,5 +1,5 @@
 import type { Bookmark, Category } from '@/data/models'
-import { searchBookmarks, sortBookmarks } from './selectors'
+import { NO_FILTERS, addRecentSearch, searchBookmarks, sortBookmarks } from './selectors'
 
 const mk = (o: Partial<Bookmark>): Bookmark => ({
   id: o.id ?? 'x', url: 'https://example.com', originalUrl: 'https://example.com', title: 'T', description: null, siteName: null,
@@ -53,5 +53,39 @@ describe('tag search', () => {
     expect(searchBookmarks(list, '#kotlin', null).map((b) => b.id)).toEqual(['a'])
     expect(searchBookmarks(list, '#read later', null).map((b) => b.id)).toEqual(['a'])
     expect(searchBookmarks(list, '#', null)).toEqual([])
+  })
+})
+
+describe('search filters', () => {
+  const now = 100 * 24 * 60 * 60 * 1000
+  const list = [
+    mk({ id: 'pinned', isPinned: true, categoryId: 'work', createdAt: now }),
+    mk({ id: 'unsorted', categoryId: 'unsorted', createdAt: now }),
+    mk({ id: 'old', categoryId: 'work', createdAt: now - 8 * 24 * 60 * 60 * 1000 }),
+  ]
+  it('each chip narrows on its own, with no text', () => {
+    expect(searchBookmarks(list, '', null, { ...NO_FILTERS, pinned: true }, now).map((b) => b.id)).toEqual(['pinned'])
+    expect(searchBookmarks(list, '', null, { ...NO_FILTERS, unsorted: true }, now).map((b) => b.id)).toEqual(['unsorted'])
+    expect(searchBookmarks(list, '', null, { ...NO_FILTERS, thisWeek: true }, now).map((b) => b.id).sort()).toEqual(['pinned', 'unsorted'])
+  })
+  it('chips combine and an empty query with no chips finds nothing', () => {
+    expect(searchBookmarks(list, '', null, { pinned: true, unsorted: true, thisWeek: false }, now)).toEqual([])
+    expect(searchBookmarks(list, '', null, NO_FILTERS, now)).toEqual([])
+  })
+  it('chips also narrow text results', () => {
+    const texty = [mk({ id: 'a', title: 'react tips', isPinned: true }), mk({ id: 'b', title: 'react news' })]
+    expect(searchBookmarks(texty, 'react', null, { ...NO_FILTERS, pinned: true }).map((b) => b.id)).toEqual(['a'])
+  })
+})
+
+describe('recent searches', () => {
+  it('keeps newest first, de-duplicated and capped at 8', () => {
+    let r: string[] = []
+    for (const q of ['a', 'b', 'A ']) r = addRecentSearch(r, q)
+    expect(r).toEqual(['A', 'b'])
+    for (let i = 1; i <= 20; i++) r = addRecentSearch(r, `q${i}`)
+    expect(r).toHaveLength(8)
+    expect(r[0]).toBe('q20')
+    expect(addRecentSearch(r, '   ')).toBe(r)
   })
 })

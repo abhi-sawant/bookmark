@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useUi } from '@/app/uiStore'
 import { Icon } from '@/components/Icon'
+import { rememberSearch } from '@/app/recentSearches'
 
 /** Header search on desktop: filters Home in place instead of opening a separate screen. */
 export function DesktopSearchBox() {
@@ -29,7 +30,12 @@ export function DesktopSearchBox() {
         type="search"
         value={query}
         onChange={(e) => set('searchQuery', e.target.value)}
-        onKeyDown={(e) => e.key === 'Escape' && (set('searchQuery', ''), ref.current?.blur())}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            set('searchQuery', '')
+            ref.current?.blur()
+          } else if (e.key === 'Enter') rememberSearch(query)
+        }}
         placeholder="Search bookmarks"
         aria-label="Search bookmarks"
         aria-keyshortcuts="/"

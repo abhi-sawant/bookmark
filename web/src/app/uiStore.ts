@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { NO_FILTERS, type SearchFilters } from '@/features/home/selectors'
 
 export interface AddEditState {
   /** Present when editing an existing bookmark. */
@@ -11,6 +12,8 @@ interface UiState {
   /** Home/Search category filter; null is "All". In memory only, like Android. */
   filterCategory: string | null
   searchQuery: string
+  /** Search chips (Pinned, No category, This week). In memory only. */
+  searchFilters: SearchFilters
   addEdit: AddEditState | null
   context: string | null
   detail: string | null
@@ -24,6 +27,7 @@ interface UiState {
 export const useUi = create<UiState>((set) => ({
   filterCategory: null,
   searchQuery: '',
+  searchFilters: NO_FILTERS,
   addEdit: null,
   context: null,
   detail: null,

@@ -265,3 +265,8 @@ button.settings-row:hover, .settings-row.clickable:hover { background: var(--hov
 .move-select select { flex: 1; border: 0; background: transparent; outline: 0; font-size: 15px; font-weight: 600; min-height: 42px; }
 .bookmarklet-link { display: inline-flex; align-items: center; min-height: 40px; padding: 0 18px; border-radius: 12px; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 14px; text-decoration: none; cursor: grab; }
 .detail-tags { margin-top: 12px; color: var(--accent); overflow-wrap: anywhere; }
+.recent-searches { padding: 4px 20px 24px; display: flex; flex-direction: column; }
+.recent-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
+.recent-clear { padding: 6px 8px; border-radius: 8px; color: var(--accent); font-size: 12px; font-weight: 600; }
+.recent-item { text-align: left; padding: 12px 4px; border-radius: 10px; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent-item:hover, .recent-clear:hover { background: var(--hover); }

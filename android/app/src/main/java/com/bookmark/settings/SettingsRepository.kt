@@ -32,6 +32,7 @@ class SettingsRepository @Inject constructor(
         val lastUsedCategory = stringPreferencesKey("last_used_category")
         val fetchPreviews = booleanPreferencesKey("fetch_previews")
         val clipboardChip = booleanPreferencesKey("clipboard_chip")
+        val recentSearches = stringPreferencesKey("recent_searches")
         val skippedUpdateVersion = stringPreferencesKey("skipped_update_version")
     }
 
@@ -46,6 +47,23 @@ class SettingsRepository @Inject constructor(
             fetchPreviewsAutomatically = prefs[Keys.fetchPreviews] ?: true,
             showClipboardChip = prefs[Keys.clipboardChip] ?: true,
         )
+    }
+
+    /** Newest first, newline-separated in storage (a query is a single line). */
+    val recentSearches: Flow<List<String>> = context.dataStore.data.map { prefs ->
+        prefs[Keys.recentSearches]?.lineSequence()?.filter(String::isNotBlank)?.toList().orEmpty()
+    }
+
+    suspend fun addRecentSearch(query: String) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[Keys.recentSearches]?.lineSequence()?.filter(String::isNotBlank)?.toList().orEmpty()
+            val updated = com.bookmark.search.RecentSearches.add(current, query.replace('\n', ' '))
+            prefs[Keys.recentSearches] = updated.joinToString("\n")
+        }
+    }
+
+    suspend fun clearRecentSearches() {
+        context.dataStore.edit { it.remove(Keys.recentSearches) }
     }
 
     val skippedUpdateVersion: Flow<String?> = context.dataStore.data.map { it[Keys.skippedUpdateVersion] }
