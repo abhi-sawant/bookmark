@@ -7,6 +7,7 @@ import { allBookmarks, useData } from '@/data/repo'
 import { checkLinks, summarizeLinkChecks } from '@/data/linkcheck'
 import { relativeTime, plural } from '@/app/format'
 import { usePrefs } from '@/app/prefs'
+import { useIsDesktop } from '@/app/hooks'
 import { useUi } from '@/app/uiStore'
 import { Icon, type IconName } from '@/components/Icon'
 import { Dialog, PrimaryButton, ScreenHeader, Segmented, Switch, TextButton, useSnackbar } from '@/components/ui'
@@ -76,6 +77,7 @@ export function SettingsScreen() {
   const fileInput = useRef<HTMLInputElement>(null)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
   const [devices, setDevices] = useState(false)
+  const desktop = useIsDesktop()
   const [linkProgress, setLinkProgress] = useState<string | null>(null)
   const [signingOut, setSigningOut] = useState(false)
 
@@ -140,6 +142,15 @@ export function SettingsScreen() {
         <Row title="Suggest copied links" sub="Show a Save chip on Home when you have copied a link. Only works once the browser allows clipboard access." trailing={<Switch label="Suggest copied links" checked={clipboardChip} onChange={(v) => setPref('clipboardChip', v)} />} onClick={() => setPref('clipboardChip', !clipboardChip)} />
         <Row title="Fetch link previews" sub="When signed in, your sync server reads the page for a title and thumbnail. Turn off to keep links on this device." trailing={<Switch label="Fetch link previews" checked={serverPreviews} onChange={(v) => setPref('serverPreviews', v)} />} onClick={() => setPref('serverPreviews', !serverPreviews)} />
       </Group>
+
+      {desktop ? (
+        <>
+          <Section title="keyboard" />
+          <Group>
+            <Row icon="keyboard" title="Keyboard shortcuts" sub="Press ? anywhere to see them" onClick={() => setUi('shortcuts', true)} />
+          </Group>
+        </>
+      ) : null}
 
       <Section title="bookmarklet" />
       <Group>

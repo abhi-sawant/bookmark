@@ -281,3 +281,8 @@ button.settings-row:hover, .settings-row.clickable:hover { background: var(--hov
 .selection-bar .count { margin-right: auto; padding: 0 8px; font-weight: 700; white-space: nowrap; }
 @media (min-width: 900px) { .selection-bar { left: 272px; } }
 .broken-note { margin-top: 4px; color: var(--error); }
+.shortcut-list { display: flex; flex-direction: column; margin: 8px 0 12px; }
+.shortcut-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-top: 1px solid var(--hairline); }
+.shortcut-row:first-child { border-top: 0; }
+.shortcut-row .keys { white-space: nowrap; }
+.shortcut-row kbd { display: inline-block; min-width: 24px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--hairline); background: var(--card); font: inherit; font-size: 12px; font-weight: 700; text-align: center; }

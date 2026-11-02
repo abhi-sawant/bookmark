@@ -4,6 +4,7 @@ import { useSession } from '@/account/session'
 import { extract } from '@/core/util/urlExtractor'
 import { AccountScreen } from '@/features/account/AccountScreen'
 import { TrashScreen } from '@/features/trash/TrashScreen'
+import { ShortcutsSheet } from '@/features/help/ShortcutsSheet'
 import { AddEditSheet } from '@/features/bookmarks/AddEditSheet'
 import { ContextSheet, DetailSheet, DuplicateSheet } from '@/features/bookmarks/BookmarkSheets'
 import { CategoriesScreen } from '@/features/categories/CategoriesScreen'
@@ -36,7 +37,7 @@ function ShareTarget() {
 }
 
 function Overlays() {
-  const { addEdit, context, detail, duplicate, categoryDialog, deleteCategoryId, importPreview } = useUi()
+  const { addEdit, context, detail, duplicate, categoryDialog, deleteCategoryId, importPreview, shortcuts } = useUi()
   return (
     <>
       {addEdit ? <AddEditSheet key={addEdit.editId ?? 'new'} state={addEdit} /> : null}
@@ -45,6 +46,7 @@ function Overlays() {
       {duplicate ? <DuplicateSheet id={duplicate} /> : null}
       {categoryDialog ? <CategoryEditDialog key={categoryDialog.id ?? 'new'} id={categoryDialog.id} /> : null}
       {deleteCategoryId ? <DeleteCategoryDialog id={deleteCategoryId} /> : null}
+      {shortcuts ? <ShortcutsSheet /> : null}
       {importPreview ? <ImportPreviewSheet fileName={importPreview.fileName} bytes={importPreview.bytes} /> : null}
     </>
   )

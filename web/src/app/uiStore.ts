@@ -24,6 +24,8 @@ interface UiState {
   categoryDialog: { id?: string } | null
   deleteCategoryId: string | null
   importPreview: { fileName: string; bytes: Uint8Array } | null
+  /** The keyboard-shortcuts cheat-sheet (`?`). */
+  shortcuts: boolean
   set<K extends keyof Omit<UiState, 'set'>>(key: K, value: UiState[K]): void
 }
 
@@ -40,6 +42,7 @@ export const useUi = create<UiState>((set) => ({
   categoryDialog: null,
   deleteCategoryId: null,
   importPreview: null,
+  shortcuts: false,
   set: (key, value) => set({ [key]: value } as Partial<UiState>),
 }))
 
