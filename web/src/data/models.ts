@@ -22,6 +22,8 @@ export interface Bookmark {
   /** Signed 32-bit ARGB, as stored by Android. */
   accentColor: number | null
   imageCandidates: string[]
+  /** Normalised tags (core/util/tags). Synced. */
+  tags: string[]
   categoryId: string
   manualFields: number
   isPinned: boolean

@@ -7,7 +7,7 @@ import { buildMetadataPatch } from './enrich'
 const base: Bookmark = {
   id: 'b1', url: 'https://example.com/a', originalUrl: 'https://example.com/a', title: 'example.com',
   description: null, siteName: 'Example', thumbnailUrl: null, thumbnailWidth: null, thumbnailHeight: null,
-  accentColor: null, imageCandidates: [], categoryId: 'unsorted', manualFields: 0, isPinned: false,
+  accentColor: null, imageCandidates: [], tags: [], categoryId: 'unsorted', manualFields: 0, isPinned: false,
   createdAt: 1, updatedAt: 1, syncedUpdatedAt: null,
 }
 const res: MetadataResponse = {

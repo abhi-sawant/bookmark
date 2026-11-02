@@ -13,6 +13,7 @@ import com.bookmark.core.model.BookmarkLimits
 import com.bookmark.core.model.Category
 import com.bookmark.core.model.ManualField
 import com.bookmark.core.ui.theme.CategorySwatchHex
+import com.bookmark.core.util.Tags
 import com.bookmark.core.util.TitleFallback
 import com.bookmark.core.util.UrlNormalizer
 import com.bookmark.metadata.MetadataFetcher
@@ -46,6 +47,8 @@ data class AddEditUiState(
     val url: String = "",
     val title: String = "",
     val description: String = "",
+    /** Free text, comma or new-line separated; parsed with [Tags.parse] on save. */
+    val tagsText: String = "",
     val categoryId: String = Category.UNSORTED_ID,
     val categories: List<Category> = emptyList(),
     val clipboardSuggestion: String? = null,
@@ -122,6 +125,7 @@ class AddEditViewModel @Inject constructor(
             url = bookmark.url,
             title = bookmark.title,
             description = bookmark.description.orEmpty(),
+            tagsText = bookmark.tags.joinToString(", "),
             categoryId = bookmark.categoryId,
             categories = _state.value.categories,
             touchedFields = bookmark.manualFields,
@@ -147,6 +151,10 @@ class AddEditViewModel @Inject constructor(
                 touchedFields = ManualField.set(it.touchedFields, ManualField.TITLE),
             )
         }
+    }
+
+    fun onTagsChange(value: String) {
+        _state.update { it.copy(tagsText = value.take(Tags.INPUT_MAX)) }
     }
 
     fun onDescriptionChange(value: String) {
@@ -283,6 +291,7 @@ class AddEditViewModel @Inject constructor(
                     description = current.description.ifBlank { null },
                     categoryId = current.categoryId,
                     manualFields = current.touchedFields,
+                    tags = Tags.parse(current.tagsText),
                 ),
             )
             applyThumbnailChoice(current.editingId, current.thumbnailChoice)
@@ -297,6 +306,7 @@ class AddEditViewModel @Inject constructor(
             title = current.title.ifBlank { null },
             description = current.description.ifBlank { null },
             manualFields = current.touchedFields,
+            tags = Tags.parse(current.tagsText),
         )) {
             is SaveResult.Saved -> {
                 applyThumbnailChoice(result.bookmark.id, current.thumbnailChoice)

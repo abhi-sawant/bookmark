@@ -276,13 +276,28 @@ interface BookmarkDao {
     @Query(
         """
         SELECT b.* FROM bookmarks b
-        JOIN bookmarks_fts f ON b.rowid = f.rowid
-        WHERE bookmarks_fts MATCH :query
+        WHERE (b.rowid IN (SELECT rowid FROM bookmarks_fts WHERE bookmarks_fts MATCH :query)
+               OR instr(char(10) || COALESCE(b.tags, ''), char(10) || :tagPrefix) > 0)
           AND (:categoryId IS NULL OR b.categoryId = :categoryId)
         ORDER BY b.isPinned DESC, b.createdAt DESC
         """
     )
-    suspend fun search(query: String, categoryId: String?): List<BookmarkEntity>
+    suspend fun search(query: String, tagPrefix: String, categoryId: String?): List<BookmarkEntity>
+
+    /** Bookmarks carrying exactly [tag] (already normalised), for `#tag` searches. */
+    @Query(
+        """
+        SELECT * FROM bookmarks
+        WHERE instr(char(10) || COALESCE(tags, '') || char(10), char(10) || :tag || char(10)) > 0
+          AND (:categoryId IS NULL OR categoryId = :categoryId)
+        ORDER BY isPinned DESC, createdAt DESC
+        """
+    )
+    suspend fun findByTag(tag: String, categoryId: String?): List<BookmarkEntity>
+
+    /** Every tag in use is derived from this; the caller splits and counts. */
+    @Query("SELECT tags FROM bookmarks WHERE tags IS NOT NULL AND tags != ''")
+    fun observeAllTags(): kotlinx.coroutines.flow.Flow<List<String>>
 
     /** Rows with unpushed local changes -- never synced, or edited since the last sync. */
     @Query("SELECT * FROM bookmarks WHERE syncedUpdatedAt IS NULL OR updatedAt > syncedUpdatedAt")

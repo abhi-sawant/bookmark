@@ -35,6 +35,8 @@ export interface BookmarkDto {
   thumbnail_height: number | null
   accent_color: number | null
   image_candidates: string[]
+  /** Absent when talking to a server that predates tags. */
+  tags?: string[]
   category_id: string
   manual_fields: number
   is_pinned: boolean

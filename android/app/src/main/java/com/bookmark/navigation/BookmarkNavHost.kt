@@ -415,6 +415,7 @@ fun BookmarkNavHost() {
             onUrlChange = addEditViewModel::onUrlChange,
             onTitleChange = addEditViewModel::onTitleChange,
             onDescriptionChange = addEditViewModel::onDescriptionChange,
+            onTagsChange = addEditViewModel::onTagsChange,
             onCategoryChange = addEditViewModel::onCategoryChange,
             onCreateCategory = addEditViewModel::createCategory,
             onAcceptClipboard = addEditViewModel::acceptClipboardSuggestion,

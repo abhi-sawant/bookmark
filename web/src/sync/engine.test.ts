@@ -201,7 +201,7 @@ describe('sync engine', () => {
     const rows = Array.from({ length: 1100 }, (_, i) => ({
       id: `n${i}`, url: `https://n${i}.example`, originalUrl: `https://n${i}.example`, title: `T${i}`, description: null,
       siteName: null, thumbnailUrl: null, thumbnailWidth: null, thumbnailHeight: null, accentColor: null,
-      imageCandidates: [], categoryId: UNSORTED_ID, manualFields: 0, isPinned: false, createdAt: 1, updatedAt: 2, syncedUpdatedAt: null,
+      imageCandidates: [], tags: [], categoryId: UNSORTED_ID, manualFields: 0, isPinned: false, createdAt: 1, updatedAt: 2, syncedUpdatedAt: null,
     }))
     for (const r of rows) await internal.putBookmark(r)
     await push()

@@ -1,3 +1,4 @@
+import { normalizeTags } from '@/core/util/tags'
 import { create } from 'zustand'
 import { useSession } from '@/account/session'
 import { API_BASE, ApiError, NetworkError } from '@/api/client'
@@ -52,6 +53,7 @@ export const bookmarkToDto = (b: Bookmark): BookmarkDto => ({
   thumbnail_height: b.thumbnailHeight,
   accent_color: b.accentColor,
   image_candidates: b.imageCandidates,
+  tags: b.tags,
   category_id: b.categoryId,
   manual_fields: b.manualFields,
   is_pinned: b.isPinned,
@@ -74,6 +76,7 @@ const bookmarkFromDto = (d: BookmarkDto): Bookmark => ({
   thumbnailHeight: d.thumbnail_height,
   accentColor: d.accent_color,
   imageCandidates: d.image_candidates ?? [],
+  tags: normalizeTags(d.tags ?? []),
   categoryId: d.category_id,
   manualFields: d.manual_fields,
   isPinned: d.is_pinned,

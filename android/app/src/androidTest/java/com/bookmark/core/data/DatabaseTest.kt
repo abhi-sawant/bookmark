@@ -118,19 +118,31 @@ class DatabaseTest {
         )
         bookmarkDao.insert(bookmark(url = "https://example.com/other", title = "Braised short ribs"))
 
-        assertEquals(1, bookmarkDao.search("metadata*", null).size)
-        assertEquals(1, bookmarkDao.search("graph*", null).size)
-        assertEquals(0, bookmarkDao.search("nonexistent*", null).size)
+        assertEquals(1, bookmarkDao.search("metadata*", "metadata*", null).size)
+        assertEquals(1, bookmarkDao.search("graph*", "graph*", null).size)
+        assertEquals(0, bookmarkDao.search("nonexistent*", "nonexistent*", null).size)
+    }
+
+    @Test
+    fun searchAlsoMatchesTagsAndFindsExactTags() = runBlocking {
+        bookmarkDao.insert(bookmark(url = "https://example.com/a", title = "Plain page").copy(tags = "read later\nkotlin"))
+        bookmarkDao.insert(bookmark(url = "https://example.com/b", title = "Other page").copy(tags = "kotlinx"))
+
+        // Prefix match on a tag finds both; an exact tag finds only the first.
+        assertEquals(2, bookmarkDao.search("zzz*", "kotlin", null).size)
+        assertEquals(1, bookmarkDao.findByTag("kotlin", null).size)
+        assertEquals(1, bookmarkDao.findByTag("read later", null).size)
+        assertEquals(0, bookmarkDao.findByTag("missing", null).size)
     }
 
     @Test
     fun ftsStaysInSyncWhenABookmarkIsDeleted() = runBlocking {
         val entity = bookmark(url = "https://ogp.me", title = "HTML metadata")
         bookmarkDao.insert(entity)
-        assertEquals(1, bookmarkDao.search("metadata*", null).size)
+        assertEquals(1, bookmarkDao.search("metadata*", "metadata*", null).size)
 
         bookmarkDao.delete(entity)
-        assertEquals(0, bookmarkDao.search("metadata*", null).size)
+        assertEquals(0, bookmarkDao.search("metadata*", "metadata*", null).size)
     }
 
     @Test

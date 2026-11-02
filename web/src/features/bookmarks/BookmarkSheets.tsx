@@ -74,6 +74,7 @@ export function DetailSheet({ id }: { id: string }) {
           <span>{`${siteLine(b, category.name)} · saved ${formatDayMonth(b.createdAt)}`}</span>
         </div>
         {b.description?.trim() ? <div className="t-card-desc" style={{ marginTop: 12 }}>{b.description}</div> : null}
+        {b.tags.length > 0 ? <div className="t-caption detail-tags">{b.tags.map((t) => `#${t}`).join('  ')}</div> : null}
         <div className="detail-actions">
           <PrimaryButton style={{ flex: 1, minHeight: 50 }} onClick={() => openLink(b)}>Open</PrimaryButton>
           <IconButton outlined icon="share" label="Share" onClick={() => void shareLink(b)} />

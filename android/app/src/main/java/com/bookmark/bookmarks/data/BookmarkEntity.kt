@@ -11,6 +11,7 @@ import com.bookmark.core.model.Bookmark
 import com.bookmark.core.model.Category
 import com.bookmark.core.model.FailureCauseName
 import com.bookmark.core.model.MetadataState
+import com.bookmark.core.util.Tags
 
 @Entity(
     tableName = "bookmarks",
@@ -92,6 +93,8 @@ data class BookmarkEntity(
      * on real user edits, never by an automatic metadata fetch.
      */
     val syncedUpdatedAt: Long? = null,
+    /** Newline-joined tags, see [com.bookmark.core.util.Tags]. Synced. */
+    val tags: String? = null,
 ) {
     fun toDomain() = Bookmark(
         id = id,
@@ -115,6 +118,7 @@ data class BookmarkEntity(
         isPinned = isPinned,
         createdAt = createdAt,
         updatedAt = updatedAt,
+        tags = Tags.decode(tags),
     )
 }
 
@@ -150,6 +154,7 @@ fun Bookmark.toEntity(remoteThumbnailUrl: String? = null, syncedUpdatedAt: Long?
     updatedAt = updatedAt,
     remoteThumbnailUrl = remoteThumbnailUrl,
     syncedUpdatedAt = syncedUpdatedAt,
+    tags = Tags.encode(tags),
 )
 
 /**

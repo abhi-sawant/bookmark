@@ -3,6 +3,7 @@ package com.bookmark.sync.data
 import com.bookmark.bookmarks.data.BookmarkEntity
 import com.bookmark.categories.data.CategoryEntity
 import com.bookmark.core.model.MetadataState
+import com.bookmark.core.util.Tags
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -23,6 +24,7 @@ data class BookmarkSyncDto(
     val isPinned: Boolean = false,
     val createdAt: Long,
     val updatedAt: Long,
+    val tags: List<String> = emptyList(),
 )
 
 @Serializable
@@ -110,6 +112,7 @@ fun BookmarkEntity.toSyncDto(thumbnailUrl: String?) = BookmarkSyncDto(
     isPinned = isPinned,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    tags = Tags.decode(tags),
 )
 
 /**
@@ -147,6 +150,7 @@ fun BookmarkSyncDto.toEntity(syncedUpdatedAt: Long?) = BookmarkEntity(
     updatedAt = updatedAt,
     remoteThumbnailUrl = thumbnailUrl,
     syncedUpdatedAt = syncedUpdatedAt,
+    tags = Tags.encode(Tags.normalize(tags)),
 )
 
 fun CategoryEntity.toSyncDto() = CategorySyncDto(

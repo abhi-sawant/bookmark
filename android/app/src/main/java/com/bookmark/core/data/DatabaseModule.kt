@@ -34,7 +34,7 @@ object DatabaseModule {
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.NAME)
             .addCallback(SeedCallback())
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .build()
 
     @Provides

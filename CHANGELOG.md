@@ -6,12 +6,13 @@
 - **Copied-link chip on Home.** When you have copied a link, Home offers a one-tap "Save copied link?" chip (Android and web). It never saves on its own, is only read while the app is open, and can be turned off in Settings ("Suggest copied links").
 - **Bookmarklet (web).** Settings has a draggable "Save to Bookmarks" button. Drag it to your bookmarks bar and click it on any page to open the add sheet with that page filled in.
 - **Link previews on the web.** When you are signed in, links added on the web now get a title, description and thumbnail, read by your sync server (browsers can't read other sites). A Settings switch ("Fetch link previews") turns it off. **Requires the backend update below.**
+- **Tags.** Add up to 10 tags (30 characters each) to any bookmark from the add/edit sheet, comma separated. Tags show in the bookmark details, are matched by search, and `#tag` in search lists bookmarks with exactly that tag. Tags sync between devices and are included in backups. **Requires the backend update below.**
 
 ### Changed
 - More tracking parameters are stripped when you save a link (Instagram `igsh`, Google `gbraid`/`wbraid`, HubSpot and Marketo tokens), so the same page saved from different sources is recognised as already saved.
 
 ### Backend
-- New `backend/api/metadata.php` and `backend/safe_fetch.php` (SSRF-protected fetching). Run `backend/sql/migrations/001_rate_limit_metadata.sql` first. Full checklist: `docs/SERVER_CHANGES_3.1.0.md`.
+- New `backend/api/metadata.php` and `backend/safe_fetch.php` (SSRF-protected fetching). Run `backend/sql/migrations/001_rate_limit_metadata.sql` and `002_bookmark_tags.sql` first (tags need the new `tags` column, and `sync/push.php` + `sync/pull.php` updated). Full checklist: `docs/SERVER_CHANGES_3.1.0.md`.
 
 ## 3.0.0 — 2026-10-09
 

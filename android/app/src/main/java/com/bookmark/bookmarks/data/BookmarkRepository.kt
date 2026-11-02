@@ -9,6 +9,7 @@ import com.bookmark.core.model.ManualField
 import com.bookmark.core.model.MetadataState
 import com.bookmark.core.model.SortOrder
 import com.bookmark.core.util.TitleFallback
+import com.bookmark.core.util.Tags
 import com.bookmark.core.util.UrlNormalizer
 import com.bookmark.metadata.FailureCause
 import com.bookmark.metadata.PageMetadata
@@ -59,6 +60,14 @@ class BookmarkRepository @Inject constructor(
 
     fun observeTotalCount(): Flow<Int> = dao.observeTotalCount()
 
+    /** Every tag in use with how many bookmarks carry it, most used first. */
+    fun observeTagCounts(): Flow<List<Pair<String, Int>>> = dao.observeAllTags().map { columns ->
+        columns.flatMap { Tags.decode(it) }
+            .groupingBy { it }.eachCount()
+            .toList()
+            .sortedWith(compareByDescending<Pair<String, Int>> { it.second }.thenBy { it.first })
+    }
+
     suspend fun findById(id: String): Bookmark? = withContext(io) {
         dao.findById(id)?.toDomain()
     }
@@ -78,6 +87,7 @@ class BookmarkRepository @Inject constructor(
         description: String? = null,
         sharedSubject: String? = null,
         manualFields: Int = ManualField.NONE,
+        tags: List<String> = emptyList(),
     ): SaveResult = withContext(io) {
         val normalized = UrlNormalizer.normalize(rawUrl)
 
@@ -110,6 +120,7 @@ class BookmarkRepository @Inject constructor(
             isPinned = false,
             createdAt = now,
             updatedAt = now,
+            tags = Tags.encode(Tags.normalize(tags)),
         )
 
         try {
@@ -267,11 +278,16 @@ class BookmarkRepository @Inject constructor(
 
     suspend fun search(query: String, categoryId: String?): List<Bookmark> = withContext(io) {
         if (query.isBlank()) return@withContext emptyList()
+        // "#tag" lists bookmarks carrying exactly that tag.
+        if (query.trim().startsWith("#")) {
+            val tag = Tags.normalize(listOf(query)).firstOrNull() ?: return@withContext emptyList()
+            return@withContext dao.findByTag(tag, categoryId).map(BookmarkEntity::toDomain)
+        }
         // FTS4 prefix match on every term, so results appear while still typing.
         val match = query.trim().split(Regex("\\s+")).joinToString(" ") { term ->
             "${term.replace("\"", "")}*"
         }
-        runCatching { dao.search(match, categoryId).map(BookmarkEntity::toDomain) }
+        runCatching { dao.search(match, query.trim().lowercase(), categoryId).map(BookmarkEntity::toDomain) }
             .getOrDefault(emptyList())
     }
 

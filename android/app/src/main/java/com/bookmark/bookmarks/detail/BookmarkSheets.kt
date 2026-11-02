@@ -368,6 +368,15 @@ fun BookmarkDetailSheet(
                         )
                     }
 
+                    if (bookmark.tags.isNotEmpty()) {
+                        Text(
+                            text = bookmark.tags.joinToString("  ") { "#$it" },
+                            style = BookmarkTheme.text.screenCount,
+                            color = BookmarkTheme.colors.accent,
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
+                    }
+
                     if (bookmark.metadataState == MetadataState.FAILED && failureMessage != null) {
                         FailureCard(
                             headline = failureMessage,

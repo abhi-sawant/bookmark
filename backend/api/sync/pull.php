@@ -92,6 +92,11 @@ foreach ($bookmarkRows as $row) {
             'image_candidates' => $row['image_candidates'] !== null
                 ? array_values(array_filter(explode("\n", $row['image_candidates']), fn ($v) => $v !== ''))
                 : [],
+            // JSON array on the wire, newline-joined TEXT in storage (see push.php).
+            // isset() also covers servers where the tags migration has not run yet.
+            'tags' => isset($row['tags']) && $row['tags'] !== ''
+                ? array_values(array_filter(explode("\n", $row['tags']), fn ($v) => $v !== ''))
+                : [],
             'category_id' => $row['category_id'],
             'manual_fields' => (int) $row['manual_fields'],
             // See the is_default comment above -- same JSON-boolean requirement.

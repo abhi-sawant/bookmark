@@ -3,7 +3,7 @@ import { searchBookmarks, sortBookmarks } from './selectors'
 
 const mk = (o: Partial<Bookmark>): Bookmark => ({
   id: o.id ?? 'x', url: 'https://example.com', originalUrl: 'https://example.com', title: 'T', description: null, siteName: null,
-  thumbnailUrl: null, thumbnailWidth: null, thumbnailHeight: null, accentColor: null, imageCandidates: [], categoryId: 'unsorted',
+  thumbnailUrl: null, thumbnailWidth: null, thumbnailHeight: null, accentColor: null, imageCandidates: [], tags: [], categoryId: 'unsorted',
   manualFields: 0, isPinned: false, createdAt: 1, updatedAt: 1, syncedUpdatedAt: null, ...o,
 })
 const cat = (id: string, sortOrder: number): Category => ({ id, name: id, colorHex: '#000000', iconKey: null, sortOrder, isDefault: false, createdAt: 1, updatedAt: 1, syncedUpdatedAt: null })
@@ -41,5 +41,17 @@ describe('searchBookmarks', () => {
   })
   it('empty query returns nothing', () => {
     expect(searchBookmarks(list, '   ', null)).toEqual([])
+  })
+})
+
+describe('tag search', () => {
+  const list = [mk({ id: 'a', tags: ['kotlin', 'read later'] }), mk({ id: 'b', tags: ['kotlinx'], title: 'Other' }), mk({ id: 'c', title: 'plain' })]
+  it('matches tags as search terms', () => {
+    expect(searchBookmarks(list, 'kotlin', null).map((b) => b.id).sort()).toEqual(['a', 'b'])
+  })
+  it('#tag matches that exact tag only', () => {
+    expect(searchBookmarks(list, '#kotlin', null).map((b) => b.id)).toEqual(['a'])
+    expect(searchBookmarks(list, '#read later', null).map((b) => b.id)).toEqual(['a'])
+    expect(searchBookmarks(list, '#', null)).toEqual([])
   })
 })

@@ -1,5 +1,6 @@
 import { type Bookmark, type Category, type SortOrder } from '@/data/models'
 import { queryTermsFor } from '@/core/util/highlight'
+import { tagQuery } from '@/core/util/tags'
 
 export const SORT_LABELS: Record<SortOrder, { short: string; menu: string }> = {
   NEWEST: { short: 'Newest', menu: 'Sort: Newest' },
@@ -37,11 +38,19 @@ const tokens = (s: string | null | undefined): string[] =>
 
 /** Every query term must prefix-match some token of title, description, site name or url. */
 export function searchBookmarks(list: Bookmark[], query: string, categoryId: string | null): Bookmark[] {
+  // "#tag" lists bookmarks carrying exactly that tag.
+  const tag = tagQuery(query)
+  if (query.trim().startsWith('#')) {
+    if (!tag) return []
+    return list
+      .filter((b) => (!categoryId || b.categoryId === categoryId) && b.tags.includes(tag))
+      .sort((a, b) => Number(b.isPinned) - Number(a.isPinned) || b.createdAt - a.createdAt)
+  }
   const terms = queryTermsFor(query).flatMap((t) => tokens(t))
   if (terms.length === 0) return []
   const hits = list.filter((b) => {
     if (categoryId && b.categoryId !== categoryId) return false
-    const toks = [...tokens(b.title), ...tokens(b.description), ...tokens(b.siteName), ...tokens(b.url)]
+    const toks = [...tokens(b.title), ...tokens(b.description), ...tokens(b.siteName), ...tokens(b.url), ...b.tags.flatMap(tokens)]
     return terms.every((t) => toks.some((k) => k.startsWith(t)))
   })
   // Pinned first, then newest. No relevance ranking, like Android.

@@ -1,3 +1,4 @@
+import { normalizeTags } from '@/core/util/tags'
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
 import { normalize } from '@/core/util/urlNormalizer'
 import { getDb } from './db'
@@ -20,6 +21,7 @@ interface BackupBookmark {
   thumbnailWidth?: number | null
   thumbnailHeight?: number | null
   imageCandidates?: string[]
+  tags?: string[]
   categoryId: string
   metadataState?: string
   failureCause?: string | null
@@ -56,6 +58,7 @@ export function buildBackup(bookmarks: Bookmark[], categories: Category[], now =
     thumbnailWidth: x.thumbnailWidth,
     thumbnailHeight: x.thumbnailHeight,
     imageCandidates: x.imageCandidates,
+    tags: x.tags,
     categoryId: x.categoryId,
     metadataState: x.thumbnailUrl ? 'SUCCESS' : 'PENDING',
     failureCause: null,
@@ -191,6 +194,7 @@ export async function importBackup(parsed: ParsedBackup, mode: 'MERGE' | 'REPLAC
       thumbnailHeight: b.thumbnailHeight ?? null,
       accentColor: b.accentColor ?? null,
       imageCandidates: b.imageCandidates ?? [],
+      tags: normalizeTags(b.tags ?? []),
       categoryId: known.has(categoryId) ? categoryId : UNSORTED_ID,
       manualFields: b.manualFields ?? 0,
       isPinned: !!b.isPinned,

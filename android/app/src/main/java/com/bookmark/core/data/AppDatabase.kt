@@ -20,7 +20,7 @@ import com.bookmark.sync.data.SyncTombstoneEntity
         CategoryEntity::class,
         SyncTombstoneEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -115,5 +115,16 @@ class SeedCallback : RoomDatabase.Callback() {
     private companion object {
         /** Matches CategorySwatchHex[5], the neutral grey the design gives Unsorted. */
         const val NEUTRAL_SWATCH = "#7D918D"
+    }
+}
+
+/**
+ * v3 to v4: bookmark tags. A nullable, newline-joined TEXT column like
+ * `imageCandidates`; no data migration, and the FTS table is untouched (tags
+ * are matched with a separate predicate in [BookmarkDao.search]).
+ */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE bookmarks ADD COLUMN tags TEXT")
     }
 }

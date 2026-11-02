@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS bookmarks (
     category_id       VARCHAR(36) NOT NULL DEFAULT 'unsorted',
     manual_fields     TINYINT UNSIGNED NOT NULL DEFAULT 0,
     is_pinned         TINYINT(1) NOT NULL DEFAULT 0,
+    tags              TEXT NULL,
     created_at        DATETIME(6) NOT NULL,
     updated_at        DATETIME(6) NOT NULL,
     deleted_at        DATETIME(6) NULL,

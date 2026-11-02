@@ -1,3 +1,4 @@
+import { normalizeTags } from '@/core/util/tags'
 import { create } from 'zustand'
 import { normalize } from '@/core/util/urlNormalizer'
 import { fromDomain, resolve as resolveTitle } from '@/core/util/titleFallback'
@@ -98,7 +99,8 @@ export async function initData(): Promise<void> {
     categories = [unsorted, ...categories]
   }
   const bookmarks = await db.getAll('bookmarks')
-  useData.setState({ loaded: true, bookmarks, categories: sortCategories(categories) })
+  // Rows saved before tags existed have no `tags` field.
+  useData.setState({ loaded: true, bookmarks: bookmarks.map((b) => ({ ...b, tags: b.tags ?? [] })), categories: sortCategories(categories) })
 }
 
 /** Wipes every local row and re-seeds Unsorted (sign-out / account switch). */
@@ -151,6 +153,7 @@ export interface SaveInput {
   title?: string
   description?: string
   categoryId: string
+  tags?: string[]
   /** The Android share flow's subject; the PWA share target passes the shared title here. */
   sharedSubject?: string | null
   thumbnail?: ThumbnailChoice | null
@@ -187,6 +190,7 @@ export async function saveBookmark(input: SaveInput): Promise<SaveResult> {
     thumbnailHeight: input.thumbnail?.height ?? null,
     accentColor: input.thumbnail?.accentColor ?? null,
     imageCandidates: [],
+    tags: normalizeTags(input.tags ?? []),
     categoryId: input.categoryId,
     manualFields,
     isPinned: false,
@@ -204,6 +208,7 @@ export interface EditInput {
   title: string
   description: string
   categoryId: string
+  tags: string[]
   /** Whether the user edited the field in the sheet; touching a field locks it (Android parity). */
   titleEdited: boolean
   descriptionEdited: boolean
@@ -221,7 +226,7 @@ export async function updateBookmark(id: string, edit: EditInput): Promise<void>
   if (edit.titleEdited) manualFields |= ManualField.TITLE
   if (edit.descriptionEdited) manualFields |= ManualField.DESCRIPTION
 
-  const next: Bookmark = { ...current, title, description, categoryId: edit.categoryId, updatedAt: Date.now() }
+  const next: Bookmark = { ...current, title, description, categoryId: edit.categoryId, tags: normalizeTags(edit.tags), updatedAt: Date.now() }
   if (edit.thumbnail !== undefined) {
     manualFields |= ManualField.THUMBNAIL
     next.pendingThumbnail = edit.thumbnail?.blob ?? null

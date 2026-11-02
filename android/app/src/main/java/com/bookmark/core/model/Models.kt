@@ -66,6 +66,7 @@ data class Bookmark(
     val isPinned: Boolean,
     val createdAt: Long,
     val updatedAt: Long,
+    val tags: List<String> = emptyList(),
 ) {
     /**
      * Width over height of the stored thumbnail, or null when there is no image
@@ -128,4 +129,6 @@ object BookmarkLimits {
     const val TITLE_MAX = 200
     const val DESCRIPTION_MAX = 500
     const val SITE_NAME_MAX = 60
+    const val TAG_MAX = 30
+    const val TAGS_MAX_COUNT = 10
 }
