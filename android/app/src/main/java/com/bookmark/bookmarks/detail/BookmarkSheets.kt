@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
@@ -85,6 +86,7 @@ fun BookmarkContextSheet(
     category: Category?,
     thumbnailPath: String?,
     onDismiss: () -> Unit,
+    onOpen: () -> Unit,
     onEdit: () -> Unit,
     onSelect: () -> Unit,
     onChangeCategory: () -> Unit,
@@ -145,6 +147,7 @@ fun BookmarkContextSheet(
                 .navigationBarsPadding()
                 .padding(top = 8.dp, bottom = 18.dp),
         ) {
+            ContextRow(Icons.AutoMirrored.Outlined.OpenInNew, "Open", onOpen)
             ContextRow(Icons.Outlined.Edit, "Edit", onEdit)
             ContextRow(Icons.Outlined.CheckCircle, "Select", onSelect)
             ContextRow(Icons.Outlined.ViewList, "Change category", onChangeCategory)

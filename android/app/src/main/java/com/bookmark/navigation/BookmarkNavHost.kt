@@ -476,6 +476,10 @@ fun BookmarkNavHost() {
                 addEditViewModel.startEdit(current.bookmark)
                 sheet = SheetState.AddEdit
             },
+            onOpen = {
+                openBookmark(current.bookmark)
+                sheet = SheetState.None
+            },
             onSelect = {
                 homeViewModel.startSelection(current.bookmark)
                 sheet = SheetState.None
