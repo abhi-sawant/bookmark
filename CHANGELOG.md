@@ -18,6 +18,9 @@
 - **Keyboard shortcuts list (web).** Press `?` anywhere on the desktop site, or use Settings > Keyboard shortcuts, to see every shortcut.
 - **Import browser bookmarks.** Import a `bookmarks.html` exported from Chrome, Edge, Firefox or Safari from Settings (Android and web). Folders become categories, links outside a folder go to Unsorted, and links you already have are skipped. It can only be merged, never replace what you have.
 
+### Fixed
+- **Android sync no longer stalls on two categories with the same name.** If your account had two categories named the same (for example one made on the web and one on another phone), pulling the second evicted the first, orphaned its bookmarks and made every later sync fail. The second one now gets a local " (2)" suffix. Failed syncs are also logged now.
+
 ### Changed
 - More tracking parameters are stripped when you save a link (Instagram `igsh`, Google `gbraid`/`wbraid`, HubSpot and Marketo tokens), so the same page saved from different sources is recognised as already saved.
 
