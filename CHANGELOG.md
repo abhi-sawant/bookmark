@@ -22,7 +22,11 @@
 - More tracking parameters are stripped when you save a link (Instagram `igsh`, Google `gbraid`/`wbraid`, HubSpot and Marketo tokens), so the same page saved from different sources is recognised as already saved.
 
 ### Backend
-- New `backend/api/metadata.php`, `backend/api/check_links.php` and `backend/safe_fetch.php` (SSRF-protected fetching). Run `backend/sql/migrations/001_rate_limit_metadata.sql` and `002_bookmark_tags.sql` and `003_bookmark_unread.sql` and `004_bookmark_trash.sql` first (tags, the unread flag and Trash need the new `tags`, `is_unread` and `trashed_at` columns, and `sync/push.php` + `sync/pull.php` updated). Full checklist: `docs/SERVER_CHANGES_3.1.0.md`.
+**Upgrade the server before releasing the apps.** Full checklist, smoke tests and rollback: `docs/SERVER_CHANGES_3.1.0.md`.
+- Database, run once each in order in phpMyAdmin: `backend/sql/migrations/001_rate_limit_metadata.sql`, `002_bookmark_tags.sql` (adds `bookmarks.tags`), `003_bookmark_unread.sql` (adds `bookmarks.is_unread`), `004_bookmark_trash.sql` (adds `bookmarks.trashed_at`). Fresh installs get all of it from `schema.sql`.
+- Updated: `backend/api/sync/push.php` and `backend/api/sync/pull.php` (the three new fields).
+- New: `backend/api/metadata.php` (link previews), `backend/api/check_links.php` (link checks) and `backend/safe_fetch.php` (SSRF-protected outbound requests). These need the `curl` PHP extension and outbound HTTP/HTTPS from the hosting account.
+- Keep your existing `config.php`. Two optional settings, `METADATA_RATE_PER_HOUR` and `LINK_CHECK_REQUESTS_PER_HOUR`, have built-in defaults.
 
 ## 3.0.0 — 2026-10-09
 
