@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.1.0 — Unreleased
+## 3.1.0 — 2026-11-02
 
 ### Added
 - **Copied-link chip on Home.** When you have copied a link, Home offers a one-tap "Save copied link?" chip (Android and web). It never saves on its own, is only read while the app is open, and can be turned off in Settings ("Suggest copied links").

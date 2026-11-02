@@ -36,8 +36,8 @@ android {
         applicationId = "com.bookmark"
         minSdk = 33
         targetSdk = 37
-        versionCode = 4
-        versionName = "3.0.0"
+        versionCode = 5
+        versionName = "3.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
