@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -73,6 +74,10 @@ fun BookmarkGridCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Bulk-select mode: this card is part of the selection. */
+    selected: Boolean = false,
+    /** The last link check found this page gone (404/410). */
+    linkBroken: Boolean = false,
     /** Grid-to-detail thumbnail morph (spec 10). Null outside a shared-transition layout. */
     sharedTransitionScope: SharedTransitionScope? = null,
     /** False while this bookmark's detail sheet is open -- its hero image is the
@@ -85,6 +90,7 @@ fun BookmarkGridCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(BookmarkShapes.thumbnailLarge)
+            .then(selectionOutline(selected, BookmarkShapes.thumbnailLarge))
             .testTag(BOOKMARK_ITEM_TEST_TAG)
             .combinedClickable(
                 onClick = onClick,
@@ -132,6 +138,8 @@ fun BookmarkGridCard(
                     },
                 )
                 if (bookmark.isPinned) PinBadge(Modifier.align(Alignment.TopStart).padding(8.dp))
+                if (selected) SelectionCheck(Modifier.align(Alignment.TopEnd).padding(8.dp))
+                else if (bookmark.isUnread) UnreadDot(Modifier.align(Alignment.TopEnd).padding(10.dp))
             }
             Column(modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 10.dp, bottom = 2.dp)) {
                 Text(
@@ -166,6 +174,7 @@ fun BookmarkGridCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                if (linkBroken) BrokenLinkLabel(Modifier.padding(top = 6.dp))
                 if (bookmark.metadataState == MetadataState.PENDING) {
                     PendingPill(modifier = Modifier.padding(top = 9.dp))
                 }
@@ -184,6 +193,8 @@ fun BookmarkListRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
+    selected: Boolean = false,
+    linkBroken: Boolean = false,
 ) {
     val categoryColor = parseCategoryColor(category?.colorHex)
     Row(
@@ -191,6 +202,7 @@ fun BookmarkListRow(
             .fillMaxWidth()
             .padding(horizontal = Dimens.gridOuterPadding, vertical = 4.dp)
             .panel(RoundedCornerShape(18.dp))
+            .then(selectionOutline(selected, RoundedCornerShape(18.dp)))
             .testTag(BOOKMARK_ITEM_TEST_TAG)
             .combinedClickable(
                 onClick = onClick,
@@ -210,6 +222,8 @@ fun BookmarkListRow(
                 modifier = Modifier.fillMaxSize(),
             )
             if (bookmark.isPinned) PinBadge(Modifier.align(Alignment.TopStart).padding(4.dp), size = 20.dp)
+            if (selected) SelectionCheck(Modifier.align(Alignment.TopEnd).padding(2.dp), size = 20.dp)
+            else if (bookmark.isUnread) UnreadDot(Modifier.align(Alignment.TopEnd).padding(4.dp), size = 9.dp)
         }
         Column(modifier = Modifier.weight(1f).padding(end = 4.dp)) {
             Text(
@@ -238,8 +252,60 @@ fun BookmarkListRow(
                     PendingPill()
                 }
             }
+            if (linkBroken) BrokenLinkLabel(Modifier.padding(top = 4.dp))
         }
     }
+}
+
+/** "Link broken" note: the last link check got a 404 or 410 for this page. */
+@Composable
+private fun BrokenLinkLabel(modifier: Modifier = Modifier) {
+    Text(
+        text = "Link may be broken",
+        style = BookmarkTheme.text.siteLine,
+        color = MaterialTheme.colorScheme.error,
+        modifier = modifier,
+    )
+}
+
+/** Accent outline around a selected card (bulk-select mode). */
+@Composable
+private fun selectionOutline(selected: Boolean, shape: androidx.compose.ui.graphics.Shape): Modifier =
+    if (selected) Modifier.border(3.dp, BookmarkTheme.colors.accent, shape) else Modifier
+
+/** Check badge on a selected card. */
+@Composable
+private fun SelectionCheck(modifier: Modifier = Modifier, size: androidx.compose.ui.unit.Dp = 26.dp) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(BookmarkTheme.colors.accent)
+            .semantics { contentDescription = "Selected" },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Check,
+            contentDescription = null,
+            tint = BookmarkTheme.colors.onAccent,
+            modifier = Modifier.size(size * 0.62f),
+        )
+    }
+}
+
+/** Accent dot on the thumbnail corner: saved but not opened yet. */
+@Composable
+private fun UnreadDot(modifier: Modifier = Modifier, size: androidx.compose.ui.unit.Dp = 12.dp) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(BookmarkTheme.colors.cardSurface)
+            .padding(1.5.dp)
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(BookmarkTheme.colors.accent)
+            .semantics { contentDescription = "Unread" },
+    )
 }
 
 /** Small rounded chip marking a pinned bookmark on its thumbnail. */

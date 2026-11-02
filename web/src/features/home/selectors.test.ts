@@ -1,9 +1,9 @@
 import type { Bookmark, Category } from '@/data/models'
-import { searchBookmarks, sortBookmarks } from './selectors'
+import { NO_FILTERS, addRecentSearch, searchBookmarks, sortBookmarks } from './selectors'
 
 const mk = (o: Partial<Bookmark>): Bookmark => ({
   id: o.id ?? 'x', url: 'https://example.com', originalUrl: 'https://example.com', title: 'T', description: null, siteName: null,
-  thumbnailUrl: null, thumbnailWidth: null, thumbnailHeight: null, accentColor: null, imageCandidates: [], categoryId: 'unsorted',
+  thumbnailUrl: null, thumbnailWidth: null, thumbnailHeight: null, accentColor: null, imageCandidates: [], tags: [], isUnread: false, trashedAt: null, categoryId: 'unsorted',
   manualFields: 0, isPinned: false, createdAt: 1, updatedAt: 1, syncedUpdatedAt: null, ...o,
 })
 const cat = (id: string, sortOrder: number): Category => ({ id, name: id, colorHex: '#000000', iconKey: null, sortOrder, isDefault: false, createdAt: 1, updatedAt: 1, syncedUpdatedAt: null })
@@ -41,5 +41,59 @@ describe('searchBookmarks', () => {
   })
   it('empty query returns nothing', () => {
     expect(searchBookmarks(list, '   ', null)).toEqual([])
+  })
+})
+
+describe('tag search', () => {
+  const list = [mk({ id: 'a', tags: ['kotlin', 'read later'] }), mk({ id: 'b', tags: ['kotlinx'], title: 'Other' }), mk({ id: 'c', title: 'plain' })]
+  it('matches tags as search terms', () => {
+    expect(searchBookmarks(list, 'kotlin', null).map((b) => b.id).sort()).toEqual(['a', 'b'])
+  })
+  it('#tag matches that exact tag only', () => {
+    expect(searchBookmarks(list, '#kotlin', null).map((b) => b.id)).toEqual(['a'])
+    expect(searchBookmarks(list, '#read later', null).map((b) => b.id)).toEqual(['a'])
+    expect(searchBookmarks(list, '#', null)).toEqual([])
+  })
+})
+
+describe('search filters', () => {
+  const now = 100 * 24 * 60 * 60 * 1000
+  const list = [
+    mk({ id: 'pinned', isPinned: true, categoryId: 'work', createdAt: now }),
+    mk({ id: 'unsorted', categoryId: 'unsorted', createdAt: now }),
+    mk({ id: 'old', categoryId: 'work', createdAt: now - 8 * 24 * 60 * 60 * 1000 }),
+  ]
+  it('each chip narrows on its own, with no text', () => {
+    expect(searchBookmarks(list, '', null, { ...NO_FILTERS, pinned: true }, now).map((b) => b.id)).toEqual(['pinned'])
+    expect(searchBookmarks(list, '', null, { ...NO_FILTERS, unsorted: true }, now).map((b) => b.id)).toEqual(['unsorted'])
+    expect(searchBookmarks(list, '', null, { ...NO_FILTERS, thisWeek: true }, now).map((b) => b.id).sort()).toEqual(['pinned', 'unsorted'])
+  })
+  it('the Unread chip keeps only unopened bookmarks', () => {
+    const l = [mk({ id: 'u', isUnread: true }), mk({ id: 'r' })]
+    expect(searchBookmarks(l, '', null, { ...NO_FILTERS, unread: true }).map((b) => b.id)).toEqual(['u'])
+  })
+  it('the Broken links chip keeps only pages the last check found gone', () => {
+    const l = [mk({ id: 'b', linkStatus: 'broken' }), mk({ id: 'o', linkStatus: 'ok' }), mk({ id: 'n' })]
+    expect(searchBookmarks(l, '', null, { ...NO_FILTERS, broken: true }).map((b) => b.id)).toEqual(['b'])
+  })
+  it('chips combine and an empty query with no chips finds nothing', () => {
+    expect(searchBookmarks(list, '', null, { ...NO_FILTERS, pinned: true, unsorted: true }, now)).toEqual([])
+    expect(searchBookmarks(list, '', null, NO_FILTERS, now)).toEqual([])
+  })
+  it('chips also narrow text results', () => {
+    const texty = [mk({ id: 'a', title: 'react tips', isPinned: true }), mk({ id: 'b', title: 'react news' })]
+    expect(searchBookmarks(texty, 'react', null, { ...NO_FILTERS, pinned: true }).map((b) => b.id)).toEqual(['a'])
+  })
+})
+
+describe('recent searches', () => {
+  it('keeps newest first, de-duplicated and capped at 8', () => {
+    let r: string[] = []
+    for (const q of ['a', 'b', 'A ']) r = addRecentSearch(r, q)
+    expect(r).toEqual(['A', 'b'])
+    for (let i = 1; i <= 20; i++) r = addRecentSearch(r, `q${i}`)
+    expect(r).toHaveLength(8)
+    expect(r[0]).toBe('q20')
+    expect(addRecentSearch(r, '   ')).toBe(r)
   })
 })

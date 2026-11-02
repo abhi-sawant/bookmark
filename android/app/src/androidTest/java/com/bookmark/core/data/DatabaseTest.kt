@@ -11,6 +11,7 @@ import com.bookmark.categories.data.CategoryEntity
 import com.bookmark.core.model.Category
 import com.bookmark.core.model.MetadataState
 import java.util.UUID
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -118,19 +119,53 @@ class DatabaseTest {
         )
         bookmarkDao.insert(bookmark(url = "https://example.com/other", title = "Braised short ribs"))
 
-        assertEquals(1, bookmarkDao.search("metadata*", null).size)
-        assertEquals(1, bookmarkDao.search("graph*", null).size)
-        assertEquals(0, bookmarkDao.search("nonexistent*", null).size)
+        assertEquals(1, bookmarkDao.search("metadata*", "metadata*", null).size)
+        assertEquals(1, bookmarkDao.search("graph*", "graph*", null).size)
+        assertEquals(0, bookmarkDao.search("nonexistent*", "nonexistent*", null).size)
+    }
+
+    @Test
+    fun searchAlsoMatchesTagsAndFindsExactTags() = runBlocking {
+        bookmarkDao.insert(bookmark(url = "https://example.com/a", title = "Plain page").copy(tags = "read later\nkotlin"))
+        bookmarkDao.insert(bookmark(url = "https://example.com/b", title = "Other page").copy(tags = "kotlinx"))
+
+        // Prefix match on a tag finds both; an exact tag finds only the first.
+        assertEquals(2, bookmarkDao.search("zzz*", "kotlin", null).size)
+        assertEquals(1, bookmarkDao.findByTag("kotlin", null).size)
+        assertEquals(1, bookmarkDao.findByTag("read later", null).size)
+        assertEquals(0, bookmarkDao.findByTag("missing", null).size)
+    }
+
+    @Test
+    fun trashedBookmarksAreHiddenFromListsCountsAndSearchButFoundInTrash() = runBlocking {
+        val live = bookmark(url = "https://example.com/live", title = "Metadata live")
+        val trashed = bookmark(url = "https://example.com/trashed", title = "Metadata trashed")
+        bookmarkDao.insert(live)
+        bookmarkDao.insert(trashed)
+
+        bookmarkDao.setTrashedAt(trashed.id, trashedAt = 1_000L, now = 2_000L)
+
+        assertEquals(listOf(live.id), bookmarkDao.observeByNewest(null).first().map { it.id })
+        assertEquals(1, bookmarkDao.observeTotalCount().first())
+        assertEquals(1, bookmarkDao.search("metadata*", "metadata", null).size)
+        assertEquals(listOf(trashed.id), bookmarkDao.observeTrashed().first().map { it.id })
+        // Trashing is a user edit, so the row syncs.
+        assertTrue(bookmarkDao.findDirty().any { it.id == trashed.id })
+        assertEquals(listOf(trashed.id), bookmarkDao.findTrashedBefore(cutoff = 1_500L).map { it.id })
+        assertEquals(0, bookmarkDao.findTrashedBefore(cutoff = 500L).size)
+
+        bookmarkDao.setTrashedAt(trashed.id, trashedAt = null, now = 3_000L)
+        assertEquals(2, bookmarkDao.observeTotalCount().first())
     }
 
     @Test
     fun ftsStaysInSyncWhenABookmarkIsDeleted() = runBlocking {
         val entity = bookmark(url = "https://ogp.me", title = "HTML metadata")
         bookmarkDao.insert(entity)
-        assertEquals(1, bookmarkDao.search("metadata*", null).size)
+        assertEquals(1, bookmarkDao.search("metadata*", "metadata*", null).size)
 
         bookmarkDao.delete(entity)
-        assertEquals(0, bookmarkDao.search("metadata*", null).size)
+        assertEquals(0, bookmarkDao.search("metadata*", "metadata*", null).size)
     }
 
     @Test

@@ -9,6 +9,7 @@ import androidx.work.Configuration
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
+import com.bookmark.widget.BookmarkWidget
 import com.bookmark.bookmarks.data.BookmarkRepository
 import com.bookmark.core.data.ApplicationScope
 import com.bookmark.debug.StrictModeInit
@@ -45,6 +46,8 @@ class BookmarkApp : Application(), Configuration.Provider, SingletonImageLoader.
         StrictModeInit.install()
         super.onCreate()
         applicationScope.launch {
+            // Trash older than 30 days goes for good, then orphaned files are swept.
+            bookmarkRepository.purgeExpiredTrash()
             // Cheap: list a directory and diff against the database (spec 7.4).
             bookmarkRepository.sweepOrphanThumbnails()
             directShareShortcuts.publish()
@@ -57,6 +60,11 @@ class BookmarkApp : Application(), Configuration.Provider, SingletonImageLoader.
             object : DefaultLifecycleObserver {
                 override fun onStart(owner: LifecycleOwner) {
                     syncEnqueuer.syncNow()
+                }
+
+                // Leaving the app is when the bookmark list has just changed: refresh the widget.
+                override fun onStop(owner: LifecycleOwner) {
+                    BookmarkWidget.update(this@BookmarkApp)
                 }
             },
         )

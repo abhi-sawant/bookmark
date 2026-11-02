@@ -9,7 +9,7 @@ const isTyping = (t: EventTarget | null): boolean => {
   return !!el && (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.isContentEditable)
 }
 
-/** Desktop conveniences: `n` new bookmark, `g` then `h`/`c`/`s` to navigate, and dropping a link onto the window. */
+/** Desktop conveniences: `?` the shortcut list, `n` new bookmark, `g` then `h`/`c`/`s` to navigate, and dropping a link onto the window. */
 export function useGlobalShortcuts(): void {
   const navigate = useNavigate()
   const desktop = useIsDesktop()
@@ -20,8 +20,8 @@ export function useGlobalShortcuts(): void {
     let armed = false
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target)) return
-      const { addEdit, context, detail, duplicate, categoryDialog, deleteCategoryId, importPreview } = useUi.getState()
-      if (addEdit || context || detail || duplicate || categoryDialog || deleteCategoryId || importPreview) return
+      const { addEdit, context, detail, duplicate, categoryDialog, deleteCategoryId, importPreview, shortcuts } = useUi.getState()
+      if (addEdit || context || detail || duplicate || categoryDialog || deleteCategoryId || importPreview || shortcuts) return
       if (armed) {
         armed = false
         clearTimeout(chord)
@@ -32,7 +32,10 @@ export function useGlobalShortcuts(): void {
         }
         return
       }
-      if (e.key === 'n') {
+      if (e.key === '?') {
+        e.preventDefault()
+        useUi.getState().set('shortcuts', true)
+      } else if (e.key === 'n') {
         e.preventDefault()
         openAdd()
       } else if (e.key === 'g') {

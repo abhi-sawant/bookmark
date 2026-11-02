@@ -153,6 +153,25 @@ function validate_bookmark_payload($raw): ?array
         return null;
     }
     $imageCandidates = $imageCandidatesJoined !== '' ? $imageCandidatesJoined : null;
+    // Tags: a JSON array of up to 10 short strings, joined with newlines for
+    // TEXT storage (a tag cannot contain a newline, so it round-trips cleanly).
+    $tagsIn = $raw['tags'] ?? [];
+    if (!is_array($tagsIn) || count($tagsIn) > 10) {
+        return null;
+    }
+    foreach ($tagsIn as $tag) {
+        if (!is_string($tag) || $tag === '' || mb_strlen($tag) > 30 || preg_match('/[\r\n]/', $tag)) {
+            return null;
+        }
+    }
+    $tagsJoined = implode("\n", $tagsIn);
+    $tags = $tagsJoined !== '' ? $tagsJoined : null;
+    // Trash: epoch millis when the bookmark was moved to Trash, or null while it is live.
+    // Distinct from deleted_at, which is the permanent tombstone.
+    $trashedAt = $raw['trashed_at'] ?? null;
+    if ($trashedAt !== null && !valid_ms($trashedAt)) {
+        return null;
+    }
     $categoryId = $raw['category_id'] ?? 'unsorted';
     if (!valid_id($categoryId)) {
         return null;
@@ -177,6 +196,9 @@ function validate_bookmark_payload($raw): ?array
         'thumbnail_height' => $thumbnailHeight !== null ? (int) $thumbnailHeight : null,
         'accent_color' => $accentColor !== null ? (int) $accentColor : null,
         'image_candidates' => $imageCandidates,
+        'tags' => $tags,
+        'is_unread' => coerce_bool_int($raw['is_unread'] ?? 0),
+        'trashed_at' => $trashedAt !== null ? (int) $trashedAt : null,
         'category_id' => $categoryId,
         'manual_fields' => (int) $manualFields,
         'is_pinned' => coerce_bool_int($raw['is_pinned'] ?? 0),
@@ -271,12 +293,12 @@ try {
         'INSERT INTO bookmarks (
             user_id, id, url, original_url, title, description, site_name,
             thumbnail_url, thumbnail_width, thumbnail_height, accent_color,
-            image_candidates, category_id, manual_fields, is_pinned,
+            image_candidates, category_id, manual_fields, is_pinned, tags, is_unread, trashed_at,
             created_at, updated_at, deleted_at
          ) VALUES (
             :user_id, :id, :url, :original_url, :title, :description, :site_name,
             :thumbnail_url, :thumbnail_width, :thumbnail_height, :accent_color,
-            :image_candidates, :category_id, :manual_fields, :is_pinned,
+            :image_candidates, :category_id, :manual_fields, :is_pinned, :tags, :is_unread, :trashed_at,
             :created_at, :updated_at, NULL
          )'
     );
@@ -287,7 +309,7 @@ try {
             thumbnail_url = :thumbnail_url, thumbnail_width = :thumbnail_width,
             thumbnail_height = :thumbnail_height, accent_color = :accent_color,
             image_candidates = :image_candidates, category_id = :category_id,
-            manual_fields = :manual_fields, is_pinned = :is_pinned,
+            manual_fields = :manual_fields, is_pinned = :is_pinned, tags = :tags, is_unread = :is_unread, trashed_at = :trashed_at,
             updated_at = :updated_at
          WHERE user_id = :user_id AND id = :id'
     );
@@ -330,6 +352,9 @@ try {
             ':category_id' => $clean['category_id'],
             ':manual_fields' => $clean['manual_fields'],
             ':is_pinned' => $clean['is_pinned'],
+            ':tags' => $clean['tags'],
+            ':is_unread' => $clean['is_unread'],
+            ':trashed_at' => $clean['trashed_at'] !== null ? millis_to_datetime($clean['trashed_at']) : null,
         ];
 
         if ($existing === false) {

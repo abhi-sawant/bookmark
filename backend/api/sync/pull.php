@@ -92,10 +92,19 @@ foreach ($bookmarkRows as $row) {
             'image_candidates' => $row['image_candidates'] !== null
                 ? array_values(array_filter(explode("\n", $row['image_candidates']), fn ($v) => $v !== ''))
                 : [],
+            // JSON array on the wire, newline-joined TEXT in storage (see push.php).
+            // isset() also covers servers where the tags migration has not run yet.
+            'tags' => isset($row['tags']) && $row['tags'] !== ''
+                ? array_values(array_filter(explode("\n", $row['tags']), fn ($v) => $v !== ''))
+                : [],
             'category_id' => $row['category_id'],
             'manual_fields' => (int) $row['manual_fields'],
             // See the is_default comment above -- same JSON-boolean requirement.
             'is_pinned' => (bool) $row['is_pinned'],
+            // Absent column (migration not run yet) reads as false; see the is_default comment above.
+            'is_unread' => (bool) ($row['is_unread'] ?? 0),
+            // Epoch millis while the bookmark is in Trash, else null (also null before the migration runs).
+            'trashed_at' => isset($row['trashed_at']) ? datetime_to_millis($row['trashed_at']) : null,
             'created_at' => datetime_to_millis($row['created_at']),
             'updated_at' => datetime_to_millis($row['updated_at']),
         ];

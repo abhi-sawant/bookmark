@@ -3,6 +3,7 @@ package com.bookmark.backup
 import com.bookmark.bookmarks.data.BookmarkEntity
 import com.bookmark.categories.data.CategoryEntity
 import com.bookmark.core.model.MetadataState
+import com.bookmark.core.util.Tags
 import kotlinx.serialization.Serializable
 
 /**
@@ -43,6 +44,9 @@ data class BookmarkBackupDto(
     val isPinned: Boolean = false,
     val createdAt: Long,
     val updatedAt: Long,
+    val tags: List<String> = emptyList(),
+    val isUnread: Boolean = false,
+    val trashedAt: Long? = null,
 )
 
 @Serializable
@@ -77,6 +81,9 @@ fun BookmarkEntity.toBackupDto() = BookmarkBackupDto(
     isPinned = isPinned,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    tags = Tags.decode(tags),
+    isUnread = isUnread,
+    trashedAt = trashedAt,
 )
 
 fun BookmarkBackupDto.toEntity() = BookmarkEntity(
@@ -104,6 +111,9 @@ fun BookmarkBackupDto.toEntity() = BookmarkEntity(
     isPinned = isPinned,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    tags = Tags.encode(Tags.normalize(tags)),
+    isUnread = isUnread,
+    trashedAt = trashedAt,
 )
 
 fun CategoryEntity.toBackupDto() = CategoryBackupDto(

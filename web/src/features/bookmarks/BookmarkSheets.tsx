@@ -1,8 +1,8 @@
 import { type Bookmark } from '@/data/models'
 import { categoryOf, useData } from '@/data/repo'
-import { copyLink, deleteWithUndo, openLink, shareLink, togglePin } from '@/app/actions'
+import { copyLink, deleteWithUndo, openLink, shareLink, togglePin, toggleUnread } from '@/app/actions'
 import { formatDayMonth, formatDayMonthLong } from '@/app/format'
-import { openEdit, useUi } from '@/app/uiStore'
+import { openEdit, startSelect, useUi } from '@/app/uiStore'
 import { Icon, type IconName } from '@/components/Icon'
 import { Thumbnail } from '@/components/Thumbnail'
 import { CategoryDot, IconButton, PrimaryButton, SecondaryButton, Sheet } from '@/components/ui'
@@ -42,11 +42,13 @@ export function ContextSheet({ id }: { id: string }) {
       </div>
       <div role="menu" style={{ margin: '0 calc(-1 * var(--gutter))' }}>
         <ActionRow icon="openInNew" label="Open" onClick={then(() => openLink(b))} />
+        <ActionRow icon="check" label="Select" onClick={then(() => startSelect(b.id))} />
         <ActionRow icon="edit" label="Edit" onClick={() => { close(); openEdit(b.id) }} />
         <ActionRow icon="viewList" label="Change category" onClick={() => { close(); openEdit(b.id) }} />
         <ActionRow icon="contentCopy" label="Copy link" onClick={then(() => copyLink(b))} />
         <ActionRow icon="share" label="Share" onClick={then(() => shareLink(b))} />
         <ActionRow icon="flag" label={b.isPinned ? 'Unpin' : 'Pin to top'} onClick={then(() => togglePin(b))} />
+        <ActionRow icon={b.isUnread ? 'markEmailRead' : 'markEmailUnread'} label={b.isUnread ? 'Mark as read' : 'Mark as unread'} onClick={then(() => toggleUnread(b))} />
         <ActionRow icon="delete" label="Delete" danger onClick={then(() => deleteWithUndo(b))} />
       </div>
     </Sheet>
@@ -74,6 +76,7 @@ export function DetailSheet({ id }: { id: string }) {
           <span>{`${siteLine(b, category.name)} · saved ${formatDayMonth(b.createdAt)}`}</span>
         </div>
         {b.description?.trim() ? <div className="t-card-desc" style={{ marginTop: 12 }}>{b.description}</div> : null}
+        {b.tags.length > 0 ? <div className="t-caption detail-tags">{b.tags.map((t) => `#${t}`).join('  ')}</div> : null}
         <div className="detail-actions">
           <PrimaryButton style={{ flex: 1, minHeight: 50 }} onClick={() => openLink(b)}>Open</PrimaryButton>
           <IconButton outlined icon="share" label="Share" onClick={() => void shareLink(b)} />

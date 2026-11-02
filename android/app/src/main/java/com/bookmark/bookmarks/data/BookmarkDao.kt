@@ -21,7 +21,7 @@ interface BookmarkDao {
     @Query(
         """
         SELECT * FROM bookmarks
-        WHERE (:categoryId IS NULL OR categoryId = :categoryId)
+        WHERE (:categoryId IS NULL OR categoryId = :categoryId) AND trashedAt IS NULL
         ORDER BY isPinned DESC, createdAt DESC
         """
     )
@@ -30,7 +30,7 @@ interface BookmarkDao {
     @Query(
         """
         SELECT * FROM bookmarks
-        WHERE (:categoryId IS NULL OR categoryId = :categoryId)
+        WHERE (:categoryId IS NULL OR categoryId = :categoryId) AND trashedAt IS NULL
         ORDER BY isPinned DESC, createdAt ASC
         """
     )
@@ -39,7 +39,7 @@ interface BookmarkDao {
     @Query(
         """
         SELECT * FROM bookmarks
-        WHERE (:categoryId IS NULL OR categoryId = :categoryId)
+        WHERE (:categoryId IS NULL OR categoryId = :categoryId) AND trashedAt IS NULL
         ORDER BY isPinned DESC, title COLLATE NOCASE ASC
         """
     )
@@ -49,7 +49,7 @@ interface BookmarkDao {
         """
         SELECT b.* FROM bookmarks b
         JOIN categories c ON c.id = b.categoryId
-        WHERE (:categoryId IS NULL OR b.categoryId = :categoryId)
+        WHERE (:categoryId IS NULL OR b.categoryId = :categoryId) AND b.trashedAt IS NULL
         ORDER BY b.isPinned DESC, c.sortOrder ASC, b.createdAt DESC
         """
     )
@@ -64,7 +64,7 @@ interface BookmarkDao {
     @Query("SELECT * FROM bookmarks WHERE url = :url LIMIT 1")
     suspend fun findByUrl(url: String): BookmarkEntity?
 
-    @Query("SELECT COUNT(*) FROM bookmarks")
+    @Query("SELECT COUNT(*) FROM bookmarks WHERE trashedAt IS NULL")
     fun observeTotalCount(): Flow<Int>
 
     @Query("SELECT COUNT(*) FROM bookmarks WHERE categoryId = :categoryId")
@@ -96,6 +96,24 @@ interface BookmarkDao {
     @Query("UPDATE bookmarks SET isPinned = :pinned, updatedAt = :now WHERE id = :id")
     suspend fun setPinned(id: String, pinned: Boolean, now: Long)
 
+    @Query("UPDATE bookmarks SET trashedAt = :trashedAt, updatedAt = :now WHERE id = :id")
+    suspend fun setTrashedAt(id: String, trashedAt: Long?, now: Long)
+
+    @Query("SELECT * FROM bookmarks WHERE trashedAt IS NOT NULL ORDER BY trashedAt DESC")
+    fun observeTrashed(): Flow<List<BookmarkEntity>>
+
+    @Query("SELECT * FROM bookmarks WHERE trashedAt IS NOT NULL AND trashedAt < :cutoff")
+    suspend fun findTrashedBefore(cutoff: Long): List<BookmarkEntity>
+
+    @Query("SELECT * FROM bookmarks WHERE trashedAt IS NOT NULL")
+    suspend fun findAllTrashed(): List<BookmarkEntity>
+
+    @Query("UPDATE bookmarks SET tags = :tags, updatedAt = :now WHERE id = :id")
+    suspend fun setTags(id: String, tags: String?, now: Long)
+
+    @Query("UPDATE bookmarks SET isUnread = :unread, updatedAt = :now WHERE id = :id")
+    suspend fun setUnread(id: String, unread: Boolean, now: Long)
+
     @Query("UPDATE bookmarks SET categoryId = :categoryId, updatedAt = :now WHERE id = :id")
     suspend fun setCategory(id: String, categoryId: String, now: Long)
 
@@ -118,11 +136,11 @@ interface BookmarkDao {
     suspend fun deleteAll()
 
     /** Feeds the M3 retry queue and Settings' "Refresh all metadata". */
-    @Query("SELECT * FROM bookmarks WHERE metadataState IN (:states)")
+    @Query("SELECT * FROM bookmarks WHERE metadataState IN (:states) AND trashedAt IS NULL")
     suspend fun findByStates(states: List<MetadataState>): List<BookmarkEntity>
 
     /** The "N bookmarks eligible" line in Settings, without loading the rows. */
-    @Query("SELECT COUNT(*) FROM bookmarks WHERE metadataState IN (:states)")
+    @Query("SELECT COUNT(*) FROM bookmarks WHERE metadataState IN (:states) AND trashedAt IS NULL")
     suspend fun countByStates(states: List<MetadataState>): Int
 
     @Query("UPDATE bookmarks SET metadataState = :state WHERE id = :id")
@@ -276,13 +294,30 @@ interface BookmarkDao {
     @Query(
         """
         SELECT b.* FROM bookmarks b
-        JOIN bookmarks_fts f ON b.rowid = f.rowid
-        WHERE bookmarks_fts MATCH :query
+        WHERE (b.rowid IN (SELECT rowid FROM bookmarks_fts WHERE bookmarks_fts MATCH :query)
+               OR instr(char(10) || COALESCE(b.tags, ''), char(10) || :tagPrefix) > 0)
           AND (:categoryId IS NULL OR b.categoryId = :categoryId)
+          AND b.trashedAt IS NULL
         ORDER BY b.isPinned DESC, b.createdAt DESC
         """
     )
-    suspend fun search(query: String, categoryId: String?): List<BookmarkEntity>
+    suspend fun search(query: String, tagPrefix: String, categoryId: String?): List<BookmarkEntity>
+
+    /** Bookmarks carrying exactly [tag] (already normalised), for `#tag` searches. */
+    @Query(
+        """
+        SELECT * FROM bookmarks
+        WHERE instr(char(10) || COALESCE(tags, '') || char(10), char(10) || :tag || char(10)) > 0
+          AND (:categoryId IS NULL OR categoryId = :categoryId)
+          AND trashedAt IS NULL
+        ORDER BY isPinned DESC, createdAt DESC
+        """
+    )
+    suspend fun findByTag(tag: String, categoryId: String?): List<BookmarkEntity>
+
+    /** Every tag in use is derived from this; the caller splits and counts. */
+    @Query("SELECT tags FROM bookmarks WHERE tags IS NOT NULL AND tags != '' AND trashedAt IS NULL")
+    fun observeAllTags(): kotlinx.coroutines.flow.Flow<List<String>>
 
     /** Rows with unpushed local changes -- never synced, or edited since the last sync. */
     @Query("SELECT * FROM bookmarks WHERE syncedUpdatedAt IS NULL OR updatedAt > syncedUpdatedAt")

@@ -88,6 +88,14 @@ class UrlNormalizerTest {
     }
 
     @Test
+    fun `strips newsletter and social share tracking params`() {
+        assertEquals(
+            "https://example.com/a?id=7",
+            UrlNormalizer.normalize("https://example.com/a?igsh=1&mkt_tok=2&_hsenc=3&gbraid=4&id=7"),
+        )
+    }
+
+    @Test
     fun `registrable domain handles multi-part suffixes`() {
         assertEquals("ycombinator.com", UrlNormalizer.registrableDomain("https://news.ycombinator.com"))
         assertEquals("bbc.co.uk", UrlNormalizer.registrableDomain("https://www.bbc.co.uk/news"))

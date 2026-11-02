@@ -22,6 +22,12 @@ export interface Bookmark {
   /** Signed 32-bit ARGB, as stored by Android. */
   accentColor: number | null
   imageCandidates: string[]
+  /** Normalised tags (core/util/tags). Synced. */
+  tags: string[]
+  /** Saved but not opened yet; cleared when the link is opened. Synced. */
+  isUnread: boolean
+  /** Epoch millis it was moved to Trash, or null while live. Synced as a soft delete. */
+  trashedAt: number | null
   categoryId: string
   manualFields: number
   isPinned: boolean
@@ -31,7 +37,13 @@ export interface Bookmark {
   syncedUpdatedAt: number | null
   /** A thumbnail picked on this device that has not been uploaded yet. */
   pendingThumbnail?: Blob | null
+  /** Result of the last "Check links" run. Device-local: never synced. */
+  linkStatus?: LinkStatus
+  linkCheckedAt?: number
 }
+
+/** ok: answered 2xx/3xx. broken: 404/410 (or the host does not exist). error: inconclusive, not treated as broken. */
+export type LinkStatus = 'ok' | 'broken' | 'error'
 
 export interface Category {
   id: string

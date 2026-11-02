@@ -27,9 +27,12 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.MarkEmailRead
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Share
@@ -83,11 +86,14 @@ fun BookmarkContextSheet(
     category: Category?,
     thumbnailPath: String?,
     onDismiss: () -> Unit,
+    onOpen: () -> Unit,
     onEdit: () -> Unit,
+    onSelect: () -> Unit,
     onChangeCategory: () -> Unit,
     onCopyLink: () -> Unit,
     onShare: () -> Unit,
     onTogglePin: () -> Unit,
+    onToggleUnread: () -> Unit,
     /**
      * Null unless [bookmark] is [MetadataState.FALLBACK] -- that's the only
      * state whose retry affordance lives here rather than the detail sheet
@@ -141,7 +147,9 @@ fun BookmarkContextSheet(
                 .navigationBarsPadding()
                 .padding(top = 8.dp, bottom = 18.dp),
         ) {
+            ContextRow(Icons.AutoMirrored.Outlined.OpenInNew, "Open", onOpen)
             ContextRow(Icons.Outlined.Edit, "Edit", onEdit)
+            ContextRow(Icons.Outlined.CheckCircle, "Select", onSelect)
             ContextRow(Icons.Outlined.ViewList, "Change category", onChangeCategory)
             ContextRow(Icons.Outlined.ContentCopy, "Copy link", onCopyLink)
             ContextRow(Icons.Outlined.Share, "Share", onShare)
@@ -149,6 +157,11 @@ fun BookmarkContextSheet(
                 icon = Icons.Outlined.Flag,
                 label = if (bookmark.isPinned) "Unpin" else "Pin to top",
                 onClick = onTogglePin,
+            )
+            ContextRow(
+                icon = Icons.Outlined.MarkEmailRead,
+                label = if (bookmark.isUnread) "Mark as read" else "Mark as unread",
+                onClick = onToggleUnread,
             )
             if (onRetryFetch != null) {
                 ContextRow(Icons.Outlined.Refresh, "Retry fetch", onRetryFetch)
@@ -364,6 +377,15 @@ fun BookmarkDetailSheet(
                             text = bookmark.description,
                             style = BookmarkTheme.text.cardDescription,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
+                    }
+
+                    if (bookmark.tags.isNotEmpty()) {
+                        Text(
+                            text = bookmark.tags.joinToString("  ") { "#$it" },
+                            style = BookmarkTheme.text.screenCount,
+                            color = BookmarkTheme.colors.accent,
                             modifier = Modifier.padding(top = 12.dp),
                         )
                     }

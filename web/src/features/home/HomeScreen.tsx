@@ -1,8 +1,8 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { type SortOrder } from '@/data/models'
 import { categoryOf, useData } from '@/data/repo'
-import { openAdd, useUi } from '@/app/uiStore'
+import { clearSelect, openAdd, useUi } from '@/app/uiStore'
 import { usePrefs } from '@/app/prefs'
 import { useIsDesktop } from '@/app/hooks'
 import { BookmarkGridCard, BookmarkListRow, MasonryGrid } from '@/components/BookmarkCards'
@@ -10,8 +10,12 @@ import { Icon } from '@/components/Icon'
 import { EmptyState, IconButton, Menu, PrimaryButton, ScreenHeader } from '@/components/ui'
 import { SearchResults } from '../search/SearchResults'
 import { DesktopSearchBox } from '../search/DesktopSearchBox'
+import { SearchFilterChips } from '../search/SearchFilterChips'
 import { CategoryChips } from './CategoryChips'
+import { ClipboardChip } from './ClipboardChip'
+import { SelectionBar } from './SelectionBar'
 import { SORT_LABELS, sortBookmarks } from './selectors'
+import { pickSurprise } from './surprise'
 import { useBookmarkHandlers } from './useBookmarkActions'
 
 export function HomeScreen() {
@@ -22,6 +26,16 @@ export function HomeScreen() {
   const setUi = useUi((s) => s.set)
   const query = useUi((s) => s.searchQuery)
   const { viewMode, sortOrder, set: setPref } = usePrefs()
+  const [unreadOnly, setUnreadOnly] = useState(false)
+  const selecting = useUi((s) => s.selecting)
+  // Escape leaves bulk-select mode, and so does leaving the screen.
+  useEffect(() => {
+    if (!selecting) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && clearSelect()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selecting])
+  useEffect(() => clearSelect, [])
   const desktop = useIsDesktop()
   const navigate = useNavigate()
   const { onOpen, onActions } = useBookmarkHandlers()
@@ -30,8 +44,8 @@ export function HomeScreen() {
 
   const visible = useMemo(() => {
     const inCat = filter ? bookmarks.filter((b) => b.categoryId === filter) : bookmarks
-    return sortBookmarks(inCat, sortOrder, categories)
-  }, [bookmarks, categories, filter, sortOrder])
+    return sortBookmarks(unreadOnly ? inCat.filter((b) => b.isUnread) : inCat, sortOrder, categories)
+  }, [bookmarks, categories, filter, sortOrder, unreadOnly])
 
   const isEmpty = loaded && bookmarks.length === 0
   const searching = desktop && query.trim() !== ''
@@ -51,6 +65,8 @@ export function HomeScreen() {
         )}
       </ScreenHeader>
 
+      <ClipboardChip />
+
       {isEmpty ? (
         <EmptyState
           title="Nothing saved yet"
@@ -61,8 +77,11 @@ export function HomeScreen() {
         <>
           <CategoryChips selected={filter} onSelect={(id) => setUi('filterCategory', id)} />
           {searching ? (
-            <div style={{ paddingTop: 14 }}>
-              <SearchResults query={query} categoryId={filter} />
+            <div style={{ paddingTop: 8 }}>
+              <SearchFilterChips />
+              <div style={{ paddingTop: 6 }}>
+                <SearchResults query={query} categoryId={filter} onUseRecent={(q) => setUi('searchQuery', q)} />
+              </div>
             </div>
           ) : (
             <>
@@ -70,6 +89,27 @@ export function HomeScreen() {
                 <button ref={sortBtn} type="button" className="sort-btn" onClick={() => setSortOpen(true)} aria-haspopup="menu" aria-expanded={sortOpen}>
                   <Icon name="swapVert" size={16} />
                   <span>{SORT_LABELS[sortOrder].short}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`chip ${unreadOnly ? 'active' : ''}`}
+                  style={{ marginLeft: 'auto', marginRight: 8 }}
+                  aria-pressed={unreadOnly}
+                  onClick={() => setUnreadOnly((v) => !v)}
+                >
+                  Unread
+                </button>
+                <button
+                  type="button"
+                  className="sort-btn"
+                  style={{ marginRight: 8 }}
+                  onClick={() => {
+                    const pick = pickSurprise(visible)
+                    if (pick) setUi('detail', pick.id)
+                  }}
+                >
+                  <Icon name="shuffle" size={16} />
+                  <span>Surprise me</span>
                 </button>
                 <div className="view-toggle" role="radiogroup" aria-label="Layout">
                   <button type="button" role="radio" aria-checked={viewMode === 'LIST'} aria-label="List" onClick={() => setPref('viewMode', 'LIST')}>
@@ -111,7 +151,9 @@ export function HomeScreen() {
         </>
       )}
 
-      {!isEmpty && !desktop ? (
+      {selecting ? <SelectionBar /> : null}
+
+      {!isEmpty && !desktop && !selecting ? (
         <button type="button" className="fab" aria-label="Add bookmark" onClick={() => openAdd()}>
           <Icon name="add" size={26} />
         </button>

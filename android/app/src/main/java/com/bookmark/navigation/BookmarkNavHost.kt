@@ -48,6 +48,7 @@ import com.bookmark.bookmarks.detail.BookmarkDetailSheet
 import com.bookmark.bookmarks.detail.DuplicateBookmarkSheet
 import com.bookmark.bookmarks.edit.AddEditBookmarkSheet
 import com.bookmark.bookmarks.edit.AddEditViewModel
+import com.bookmark.bookmarks.home.pickSurprise
 import com.bookmark.bookmarks.home.HomeScreen
 import com.bookmark.bookmarks.home.HomeViewModel
 import com.bookmark.categories.ui.CategoriesScreen
@@ -67,6 +68,8 @@ import com.bookmark.metadata.FailureCause
 import com.bookmark.metadata.userMessage
 import com.bookmark.search.SearchScreen
 import com.bookmark.search.SearchViewModel
+import com.bookmark.trash.TrashScreen
+import com.bookmark.trash.TrashViewModel
 import com.bookmark.settings.ImportSheetState
 import com.bookmark.settings.SettingsScreen
 import com.bookmark.settings.SettingsViewModel
@@ -137,8 +140,21 @@ fun BookmarkNavHost() {
     val categoryError by categoriesViewModel.error.collectAsStateWithLifecycle()
     val categoryUndo by categoriesViewModel.undo.collectAsStateWithLifecycle()
     val bookmarkUndo by homeViewModel.undo.collectAsStateWithLifecycle()
+    val clipboardSuggestion by homeViewModel.clipboardSuggestion.collectAsStateWithLifecycle()
+    // Opening a link clears its unread dot.
+    val openBookmark: (Bookmark) -> Unit = {
+        homeViewModel.markOpened(it)
+        LinkActions.open(context, it.url)
+    }
+    // Android only lets a focused app read the clipboard, so wait for window focus
+    // rather than ON_RESUME (which can fire before focus is granted).
+    val windowFocused = androidx.compose.ui.platform.LocalWindowInfo.current.isWindowFocused
+    LaunchedEffect(windowFocused) {
+        if (windowFocused) homeViewModel.offerClipboard(LinkActions.clipboardUrl(context))
+    }
     val preferences by settingsViewModel.preferences.collectAsStateWithLifecycle()
     val settingsSummary by settingsViewModel.summary.collectAsStateWithLifecycle()
+    val linkCheckSummary by settingsViewModel.linkCheckSummary.collectAsStateWithLifecycle()
     val importSheetState by settingsViewModel.importSheetState.collectAsStateWithLifecycle()
     val backupMessage by settingsViewModel.message.collectAsStateWithLifecycle()
     val settingsAuthState by settingsViewModel.authState.collectAsStateWithLifecycle()
@@ -158,7 +174,11 @@ fun BookmarkNavHost() {
     LaunchedEffect(bookmarkUndo) {
         val pending = bookmarkUndo ?: return@LaunchedEffect
         val result = snackbarHostState.showSnackbar(
-            message = "Deleted “${pending.bookmark.title.take(30)}”",
+            message = if (pending.bookmarks.size == 1) {
+                "Moved “${pending.bookmark.title.take(30)}” to Trash"
+            } else {
+                "Moved ${pending.bookmarks.size} bookmarks to Trash"
+            },
             actionLabel = "Undo",
             duration = SnackbarDuration.Short,
         )
@@ -271,11 +291,22 @@ fun BookmarkNavHost() {
                         if (it.metadataState == MetadataState.FAILED) {
                             sheet = SheetState.Detail(it)
                         } else {
-                            LinkActions.open(context, it.url)
+                            openBookmark(it)
                         }
                     },
                     onBookmarkLongPress = { sheet = SheetState.Context(it) },
                     onSearch = { navController.navigate(SearchRoute) },
+                    onUnreadOnlyChange = homeViewModel::setUnreadOnly,
+                    onToggleSelect = homeViewModel::toggleSelected,
+                    onClearSelection = homeViewModel::clearSelection,
+                    onPinSelected = homeViewModel::pinSelected,
+                    onMoveSelected = homeViewModel::moveSelected,
+                    onTagSelected = homeViewModel::tagSelected,
+                    onTrashSelected = homeViewModel::trashSelected,
+                    onSurprise = { pickSurprise(homeState.bookmarks)?.let { sheet = SheetState.Detail(it) } },
+                    clipboardSuggestion = clipboardSuggestion,
+                    onSaveClipboard = homeViewModel::saveClipboardSuggestion,
+                    onDismissClipboard = homeViewModel::dismissClipboardSuggestion,
                     onAdd = {
                         addEditViewModel.startAdd()
                         addEditViewModel.offerClipboard(LinkActions.clipboardUrl(context))
@@ -305,14 +336,30 @@ fun BookmarkNavHost() {
                     onDynamicColorChange = settingsViewModel::setDynamicColor,
                     onTrueBlackChange = settingsViewModel::setTrueBlack,
                     onFetchPreviewsChange = settingsViewModel::setFetchPreviews,
+                    onClipboardChipChange = settingsViewModel::setClipboardChip,
                     onRefreshAll = settingsViewModel::refreshAll,
                     onClearThumbnails = settingsViewModel::clearThumbnails,
                     onExportBackup = { exportLauncher.launch("bookmarks-${backupDateStamp()}.zip") },
-                    onImportBackup = { importLauncher.launch(arrayOf("application/zip")) },
+                    onImportBackup = { importLauncher.launch(arrayOf("application/zip", "text/html")) },
+                    onOpenTrash = { navController.navigate(TrashRoute) },
+                    linkCheckSummary = linkCheckSummary,
+                    onCheckLinks = settingsViewModel::checkLinks,
                     onSignIn = { navController.navigate(AccountRoute) },
                     onSyncNow = settingsViewModel::syncNow,
                     onSignOut = settingsViewModel::signOut,
                     onSearch = { },
+                )
+            }
+
+            composable<TrashRoute> {
+                val trashViewModel: TrashViewModel = hiltViewModel()
+                val trashed by trashViewModel.items.collectAsStateWithLifecycle()
+                TrashScreen(
+                    items = trashed,
+                    onBack = { navController.popBackStack() },
+                    onRestore = trashViewModel::restore,
+                    onDeleteForever = trashViewModel::deleteForever,
+                    onEmptyTrash = trashViewModel::emptyTrash,
                 )
             }
 
@@ -378,12 +425,16 @@ fun BookmarkNavHost() {
                     onQueryChange = searchViewModel::onQueryChange,
                     onClearQuery = searchViewModel::clearQuery,
                     onSelectCategory = searchViewModel::selectCategory,
+                    onFiltersChange = searchViewModel::setFilters,
+                    onCommitQuery = searchViewModel::commitQuery,
+                    onUseRecent = searchViewModel::useRecentSearch,
+                    onClearRecents = searchViewModel::clearRecentSearches,
                     onBack = { navController.popBackStack() },
                     onOpenBookmark = {
                         if (it.metadataState == MetadataState.FAILED) {
                             sheet = SheetState.Detail(it)
                         } else {
-                            LinkActions.open(context, it.url)
+                            openBookmark(it)
                         }
                     },
                     onBookmarkLongPress = { sheet = SheetState.Context(it) },
@@ -404,6 +455,7 @@ fun BookmarkNavHost() {
             onUrlChange = addEditViewModel::onUrlChange,
             onTitleChange = addEditViewModel::onTitleChange,
             onDescriptionChange = addEditViewModel::onDescriptionChange,
+            onTagsChange = addEditViewModel::onTagsChange,
             onCategoryChange = addEditViewModel::onCategoryChange,
             onCreateCategory = addEditViewModel::createCategory,
             onAcceptClipboard = addEditViewModel::acceptClipboardSuggestion,
@@ -424,6 +476,14 @@ fun BookmarkNavHost() {
                 addEditViewModel.startEdit(current.bookmark)
                 sheet = SheetState.AddEdit
             },
+            onOpen = {
+                openBookmark(current.bookmark)
+                sheet = SheetState.None
+            },
+            onSelect = {
+                homeViewModel.startSelection(current.bookmark)
+                sheet = SheetState.None
+            },
             onChangeCategory = {
                 addEditViewModel.startEdit(current.bookmark)
                 sheet = SheetState.AddEdit
@@ -438,6 +498,10 @@ fun BookmarkNavHost() {
             },
             onTogglePin = {
                 homeViewModel.togglePin(current.bookmark)
+                sheet = SheetState.None
+            },
+            onToggleUnread = {
+                homeViewModel.setUnread(current.bookmark, !current.bookmark.isUnread)
                 sheet = SheetState.None
             },
             onRetryFetch = if (current.bookmark.metadataState == MetadataState.FALLBACK) {
@@ -465,7 +529,7 @@ fun BookmarkNavHost() {
                 ?.let { runCatching { FailureCause.valueOf(it) }.getOrNull() }
                 .userMessage(),
             onDismiss = { sheet = SheetState.None },
-            onOpen = { LinkActions.open(context, current.bookmark.url) },
+            onOpen = { openBookmark(current.bookmark) },
             onShare = { LinkActions.share(context, current.bookmark.url, current.bookmark.title) },
             onEdit = {
                 addEditViewModel.startEdit(current.bookmark)

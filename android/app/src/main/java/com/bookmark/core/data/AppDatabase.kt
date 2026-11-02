@@ -4,6 +4,8 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.bookmark.linkcheck.LinkCheckDao
+import com.bookmark.linkcheck.LinkCheckEntity
 import com.bookmark.bookmarks.data.BookmarkDao
 import com.bookmark.bookmarks.data.BookmarkEntity
 import com.bookmark.bookmarks.data.BookmarkFtsEntity
@@ -19,14 +21,16 @@ import com.bookmark.sync.data.SyncTombstoneEntity
         BookmarkFtsEntity::class,
         CategoryEntity::class,
         SyncTombstoneEntity::class,
+        LinkCheckEntity::class,
     ],
-    version = 3,
+    version = 7,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun bookmarkDao(): BookmarkDao
     abstract fun categoryDao(): CategoryDao
     abstract fun syncTombstoneDao(): SyncTombstoneDao
+    abstract fun linkCheckDao(): LinkCheckDao
 
     companion object {
         const val NAME = "bookmarks.db"
@@ -115,5 +119,50 @@ class SeedCallback : RoomDatabase.Callback() {
     private companion object {
         /** Matches CategorySwatchHex[5], the neutral grey the design gives Unsorted. */
         const val NEUTRAL_SWATCH = "#7D918D"
+    }
+}
+
+/**
+ * v3 to v4: bookmark tags. A nullable, newline-joined TEXT column like
+ * `imageCandidates`; no data migration, and the FTS table is untouched (tags
+ * are matched with a separate predicate in [BookmarkDao.search]).
+ */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE bookmarks ADD COLUMN tags TEXT")
+    }
+}
+
+/**
+ * v4 to v5: unread state. Every existing bookmark starts as read (0): the
+ * dot is for things saved from now on, not a backlog of the whole library.
+ */
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE bookmarks ADD COLUMN isUnread INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+/**
+ * v5 to v6: Trash. A nullable timestamp -- null means the bookmark is live --
+ * so existing rows are unaffected. Every list, count and search query filters
+ * on it; sync and backup carry it.
+ */
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE bookmarks ADD COLUMN trashedAt INTEGER")
+    }
+}
+
+/**
+ * v6 to v7: results of "Check links" in a table of their own (device-local,
+ * see [LinkCheckEntity]). Purely additive.
+ */
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `link_checks` (`bookmarkId` TEXT NOT NULL, `status` TEXT NOT NULL, " +
+                "`httpCode` INTEGER, `checkedAt` INTEGER NOT NULL, PRIMARY KEY(`bookmarkId`))",
+        )
     }
 }

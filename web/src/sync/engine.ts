@@ -1,3 +1,4 @@
+import { normalizeTags } from '@/core/util/tags'
 import { create } from 'zustand'
 import { useSession } from '@/account/session'
 import { API_BASE, ApiError, NetworkError } from '@/api/client'
@@ -5,7 +6,7 @@ import type { BookmarkDto, CategoryDto, PushRequest, PushResponse, PullResponse 
 import { SyncApi } from '@/api/endpoints'
 import { getDb, getMeta, setMeta } from '@/data/db'
 import { type Bookmark, type Category, UNSORTED_ID, isDirty } from '@/data/models'
-import { flushPendingDeletes, internal, onLocalChange, useData } from '@/data/repo'
+import { allBookmarks, findBookmark, flushPendingDeletes, internal, onLocalChange, useData } from '@/data/repo'
 
 const PUSH_CHUNK = 500
 const DEBOUNCE_MS = 15_000
@@ -52,6 +53,9 @@ export const bookmarkToDto = (b: Bookmark): BookmarkDto => ({
   thumbnail_height: b.thumbnailHeight,
   accent_color: b.accentColor,
   image_candidates: b.imageCandidates,
+  tags: b.tags,
+  is_unread: b.isUnread,
+  trashed_at: b.trashedAt,
   category_id: b.categoryId,
   manual_fields: b.manualFields,
   is_pinned: b.isPinned,
@@ -74,6 +78,9 @@ const bookmarkFromDto = (d: BookmarkDto): Bookmark => ({
   thumbnailHeight: d.thumbnail_height,
   accentColor: d.accent_color,
   imageCandidates: d.image_candidates ?? [],
+  tags: normalizeTags(d.tags ?? []),
+  isUnread: d.is_unread ?? false,
+  trashedAt: d.trashed_at ?? null,
   categoryId: d.category_id,
   manualFields: d.manual_fields,
   isPinned: d.is_pinned,
@@ -110,7 +117,7 @@ async function markBookmarksSynced(sent: Map<string, number>, res: PushResponse)
   const rejected = new Set(res.bookmarks.rejected.map((r) => r.id))
   for (const [id, updatedAt] of sent) {
     if (rejected.has(id)) continue
-    const b = useData.getState().bookmarks.find((x) => x.id === id)
+    const b = findBookmark(id)
     if (b && b.updatedAt === updatedAt) await internal.putBookmark({ ...b, syncedUpdatedAt: updatedAt })
   }
   logRejections('bookmark', res.bookmarks.rejected)
@@ -139,9 +146,9 @@ async function ensureThumbnailUploaded(b: Bookmark): Promise<Bookmark> {
 
 export async function push(): Promise<void> {
   const db = await getDb()
-  const { categories, bookmarks } = useData.getState()
+  const { categories } = useData.getState()
   const dirtyCategories = categories.filter(isDirty)
-  const dirtyBookmarks = bookmarks.filter(isDirty)
+  const dirtyBookmarks = allBookmarks().filter(isDirty)
   const tombstones = await db.getAll('tombstones')
 
   // Categories first so a bookmark pointing at a new category is accepted.
@@ -215,11 +222,16 @@ export async function applyPullPage(page: PullResponse): Promise<void> {
 
   // 2. Bookmarks.
   for (const dto of page.bookmarks.upserts) {
-    const local = useData.getState().bookmarks.find((b) => b.id === dto.id)
+    const local = findBookmark(dto.id)
     if (local && isDirty(local) && local.updatedAt > dto.updated_at) continue
     const incoming = bookmarkFromDto(dto)
     // Keep a thumbnail picked here that has not been uploaded yet.
     if (local?.pendingThumbnail && !incoming.thumbnailUrl) incoming.pendingThumbnail = local.pendingThumbnail
+    // Link-check results are device-local, so a pulled row must not wipe them.
+    if (local && local.url === incoming.url) {
+      incoming.linkStatus = local.linkStatus
+      incoming.linkCheckedAt = local.linkCheckedAt
+    }
     await internal.putBookmark(incoming)
   }
 
@@ -227,7 +239,7 @@ export async function applyPullPage(page: PullResponse): Promise<void> {
   for (const del of page.categories.deletes) {
     if (del.id === UNSORTED_ID) continue
     const now = Date.now()
-    for (const b of useData.getState().bookmarks.filter((x) => x.categoryId === del.id)) {
+    for (const b of allBookmarks().filter((x) => x.categoryId === del.id)) {
       await internal.putBookmark({ ...b, categoryId: UNSORTED_ID, updatedAt: now })
     }
     await internal.removeCategoryRow(del.id)

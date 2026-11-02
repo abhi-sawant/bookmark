@@ -58,7 +58,7 @@ class SyncRepository @Inject constructor(
                 push()
                 pull()
                 syncStateStore.recordSuccess(System.currentTimeMillis())
-            }.fold(
+            }.onFailure { Log.w(TAG, "Sync failed", it) }.fold(
                 onSuccess = { SyncResult.Success },
                 onFailure = { SyncResult.Failed(it) },
             )
@@ -144,7 +144,14 @@ class SyncRepository @Inject constructor(
                 if (dto.isDefault) categoryDao.clearDefaultFlag(System.currentTimeMillis())
                 val existing = categoryDao.findById(dto.id)
                 val sortOrder = existing?.sortOrder ?: categoryDao.nextSortOrder()
-                categoryDao.upsertFromServer(dto.toEntity(sortOrder = sortOrder, syncedUpdatedAt = dto.updatedAt))
+                // A different category already using this name would be evicted by the
+                // unique index (and its bookmarks orphaned): keep both, rename this one locally.
+                val name = CategoryNames.unique(dto.name) { candidate ->
+                    categoryDao.findByName(candidate)?.let { it.id != dto.id } == true
+                }
+                categoryDao.upsertFromServer(
+                    dto.toEntity(sortOrder = sortOrder, syncedUpdatedAt = dto.updatedAt).copy(name = name),
+                )
             }
             response.bookmarks.upserts.forEach { dto ->
                 val entity = dto.toEntity(syncedUpdatedAt = dto.updatedAt)

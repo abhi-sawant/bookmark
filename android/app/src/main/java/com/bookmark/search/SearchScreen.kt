@@ -2,6 +2,7 @@ package com.bookmark.search
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -36,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.ImeAction
@@ -43,7 +46,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.bookmark.core.model.Bookmark
 import com.bookmark.core.ui.components.BookmarkThumbnail
+import com.bookmark.core.ui.components.CategoryChip
 import com.bookmark.core.ui.components.CategoryFilterRow
+import com.bookmark.core.ui.theme.Dimens
 import com.bookmark.core.ui.theme.BookmarkShapes
 import com.bookmark.core.ui.components.SlateIconButton
 import com.bookmark.core.ui.theme.BookmarkTheme
@@ -56,6 +61,10 @@ fun SearchScreen(
     onQueryChange: (String) -> Unit,
     onClearQuery: () -> Unit,
     onSelectCategory: (String?) -> Unit,
+    onFiltersChange: (SearchFilters) -> Unit,
+    onCommitQuery: () -> Unit,
+    onUseRecent: (String) -> Unit,
+    onClearRecents: () -> Unit,
     onBack: () -> Unit,
     onOpenBookmark: (Bookmark) -> Unit,
     onBookmarkLongPress: (Bookmark) -> Unit,
@@ -86,6 +95,7 @@ fun SearchScreen(
             SearchField(
                 value = state.query,
                 onValueChange = onQueryChange,
+                onSearchAction = onCommitQuery,
                 focusRequester = focusRequester,
                 modifier = Modifier.weight(1f),
             )
@@ -110,15 +120,63 @@ fun SearchScreen(
             modifier = Modifier.padding(bottom = 10.dp),
         )
 
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(Dimens.chipGap),
+            contentPadding = PaddingValues(horizontal = 20.dp),
+            modifier = Modifier.padding(bottom = 10.dp),
+        ) {
+            item(key = "unread") {
+                CategoryChip(
+                    label = "Unread",
+                    selected = state.filters.unreadOnly,
+                    onClick = { onFiltersChange(state.filters.copy(unreadOnly = !state.filters.unreadOnly)) },
+                )
+            }
+            item(key = "broken") {
+                CategoryChip(
+                    label = "Broken links",
+                    selected = state.filters.brokenOnly,
+                    onClick = { onFiltersChange(state.filters.copy(brokenOnly = !state.filters.brokenOnly)) },
+                )
+            }
+            item(key = "pinned") {
+                CategoryChip(
+                    label = "Pinned",
+                    selected = state.filters.pinnedOnly,
+                    onClick = { onFiltersChange(state.filters.copy(pinnedOnly = !state.filters.pinnedOnly)) },
+                )
+            }
+            item(key = "unsorted") {
+                CategoryChip(
+                    label = "No category",
+                    selected = state.filters.unsortedOnly,
+                    onClick = { onFiltersChange(state.filters.copy(unsortedOnly = !state.filters.unsortedOnly)) },
+                )
+            }
+            item(key = "week") {
+                CategoryChip(
+                    label = "This week",
+                    selected = state.filters.thisWeek,
+                    onClick = { onFiltersChange(state.filters.copy(thisWeek = !state.filters.thisWeek)) },
+                )
+            }
+        }
+
         when {
-            state.query.isBlank() -> SearchPrompt(
+            state.query.isBlank() && !state.filters.isActive && state.recentSearches.isNotEmpty() -> RecentSearchList(
+                recents = state.recentSearches,
+                onUse = onUseRecent,
+                onClear = onClearRecents,
+            )
+
+            state.query.isBlank() && !state.filters.isActive -> SearchPrompt(
                 title = "Search your bookmarks",
-                subtitle = "Titles, sites and descriptions -- as you type.",
+                subtitle = "Titles, sites, descriptions and tags -- as you type. Try #tag for an exact tag.",
             )
 
             state.hasSearched && state.results.isEmpty() -> SearchPrompt(
                 title = "No matches",
-                subtitle = "Try a different word, or clear the category filter.",
+                subtitle = "Try a different word, or clear the filters.",
             )
 
             else -> {
@@ -143,7 +201,10 @@ fun SearchScreen(
                                 ?.category?.name,
                             thumbnailPath = thumbnailFor(bookmark),
                             queryTerms = state.queryTerms,
-                            onClick = { onOpenBookmark(bookmark) },
+                            onClick = {
+                                onCommitQuery()
+                                onOpenBookmark(bookmark)
+                            },
                             onLongClick = { onBookmarkLongPress(bookmark) },
                         )
                     }
@@ -157,6 +218,7 @@ fun SearchScreen(
 private fun SearchField(
     value: String,
     onValueChange: (String) -> Unit,
+    onSearchAction: () -> Unit,
     focusRequester: FocusRequester,
     modifier: Modifier = Modifier,
 ) {
@@ -181,6 +243,7 @@ private fun SearchField(
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
             singleLine = true,
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { onSearchAction() }),
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(focusRequester)
@@ -277,5 +340,45 @@ private fun SearchPrompt(title: String, subtitle: String) {
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             modifier = Modifier.padding(top = 9.dp),
         )
+    }
+}
+
+@Composable
+private fun RecentSearchList(recents: List<String>, onUse: (String) -> Unit, onClear: () -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = "Recent searches",
+                style = BookmarkTheme.text.caption,
+                color = BookmarkTheme.colors.mutedLabel,
+            )
+            Text(
+                text = "Clear",
+                style = BookmarkTheme.text.caption,
+                color = BookmarkTheme.colors.accent,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(role = Role.Button, onClick = onClear)
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+            )
+        }
+        recents.forEach { recent ->
+            Text(
+                text = recent,
+                style = BookmarkTheme.text.fieldValue,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable(onClickLabel = "Search $recent") { onUse(recent) }
+                    .padding(vertical = 12.dp, horizontal = 4.dp),
+            )
+        }
     }
 }

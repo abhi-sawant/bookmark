@@ -11,6 +11,7 @@ import com.bookmark.core.model.Bookmark
 import com.bookmark.core.model.Category
 import com.bookmark.core.model.FailureCauseName
 import com.bookmark.core.model.MetadataState
+import com.bookmark.core.util.Tags
 
 @Entity(
     tableName = "bookmarks",
@@ -92,6 +93,12 @@ data class BookmarkEntity(
      * on real user edits, never by an automatic metadata fetch.
      */
     val syncedUpdatedAt: Long? = null,
+    /** Newline-joined tags, see [com.bookmark.core.util.Tags]. Synced. */
+    val tags: String? = null,
+    /** Not opened since it was saved. Synced; bumping it bumps [updatedAt]. */
+    @ColumnInfo(defaultValue = "0") val isUnread: Boolean = false,
+    /** Epoch millis it was moved to Trash, or null. Synced as a soft delete. */
+    val trashedAt: Long? = null,
 ) {
     fun toDomain() = Bookmark(
         id = id,
@@ -115,6 +122,9 @@ data class BookmarkEntity(
         isPinned = isPinned,
         createdAt = createdAt,
         updatedAt = updatedAt,
+        tags = Tags.decode(tags),
+        isUnread = isUnread,
+        trashedAt = trashedAt,
     )
 }
 
@@ -150,6 +160,9 @@ fun Bookmark.toEntity(remoteThumbnailUrl: String? = null, syncedUpdatedAt: Long?
     updatedAt = updatedAt,
     remoteThumbnailUrl = remoteThumbnailUrl,
     syncedUpdatedAt = syncedUpdatedAt,
+    tags = Tags.encode(tags),
+    isUnread = isUnread,
+    trashedAt = trashedAt,
 )
 
 /**

@@ -8,6 +8,7 @@ import { Thumbnail } from './Thumbnail'
 import { useLongPress } from './useLongPress'
 import { argbToHex } from './MonogramTile'
 import { findHighlightRanges } from '@/core/util/highlight'
+import { useUi } from '@/app/uiStore'
 
 /** Heights of the monogram tile in the grid, picked by domain so a run of fallbacks staggers. */
 const FALLBACK_HEIGHTS = [96, 104, 110, 120, 132, 148, 158, 176]
@@ -51,15 +52,25 @@ function useCardGestures(b: Bookmark, onOpen: CardProps['onOpen'], onActions: Ca
   }
 }
 
+/** Check badge on a selected card (bulk-select mode). */
+function SelectedBadge({ sm }: { sm?: boolean }) {
+  return (
+    <span className={`select-badge ${sm ? 'sm' : ''}`} role="img" aria-label="Selected">
+      <Icon name="check" size={sm ? 12 : 16} />
+    </span>
+  )
+}
+
 export function BookmarkGridCard({ bookmark: b, category, onOpen, onActions, fixedHeight }: CardProps) {
   const gestures = useCardGestures(b, onOpen, onActions)
+  const selected = useUi((s) => s.selectedIds.includes(b.id))
   const ratio = ratioOf(b)
   return (
     <a
       href={b.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="grid-card"
+      className={`grid-card ${selected ? 'selected' : ''}`}
       aria-label={`Open ${b.title}`}
       draggable={false}
       {...gestures}
@@ -74,6 +85,7 @@ export function BookmarkGridCard({ bookmark: b, category, onOpen, onActions, fix
           <Icon name="flag" size={16} />
         </span>
       ) : null}
+      {selected ? <SelectedBadge /> : b.isUnread ? <span className="unread-dot" role="img" aria-label="Unread" /> : null}
       <div className="text">
         <div className="t-card-title clamp-2">{b.title}</div>
         {b.description?.trim() ? <div className="t-card-desc desc clamp-2">{b.description}</div> : null}
@@ -81,6 +93,7 @@ export function BookmarkGridCard({ bookmark: b, category, onOpen, onActions, fix
           <CategoryDot color={category.colorHex} />
           <span className="clamp-1">{b.siteName ?? category.name}</span>
         </div>
+        {b.linkStatus === 'broken' ? <div className="t-site broken-note">Link may be broken</div> : null}
       </div>
     </a>
   )
@@ -88,8 +101,9 @@ export function BookmarkGridCard({ bookmark: b, category, onOpen, onActions, fix
 
 export function BookmarkListRow({ bookmark: b, category, onOpen, onActions }: CardProps) {
   const gestures = useCardGestures(b, onOpen, onActions)
+  const selected = useUi((s) => s.selectedIds.includes(b.id))
   return (
-    <a href={b.url} target="_blank" rel="noopener noreferrer" className="list-row" aria-label={`Open ${b.title}`} draggable={false} {...gestures}>
+    <a href={b.url} target="_blank" rel="noopener noreferrer" className={`list-row ${selected ? 'selected' : ''}`} aria-label={`Open ${b.title}`} draggable={false} {...gestures}>
       <div style={{ position: 'relative', flex: 'none' }}>
         <Thumbnail bookmark={b} size={64} radius={14} fontSize={24} />
         {b.isPinned ? (
@@ -97,6 +111,7 @@ export function BookmarkListRow({ bookmark: b, category, onOpen, onActions }: Ca
             <Icon name="flag" size={12} />
           </span>
         ) : null}
+        {selected ? <SelectedBadge sm /> : b.isUnread ? <span className="unread-dot sm" role="img" aria-label="Unread" /> : null}
       </div>
       <div className="col">
         <div className="t-card-title clamp-2">{b.title}</div>
@@ -104,6 +119,7 @@ export function BookmarkListRow({ bookmark: b, category, onOpen, onActions }: Ca
           <CategoryDot color={category.colorHex} />
           <span className="site clamp-1">{`${b.siteName ?? ''}${b.siteName ? ' · ' : ''}${category.name}`}</span>
         </div>
+        {b.linkStatus === 'broken' ? <div className="t-site broken-note">Link may be broken</div> : null}
       </div>
     </a>
   )

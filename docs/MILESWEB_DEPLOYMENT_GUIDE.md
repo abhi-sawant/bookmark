@@ -57,6 +57,12 @@ You should now have written down three things:
 - Database username (e.g. `youruser_bookmark_api`)
 - Database password
 
+> **Already running 3.0.0?** Do not re-import `schema.sql`. Follow
+> [`SERVER_CHANGES_3.1.0.md`](SERVER_CHANGES_3.1.0.md) instead: it lists the four
+> small database migrations, the changed and new PHP files, and the checks for
+> the new link-preview and link-check endpoints. A fresh install can just import
+> `schema.sql` as below, which already includes everything.
+
 ### Import the schema
 
 1. Back on the cPanel dashboard, find **phpMyAdmin** under "Databases".
@@ -324,6 +330,10 @@ minute or two with a reset link.
 If every one of these matches, the backend is fully working and you can move
 on to the app. If something doesn't match, see **Troubleshooting** below.
 
+The 3.1.0 endpoints (`metadata.php`, `check_links.php`) and the new sync fields
+have their own smoke tests in [`SERVER_CHANGES_3.1.0.md`](SERVER_CHANGES_3.1.0.md),
+section 7. Run them after the checks above.
+
 ---
 
 ## 10. Point the app at your backend and build it
@@ -406,6 +416,13 @@ certificate is issued (step 6) and that you're calling `https://`, not
 database first, or your hosting plan's import size limit is unusually low —
 try importing again after confirming step 2.2's database is selected in the
 left sidebar before clicking Import.
+
+**Link previews or "Check links" on the web say they couldn't finish
+(`FETCH_FAILED`, or every link shows as an error).**
+These endpoints make outbound requests from your hosting account. Confirm the
+`curl` PHP extension is enabled (cPanel > Select PHP Version > Extensions) and
+ask MilesWeb whether outbound HTTP/HTTPS is allowed on your plan. See
+`SERVER_CHANGES_3.1.0.md`, section 6.
 
 **Password-reset emails never arrive.**
 Double check the SMTP values in step 7 exactly match what cPanel's "Connect

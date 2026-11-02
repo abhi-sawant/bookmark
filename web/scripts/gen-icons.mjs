@@ -35,6 +35,9 @@ const ICONS = {
   check: ['outlined', 'check'],
   keyboard: ['outlined', 'keyboard'],
   image: ['outlined', 'image'],
+  shuffle: ['outlined', 'shuffle'],
+  markEmailRead: ['outlined', 'mark_email_read'],
+  markEmailUnread: ['outlined', 'mark_email_unread'],
 }
 
 const out = {}

@@ -31,6 +31,8 @@ class SettingsRepository @Inject constructor(
         val sortOrder = stringPreferencesKey("sort_order")
         val lastUsedCategory = stringPreferencesKey("last_used_category")
         val fetchPreviews = booleanPreferencesKey("fetch_previews")
+        val clipboardChip = booleanPreferencesKey("clipboard_chip")
+        val recentSearches = stringPreferencesKey("recent_searches")
         val skippedUpdateVersion = stringPreferencesKey("skipped_update_version")
     }
 
@@ -43,7 +45,25 @@ class SettingsRepository @Inject constructor(
             sortOrder = prefs[Keys.sortOrder]?.toEnum(SortOrder.entries) ?: SortOrder.NEWEST,
             lastUsedCategoryId = prefs[Keys.lastUsedCategory],
             fetchPreviewsAutomatically = prefs[Keys.fetchPreviews] ?: true,
+            showClipboardChip = prefs[Keys.clipboardChip] ?: true,
         )
+    }
+
+    /** Newest first, newline-separated in storage (a query is a single line). */
+    val recentSearches: Flow<List<String>> = context.dataStore.data.map { prefs ->
+        prefs[Keys.recentSearches]?.lineSequence()?.filter(String::isNotBlank)?.toList().orEmpty()
+    }
+
+    suspend fun addRecentSearch(query: String) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[Keys.recentSearches]?.lineSequence()?.filter(String::isNotBlank)?.toList().orEmpty()
+            val updated = com.bookmark.search.RecentSearches.add(current, query.replace('\n', ' '))
+            prefs[Keys.recentSearches] = updated.joinToString("\n")
+        }
+    }
+
+    suspend fun clearRecentSearches() {
+        context.dataStore.edit { it.remove(Keys.recentSearches) }
     }
 
     val skippedUpdateVersion: Flow<String?> = context.dataStore.data.map { it[Keys.skippedUpdateVersion] }
@@ -57,6 +77,7 @@ class SettingsRepository @Inject constructor(
     suspend fun setSortOrder(order: SortOrder) = put(Keys.sortOrder, order.name)
     suspend fun setLastUsedCategory(id: String) = put(Keys.lastUsedCategory, id)
     suspend fun setFetchPreviews(enabled: Boolean) = put(Keys.fetchPreviews, enabled)
+    suspend fun setClipboardChip(enabled: Boolean) = put(Keys.clipboardChip, enabled)
 
     private suspend fun <T> put(key: Preferences.Key<T>, value: T) {
         context.dataStore.edit { it[key] = value }

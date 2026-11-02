@@ -21,6 +21,7 @@ object UrlNormalizer {
     private val TRACKING_PARAMS = setOf(
         "fbclid", "gclid", "msclkid", "igshid", "mc_eid", "mc_cid",
         "ref_src", "ref_url", "si", "_ga", "yclid", "dclid", "twclid",
+        "igsh", "gbraid", "wbraid", "_hsenc", "_hsmi", "mkt_tok", "oly_enc_id", "oly_anon_id",
     )
 
     private val TRACKING_PREFIXES = listOf("utm_")

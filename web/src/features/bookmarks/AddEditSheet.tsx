@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { isValid, normalize, host as urlHost } from '@/core/util/urlNormalizer'
 import { fromDomain, resolve as resolveTitle } from '@/core/util/titleFallback'
 import { extract } from '@/core/util/urlExtractor'
+import { TAG_INPUT_MAX, parseTags } from '@/core/util/tags'
 import { fileToThumbnail, ThumbnailError } from '@/core/image'
 import { type ThumbnailChoice, BookmarkLimits, CATEGORY_NAME_MAX, UNSORTED_ID } from '@/data/models'
+import { enrichBookmark } from '@/data/enrich'
 import { createCategory, defaultCategoryId, findByUrl, saveBookmark, updateBookmark, useData } from '@/data/repo'
 import { parseCategoryColor } from '@/data/swatches'
 import { usePrefs } from '@/app/prefs'
@@ -25,6 +27,7 @@ export function AddEditSheet({ state }: { state: AddEditState }) {
   const [title, setTitle] = useState(editing?.title ?? state.prefill?.title ?? '')
   const [description, setDescription] = useState(editing?.description ?? '')
   const [titleEdited, setTitleEdited] = useState(false)
+  const [tagsText, setTagsText] = useState(editing?.tags.join(', ') ?? '')
   const [descriptionEdited, setDescriptionEdited] = useState(false)
   const [categoryId, setCategoryId] = useState(() => {
     if (editing) return editing.categoryId
@@ -114,15 +117,16 @@ export function AddEditSheet({ state }: { state: AddEditState }) {
     setSaving(true)
     try {
       if (editing) {
-        await updateBookmark(editing.id, { title, description, categoryId, titleEdited, descriptionEdited, thumbnail: thumb })
+        await updateBookmark(editing.id, { title, description, tags: parseTags(tagsText), categoryId, titleEdited, descriptionEdited, thumbnail: thumb })
         close()
         return
       }
-      const res = await saveBookmark({ rawUrl: url, title, description, categoryId, thumbnail: thumb })
+      const res = await saveBookmark({ rawUrl: url, title, description, tags: parseTags(tagsText), categoryId, thumbnail: thumb })
       if (res.kind === 'duplicate') {
         useUi.getState().set('duplicate', res.existing.id)
         return
       }
+      void enrichBookmark(res.bookmark.id)
       setPref('lastUsedCategory', categoryId)
       navigator.vibrate?.(10)
       close()
@@ -194,6 +198,10 @@ export function AddEditSheet({ state }: { state: AddEditState }) {
         <Field label="Description" value={description} onChange={(v) => { setDescription(v); setDescriptionEdited(true) }} max={BookmarkLimits.description} counter multiline rows={3} name="description" />
       </div>
 
+      <div style={{ marginTop: 10 }}>
+        <Field label="Tags (comma separated)" value={tagsText} onChange={setTagsText} max={TAG_INPUT_MAX} name="tags" />
+      </div>
+
       <div style={{ marginTop: 18 }}>
         <div className="t-field-label muted" style={{ padding: '0 0 8px 4px' }}>Category</div>
         <div className="chip-flow" role="radiogroup" aria-label="Category">
@@ -230,7 +238,7 @@ export function AddEditSheet({ state }: { state: AddEditState }) {
           </Menu>
         ) : null}
         <input ref={fileInput} type="file" accept="image/*" hidden onChange={(e) => { void pickFile(e.target.files?.[0]); e.target.value = '' }} />
-        {!editing ? <div className="t-row-sub muted" style={{ marginTop: 8 }}>Link previews aren&apos;t fetched on the web. Open the Android app after syncing to fetch one.</div> : null}
+        {!editing ? <div className="t-row-sub muted" style={{ marginTop: 8 }}>When you are signed in, a preview is fetched after you save. Otherwise the Android app fetches one after syncing.</div> : null}
       </div>
 
       <div className="sheet-actions">

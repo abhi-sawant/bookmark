@@ -1,5 +1,23 @@
 // Wire formats of the sync API (snake_case, epoch-millisecond timestamps).
 
+/** POST check_links.php: one result per url, in request order. */
+export interface LinkCheckResponse {
+  results: { url: string; status: 'ok' | 'broken' | 'error'; http_status: number | null }[]
+}
+
+/** POST metadata.php: what the server read from the page. Every field can be null. */
+export interface MetadataResponse {
+  title: string | null
+  description: string | null
+  site_name: string | null
+  image_url: string | null
+  final_url: string
+  /** Set only when a bookmark_id was sent and the server stored a thumbnail for it. */
+  thumbnail_url: string | null
+  thumbnail_width: number | null
+  thumbnail_height: number | null
+}
+
 export interface CategoryDto {
   id: string
   name: string
@@ -22,6 +40,12 @@ export interface BookmarkDto {
   thumbnail_height: number | null
   accent_color: number | null
   image_candidates: string[]
+  /** Absent when talking to a server that predates tags. */
+  tags?: string[]
+  /** Absent when talking to a server that predates the unread flag. */
+  is_unread?: boolean
+  /** Epoch millis while in Trash, else null/absent. */
+  trashed_at?: number | null
   category_id: string
   manual_fields: number
   is_pinned: boolean

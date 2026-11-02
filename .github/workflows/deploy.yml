@@ -1,0 +1,57 @@
+name: Deploy web
+
+# Builds the PWA (web/) and uploads web/dist to the cPanel host (bookmark.slowatcoding.com) over FTPS on every
+# push to master that touches the web app. The backend (PHP, deployed by hand, see docs/MILESWEB_DEPLOYMENT_GUIDE.md)
+# and the Android app are not deployed from here.
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'web/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+          package_json_file: web/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm test
+
+      # `tsc -b && vite build`. Override the API origin with a VITE_API_BASE repository variable. It is passed
+      # with an explicit default because an empty string would defeat the `??` fallback in src/api/client.ts.
+      - run: pnpm build
+        env:
+          VITE_API_BASE: ${{ vars.VITE_API_BASE || 'https://api.bookmark.slowatcoding.com' }}
+
+      # Only changed files are uploaded; the action keeps its state in .ftp-deploy-sync-state.json on the server.
+      # web/public/.htaccess (copied into dist) rewrites client-side routes such as /add to index.html.
+      - uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./web/dist/
+          server-dir: ${{ secrets.FTP_SERVER_DIR }}

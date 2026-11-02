@@ -66,6 +66,7 @@ import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.Dimens
 import com.bookmark.core.ui.theme.panel
 import com.bookmark.core.ui.theme.parseCategoryColor
+import com.bookmark.core.util.Tags
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,6 +76,7 @@ fun AddEditBookmarkSheet(
     onUrlChange: (String) -> Unit,
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
+    onTagsChange: (String) -> Unit,
     onCategoryChange: (String) -> Unit,
     onCreateCategory: (String) -> Unit,
     onAcceptClipboard: () -> Unit,
@@ -160,6 +162,15 @@ fun AddEditBookmarkSheet(
                 maxLength = BookmarkLimits.DESCRIPTION_MAX,
                 singleLine = false,
                 minLines = 3,
+                imeAction = ImeAction.Done,
+                modifier = Modifier.padding(top = 10.dp),
+            )
+
+            OutlinedField(
+                label = "Tags (comma separated)",
+                value = state.tagsText,
+                onValueChange = onTagsChange,
+                maxLength = Tags.INPUT_MAX,
                 imeAction = ImeAction.Done,
                 modifier = Modifier.padding(top = 10.dp),
             )

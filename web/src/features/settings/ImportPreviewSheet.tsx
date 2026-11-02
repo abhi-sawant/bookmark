@@ -9,12 +9,13 @@ export function ImportPreviewSheet({ fileName, bytes }: { fileName: string; byte
   const parsed = useMemo(() => parseBackup(bytes), [bytes])
   const preview = useMemo(() => previewImport(parsed), [parsed])
   const [mode, setMode] = useState<'MERGE' | 'REPLACE'>('MERGE')
+  const fromBrowser = parsed.source === 'html'
   const [busy, setBusy] = useState(false)
 
   async function run() {
     setBusy(true)
     try {
-      await importBackup(parsed, mode)
+      await importBackup(parsed, fromBrowser ? 'MERGE' : mode)
       toast('Import complete.')
       close()
     } catch (e) {
@@ -32,8 +33,8 @@ export function ImportPreviewSheet({ fileName, bytes }: { fileName: string; byte
     ['Categories', preview.categories],
   ]
   return (
-    <Sheet onClose={close} label="Import backup">
-      <h2 className="t-sheet-title sheet-title" style={{ marginBottom: 4 }}>Import backup</h2>
+    <Sheet onClose={close} label={fromBrowser ? 'Import browser bookmarks' : 'Import backup'}>
+      <h2 className="t-sheet-title sheet-title" style={{ marginBottom: 4 }}>{fromBrowser ? 'Import browser bookmarks' : 'Import backup'}</h2>
       <div className="t-caption muted" style={{ marginBottom: 14, overflowWrap: 'anywhere' }}>{fileName}</div>
       <div className="settings-group" style={{ margin: 0 }}>
         {rows.map(([label, n]) => (
@@ -43,9 +44,13 @@ export function ImportPreviewSheet({ fileName, bytes }: { fileName: string; byte
           </div>
         ))}
       </div>
+      {fromBrowser ? (
+        <div className="t-row-sub muted" style={{ marginTop: 12 }}>Folders become categories; links outside a folder go to Unsorted. Links you already have are skipped.</div>
+      ) : (
       <div style={{ marginTop: 16 }}>
         <Segmented label="Import mode" value={mode} onChange={setMode} options={[{ value: 'MERGE', label: 'Merge' }, { value: 'REPLACE', label: 'Replace everything' }]} />
       </div>
+      )}
       <div className="sheet-actions">
         <SecondaryButton onClick={close}>Cancel</SecondaryButton>
         <PrimaryButton disabled={busy} onClick={() => void run()}>Import</PrimaryButton>

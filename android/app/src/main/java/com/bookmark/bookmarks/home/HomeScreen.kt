@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,8 +24,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.Shuffle
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.DropdownMenu
@@ -44,15 +47,18 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.bookmark.core.model.Bookmark
 import com.bookmark.core.model.SortOrder
 import com.bookmark.core.model.ViewMode
 import com.bookmark.core.ui.components.BookmarkGridCard
 import com.bookmark.core.ui.components.BookmarkListRow
+import com.bookmark.core.ui.components.CategoryChip
 import com.bookmark.core.ui.components.CategoryFilterRow
 import com.bookmark.core.ui.components.PrimaryButton
 import com.bookmark.core.ui.components.ScreenHeader
+import com.bookmark.core.ui.components.SlateIconButton
 import com.bookmark.core.ui.theme.BookmarkTheme
 import com.bookmark.core.ui.theme.Dimens
 import com.bookmark.core.ui.theme.accentFill
@@ -81,7 +87,19 @@ fun HomeScreen(
     onBookmarkLongPress: (Bookmark) -> Unit,
     onSearch: () -> Unit,
     onAdd: () -> Unit,
+    onSurprise: () -> Unit = {},
+    onUnreadOnlyChange: (Boolean) -> Unit = {},
+    onToggleSelect: (Bookmark) -> Unit = {},
+    onClearSelection: () -> Unit = {},
+    onPinSelected: () -> Unit = {},
+    onMoveSelected: (String) -> Unit = {},
+    onTagSelected: (String) -> Unit = {},
+    onTrashSelected: () -> Unit = {},
     modifier: Modifier = Modifier,
+    /** A copied link offered as a one-tap save, or null. */
+    clipboardSuggestion: String? = null,
+    onSaveClipboard: () -> Unit = {},
+    onDismissClipboard: () -> Unit = {},
     /** Grid-to-detail thumbnail morph (spec 10). Null outside a shared-transition layout. */
     sharedTransitionScope: SharedTransitionScope? = null,
     /** The bookmark currently shown in the detail sheet, if any -- its grid card hides its own
@@ -90,15 +108,33 @@ fun HomeScreen(
     reducedMotion: Boolean = false,
 ) {
     var sortMenuOpen by remember { mutableStateOf(false) }
+    var selectionDialog by remember { mutableStateOf<SelectionDialog?>(null) }
+    // In bulk-select mode a tap and a long-press both toggle the bookmark.
+    // Back leaves selection mode before it leaves the screen.
+    androidx.activity.compose.BackHandler(enabled = state.selecting, onBack = onClearSelection)
+    val handleOpen: (Bookmark) -> Unit = if (state.selecting) onToggleSelect else onOpenBookmark
+    val handleLongPress: (Bookmark) -> Unit = if (state.selecting) onToggleSelect else onBookmarkLongPress
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            ScreenHeader(
-                title = "Bookmarks",
-                count = state.totalCount,
-                onSearch = onSearch,
-                searchEnabled = state.totalCount > 0,
-            )
+            if (state.selecting) {
+                SelectionHeader(count = state.selectedIds.size, onClose = onClearSelection)
+            } else {
+                ScreenHeader(
+                    title = "Bookmarks",
+                    count = state.totalCount,
+                    onSearch = onSearch,
+                    searchEnabled = state.totalCount > 0,
+                )
+            }
+
+            if (clipboardSuggestion != null) {
+                ClipboardChip(
+                    url = clipboardSuggestion,
+                    onSave = onSaveClipboard,
+                    onDismiss = onDismissClipboard,
+                )
+            }
 
             if (state.isEmpty) {
                 EmptyHome(onAdd = onAdd, modifier = Modifier.weight(1f))
@@ -145,15 +181,39 @@ fun HomeScreen(
                             onSetSortOrder = onSetSortOrder,
                         )
                     }
-                    ViewModeToggle(viewMode = state.viewMode, onSetViewMode = onSetViewMode)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        CategoryChip(
+                            label = "Unread",
+                            selected = state.unreadOnly,
+                            onClick = { onUnreadOnlyChange(!state.unreadOnly) },
+                            height = 32.dp,
+                        )
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable(role = Role.Button, onClickLabel = "Open a random bookmark", onClick = onSurprise)
+                                .padding(vertical = 8.dp, horizontal = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        ) {
+                            // Icon only: the row is already tight on a narrow phone.
+                            Icon(
+                                imageVector = Icons.Outlined.Shuffle,
+                                contentDescription = "Surprise me",
+                                tint = BookmarkTheme.colors.mutedLabel,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                        ViewModeToggle(viewMode = state.viewMode, onSetViewMode = onSetViewMode)
+                    }
                 }
 
                 when (state.viewMode) {
                     ViewMode.GRID -> BookmarkGrid(
                         state = state,
                         thumbnailFor = thumbnailFor,
-                        onOpen = onOpenBookmark,
-                        onLongPress = onBookmarkLongPress,
+                        onOpen = handleOpen,
+                        onLongPress = handleLongPress,
                         sharedTransitionScope = sharedTransitionScope,
                         openDetailBookmarkId = openDetailBookmarkId,
                         reducedMotion = reducedMotion,
@@ -163,15 +223,46 @@ fun HomeScreen(
                     ViewMode.LIST -> BookmarkList(
                         state = state,
                         thumbnailFor = thumbnailFor,
-                        onOpen = onOpenBookmark,
-                        onLongPress = onBookmarkLongPress,
+                        onOpen = handleOpen,
+                        onLongPress = handleLongPress,
                         modifier = Modifier.weight(1f),
                     )
                 }
             }
         }
 
-        if (!state.isEmpty) {
+        when (selectionDialog) {
+            SelectionDialog.Move -> MoveDialog(
+                categories = state.categories.map { it.category },
+                onPick = {
+                    selectionDialog = null
+                    onMoveSelected(it)
+                },
+                onDismiss = { selectionDialog = null },
+            )
+
+            SelectionDialog.Tag -> TagDialog(
+                onConfirm = {
+                    selectionDialog = null
+                    onTagSelected(it)
+                },
+                onDismiss = { selectionDialog = null },
+            )
+
+            null -> Unit
+        }
+
+        if (state.selecting) {
+            SelectionActionBar(
+                enabled = state.selectedIds.isNotEmpty(),
+                allPinned = state.bookmarks.filter { it.id in state.selectedIds }.let { chosen -> chosen.isNotEmpty() && chosen.all { it.isPinned } },
+                onPin = onPinSelected,
+                onMove = { selectionDialog = SelectionDialog.Move },
+                onTag = { selectionDialog = SelectionDialog.Tag },
+                onDelete = onTrashSelected,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        } else if (!state.isEmpty) {
             AddFab(
                 onClick = onAdd,
                 modifier = Modifier
@@ -179,6 +270,62 @@ fun HomeScreen(
                     .padding(end = Dimens.fabEndMargin, bottom = Dimens.fabBottomMargin),
             )
         }
+    }
+}
+
+/** "Copied link -- Save" chip. Offers, never pastes or saves on its own. */
+@Composable
+private fun ClipboardChip(url: String, onSave: () -> Unit, onDismiss: () -> Unit) {
+    val colors = BookmarkTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Dimens.gridOuterPadding, vertical = 6.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(colors.accentSoft)
+            .padding(start = 14.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Link,
+            contentDescription = null,
+            tint = colors.onAccentSoft,
+            modifier = Modifier.size(18.dp),
+        )
+        Column(modifier = Modifier.weight(1f).padding(vertical = 8.dp)) {
+            Text(
+                text = "Save copied link?",
+                style = BookmarkTheme.text.rowTitle,
+                color = colors.onAccentSoft,
+            )
+            Text(
+                text = url,
+                style = BookmarkTheme.text.caption,
+                color = colors.onAccentSoft,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Text(
+            text = "Save",
+            style = BookmarkTheme.text.rowTitle,
+            color = colors.accent,
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .clickable(role = Role.Button, onClick = onSave)
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+        )
+        Icon(
+            imageVector = Icons.Outlined.Close,
+            contentDescription = "Dismiss",
+            tint = colors.onAccentSoft,
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .clickable(role = Role.Button, onClick = onDismiss)
+                .padding(12.dp)
+                .size(18.dp),
+        )
     }
 }
 
@@ -251,6 +398,8 @@ private fun BookmarkGrid(
                 thumbnailPath = thumbnailFor(bookmark),
                 onClick = { onOpen(bookmark) },
                 onLongClick = { onLongPress(bookmark) },
+                selected = bookmark.id in state.selectedIds,
+                linkBroken = bookmark.id in state.brokenIds,
                 sharedTransitionScope = sharedTransitionScope,
                 isSharedThumbnailVisible = bookmark.id != openDetailBookmarkId,
                 reducedMotion = reducedMotion,
@@ -282,6 +431,8 @@ private fun BookmarkList(
                 thumbnailPath = thumbnailFor(bookmark),
                 onClick = { onOpen(bookmark) },
                 onLongClick = { onLongPress(bookmark) },
+                selected = bookmark.id in state.selectedIds,
+                linkBroken = bookmark.id in state.brokenIds,
             )
         }
     }
@@ -412,4 +563,124 @@ private fun AddFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
             modifier = Modifier.size(26.dp),
         )
     }
+}
+
+private enum class SelectionDialog { Move, Tag }
+
+@Composable
+private fun SelectionHeader(count: Int, onClose: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        SlateIconButton(onClick = onClose) {
+            Icon(
+                imageVector = Icons.Outlined.Close,
+                contentDescription = "Cancel selection",
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        Text(
+            text = if (count == 0) "Select bookmarks" else "$count selected",
+            style = BookmarkTheme.text.sheetTitle,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+/** Pin, Move, Tag and Delete (to Trash) for the selected bookmarks. */
+@Composable
+private fun SelectionActionBar(
+    enabled: Boolean,
+    allPinned: Boolean,
+    onPin: () -> Unit,
+    onMove: () -> Unit,
+    onTag: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(BookmarkTheme.colors.cardSurface)
+            .navigationBarsPadding()
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        BarAction(if (allPinned) "Unpin" else "Pin", enabled, MaterialTheme.colorScheme.onSurface, onPin)
+        BarAction("Move", enabled, MaterialTheme.colorScheme.onSurface, onMove)
+        BarAction("Tag", enabled, MaterialTheme.colorScheme.onSurface, onTag)
+        BarAction("Delete", enabled, MaterialTheme.colorScheme.error, onDelete)
+    }
+}
+
+@Composable
+private fun BarAction(label: String, enabled: Boolean, color: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
+    Text(
+        text = label,
+        style = BookmarkTheme.text.rowTitle,
+        color = color.copy(alpha = if (enabled) 1f else 0.38f),
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 14.dp),
+    )
+}
+
+@Composable
+private fun MoveDialog(
+    categories: List<com.bookmark.core.model.Category>,
+    onPick: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Move to…") },
+        text = {
+            Column {
+                categories.forEach { category ->
+                    Text(
+                        text = category.name,
+                        style = BookmarkTheme.text.fieldValue,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { onPick(category.id) }
+                            .padding(vertical = 12.dp, horizontal = 4.dp),
+                    )
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+@Composable
+private fun TagDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
+    var text by remember { mutableStateOf("") }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add tags") },
+        text = {
+            androidx.compose.material3.OutlinedTextField(
+                value = text,
+                onValueChange = { text = it.take(com.bookmark.core.util.Tags.INPUT_MAX) },
+                label = { Text("Tags (comma separated)") },
+                singleLine = true,
+            )
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(
+                enabled = com.bookmark.core.util.Tags.parse(text).isNotEmpty(),
+                onClick = { onConfirm(text) },
+            ) { Text("Add") }
+        },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }

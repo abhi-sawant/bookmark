@@ -7,8 +7,10 @@ import com.bookmark.core.model.Bookmark
 import com.bookmark.core.model.BookmarkLimits
 import com.bookmark.core.model.ManualField
 import com.bookmark.core.model.MetadataState
+import com.bookmark.core.model.TrashPolicy
 import com.bookmark.core.model.SortOrder
 import com.bookmark.core.util.TitleFallback
+import com.bookmark.core.util.Tags
 import com.bookmark.core.util.UrlNormalizer
 import com.bookmark.metadata.FailureCause
 import com.bookmark.metadata.PageMetadata
@@ -59,6 +61,14 @@ class BookmarkRepository @Inject constructor(
 
     fun observeTotalCount(): Flow<Int> = dao.observeTotalCount()
 
+    /** Every tag in use with how many bookmarks carry it, most used first. */
+    fun observeTagCounts(): Flow<List<Pair<String, Int>>> = dao.observeAllTags().map { columns ->
+        columns.flatMap { Tags.decode(it) }
+            .groupingBy { it }.eachCount()
+            .toList()
+            .sortedWith(compareByDescending<Pair<String, Int>> { it.second }.thenBy { it.first })
+    }
+
     suspend fun findById(id: String): Bookmark? = withContext(io) {
         dao.findById(id)?.toDomain()
     }
@@ -78,10 +88,18 @@ class BookmarkRepository @Inject constructor(
         description: String? = null,
         sharedSubject: String? = null,
         manualFields: Int = ManualField.NONE,
+        tags: List<String> = emptyList(),
     ): SaveResult = withContext(io) {
         val normalized = UrlNormalizer.normalize(rawUrl)
 
-        dao.findByUrl(normalized)?.let { return@withContext SaveResult.Duplicate(it.toDomain()) }
+        dao.findByUrl(normalized)?.let { existing ->
+            if (existing.trashedAt == null) return@withContext SaveResult.Duplicate(existing.toDomain())
+            // The link is in Trash (its URL is still taken by the unique index):
+            // saving it again brings it back instead of reporting a duplicate.
+            dao.setTrashedAt(existing.id, null, System.currentTimeMillis())
+            syncEnqueuer.scheduleDebounced()
+            return@withContext SaveResult.Saved(requireNotNull(dao.findById(existing.id)).toDomain())
+        }
 
         val now = System.currentTimeMillis()
         val entity = BookmarkEntity(
@@ -110,6 +128,9 @@ class BookmarkRepository @Inject constructor(
             isPinned = false,
             createdAt = now,
             updatedAt = now,
+            tags = Tags.encode(Tags.normalize(tags)),
+            // New saves start unread; opening the link clears it.
+            isUnread = true,
         )
 
         try {
@@ -235,6 +256,38 @@ class BookmarkRepository @Inject constructor(
         dao.delete(bookmark.toEntity())
     }
 
+    /** Every live bookmark, for batch jobs (link checking). */
+    fun observeAllLive(): Flow<List<Bookmark>> = observe(null, SortOrder.NEWEST)
+
+    fun observeTrashed(): Flow<List<Bookmark>> = dao.observeTrashed().map { list -> list.map(BookmarkEntity::toDomain) }
+
+    /** Moves to Trash (a soft delete that syncs). Files are kept so a restore is complete. */
+    suspend fun trash(id: String) = withContext(io) {
+        val now = System.currentTimeMillis()
+        dao.setTrashedAt(id, now, now)
+        syncEnqueuer.scheduleDebounced()
+    }
+
+    suspend fun restoreFromTrash(id: String) = withContext(io) {
+        dao.setTrashedAt(id, null, System.currentTimeMillis())
+        syncEnqueuer.scheduleDebounced()
+    }
+
+    /** Removes a trashed bookmark for good: the row, its files, and a sync tombstone. */
+    suspend fun deletePermanently(bookmark: Bookmark) = withContext(io) {
+        dao.delete(bookmark.toEntity())
+        discardDeleted(bookmark)
+    }
+
+    suspend fun emptyTrash() = withContext(io) {
+        dao.findAllTrashed().forEach { deletePermanently(it.toDomain()) }
+    }
+
+    /** Called at launch: anything trashed more than [TrashPolicy.RETENTION_DAYS] days ago goes for good. */
+    suspend fun purgeExpiredTrash(now: Long = System.currentTimeMillis()) = withContext(io) {
+        dao.findTrashedBefore(TrashPolicy.cutoff(now)).forEach { deletePermanently(it.toDomain()) }
+    }
+
     /** Re-inserts a deleted bookmark verbatim, for Snackbar undo (spec 14 Q2). */
     suspend fun restore(bookmark: Bookmark) = withContext(io) {
         dao.insert(bookmark.toEntity())
@@ -255,6 +308,52 @@ class BookmarkRepository @Inject constructor(
         syncEnqueuer.scheduleDebounced()
     }
 
+    // ---- Bulk edits (selection mode): one sync schedule for the whole batch. ----
+
+    suspend fun setPinnedAll(ids: Collection<String>, pinned: Boolean) = withContext(io) {
+        val now = System.currentTimeMillis()
+        ids.forEach { dao.setPinned(it, pinned, now) }
+        syncEnqueuer.scheduleDebounced()
+    }
+
+    suspend fun setCategoryAll(ids: Collection<String>, categoryId: String) = withContext(io) {
+        val now = System.currentTimeMillis()
+        ids.forEach { dao.setCategory(it, categoryId, now) }
+        syncEnqueuer.scheduleDebounced()
+    }
+
+    /** Adds [tags] to each bookmark, keeping the tags it already has (normalised, capped). */
+    suspend fun addTagsAll(ids: Collection<String>, tags: List<String>) = withContext(io) {
+        val now = System.currentTimeMillis()
+        ids.forEach { id ->
+            val current = dao.findById(id) ?: return@forEach
+            dao.setTags(id, Tags.encode(Tags.normalize(Tags.decode(current.tags) + tags)), now)
+        }
+        syncEnqueuer.scheduleDebounced()
+    }
+
+    suspend fun trashAll(ids: Collection<String>) = withContext(io) {
+        val now = System.currentTimeMillis()
+        ids.forEach { dao.setTrashedAt(it, now, now) }
+        syncEnqueuer.scheduleDebounced()
+    }
+
+    suspend fun restoreAllFromTrash(ids: Collection<String>) = withContext(io) {
+        val now = System.currentTimeMillis()
+        ids.forEach { dao.setTrashedAt(it, null, now) }
+        syncEnqueuer.scheduleDebounced()
+    }
+
+    suspend fun setUnread(id: String, unread: Boolean) = withContext(io) {
+        dao.setUnread(id, unread, System.currentTimeMillis())
+        syncEnqueuer.scheduleDebounced()
+    }
+
+    /** The link was opened: clear the unread dot (a no-op for an already-read bookmark). */
+    suspend fun markOpened(bookmark: Bookmark) {
+        if (bookmark.isUnread) setUnread(bookmark.id, false)
+    }
+
     suspend fun setPinned(id: String, pinned: Boolean) = withContext(io) {
         dao.setPinned(id, pinned, System.currentTimeMillis())
         syncEnqueuer.scheduleDebounced()
@@ -267,11 +366,16 @@ class BookmarkRepository @Inject constructor(
 
     suspend fun search(query: String, categoryId: String?): List<Bookmark> = withContext(io) {
         if (query.isBlank()) return@withContext emptyList()
+        // "#tag" lists bookmarks carrying exactly that tag.
+        if (query.trim().startsWith("#")) {
+            val tag = Tags.normalize(listOf(query)).firstOrNull() ?: return@withContext emptyList()
+            return@withContext dao.findByTag(tag, categoryId).map(BookmarkEntity::toDomain)
+        }
         // FTS4 prefix match on every term, so results appear while still typing.
         val match = query.trim().split(Regex("\\s+")).joinToString(" ") { term ->
             "${term.replace("\"", "")}*"
         }
-        runCatching { dao.search(match, categoryId).map(BookmarkEntity::toDomain) }
+        runCatching { dao.search(match, query.trim().lowercase(), categoryId).map(BookmarkEntity::toDomain) }
             .getOrDefault(emptyList())
     }
 

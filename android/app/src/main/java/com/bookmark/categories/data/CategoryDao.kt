@@ -19,7 +19,7 @@ interface CategoryDao {
         """
         SELECT c.*, COUNT(b.id) AS bookmarkCount
         FROM categories c
-        LEFT JOIN bookmarks b ON b.categoryId = c.id
+        LEFT JOIN bookmarks b ON b.categoryId = c.id AND b.trashedAt IS NULL
         GROUP BY c.id
         ORDER BY c.sortOrder ASC, c.createdAt ASC
         """
@@ -75,7 +75,7 @@ interface CategoryDao {
         """
         SELECT c.*, COUNT(b.id) AS bookmarkCount
         FROM categories c
-        LEFT JOIN bookmarks b ON b.categoryId = c.id
+        LEFT JOIN bookmarks b ON b.categoryId = c.id AND b.trashedAt IS NULL
         GROUP BY c.id
         ORDER BY bookmarkCount DESC, c.sortOrder ASC
         LIMIT :limit

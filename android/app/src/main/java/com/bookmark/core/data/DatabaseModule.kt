@@ -2,6 +2,7 @@ package com.bookmark.core.data
 
 import android.content.Context
 import androidx.room.Room
+import com.bookmark.linkcheck.LinkCheckDao
 import com.bookmark.bookmarks.data.BookmarkDao
 import com.bookmark.categories.data.CategoryDao
 import com.bookmark.sync.data.SyncTombstoneDao
@@ -34,7 +35,7 @@ object DatabaseModule {
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.NAME)
             .addCallback(SeedCallback())
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
             .build()
 
     @Provides
@@ -42,6 +43,9 @@ object DatabaseModule {
 
     @Provides
     fun provideCategoryDao(database: AppDatabase): CategoryDao = database.categoryDao()
+
+    @Provides
+    fun provideLinkCheckDao(database: AppDatabase): LinkCheckDao = database.linkCheckDao()
 
     @Provides
     fun provideSyncTombstoneDao(database: AppDatabase): SyncTombstoneDao = database.syncTombstoneDao()

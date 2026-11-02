@@ -34,4 +34,6 @@ data class UserPreferences(
     val sortOrder: SortOrder = SortOrder.NEWEST,
     val lastUsedCategoryId: String? = null,
     val fetchPreviewsAutomatically: Boolean = true,
+    /** Offer a copied link as a one-tap save chip on Home. */
+    val showClipboardChip: Boolean = true,
 )

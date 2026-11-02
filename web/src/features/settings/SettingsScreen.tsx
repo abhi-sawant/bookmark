@@ -1,19 +1,34 @@
-import { type ReactNode, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '@/account/session'
 import { signOut } from '@/account/service'
 import { BackupFormatError, backupFileName, buildBackup, downloadBlob, parseBackup } from '@/data/backup'
-import { useData } from '@/data/repo'
+import { allBookmarks, useData } from '@/data/repo'
+import { checkLinks, summarizeLinkChecks } from '@/data/linkcheck'
 import { relativeTime, plural } from '@/app/format'
 import { usePrefs } from '@/app/prefs'
+import { useIsDesktop } from '@/app/hooks'
 import { useUi } from '@/app/uiStore'
 import { Icon, type IconName } from '@/components/Icon'
 import { Dialog, PrimaryButton, ScreenHeader, Segmented, Switch, TextButton, useSnackbar } from '@/components/ui'
 import { syncNow, useSyncStatus } from '@/sync/engine'
 import { DevicesDialog } from './DevicesDialog'
+import { buildBookmarklet } from './bookmarklet'
 
 function Group({ children }: { children: ReactNode }) {
   return <div className="settings-group">{children}</div>
+}
+/** React 19 refuses `javascript:` hrefs, so the link's href is set on the element directly. */
+function BookmarkletLink() {
+  const ref = useRef<HTMLAnchorElement>(null)
+  useEffect(() => {
+    ref.current?.setAttribute('href', buildBookmarklet(window.location.origin))
+  }, [])
+  return (
+    <a ref={ref} className="bookmarklet-link" draggable onClick={(e) => e.preventDefault()}>
+      Save to Bookmarks
+    </a>
+  )
 }
 function Section({ title }: { title: string }) {
   return <div className="section-header t-section">{title}</div>
@@ -55,17 +70,29 @@ export function SettingsScreen() {
   const bookmarks = useData((s) => s.bookmarks)
   const categories = useData((s) => s.categories)
   const { syncing, lastSyncedAt, error } = useSyncStatus()
-  const { theme, trueBlack, set: setPref } = usePrefs()
+  const { theme, trueBlack, clipboardChip, serverPreviews, set: setPref } = usePrefs()
   const toast = useSnackbar((s) => s.show)
+  const linkSummary = useMemo(() => summarizeLinkChecks(bookmarks), [bookmarks])
   const setUi = useUi((s) => s.set)
   const fileInput = useRef<HTMLInputElement>(null)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
   const [devices, setDevices] = useState(false)
+  const desktop = useIsDesktop()
+  const [linkProgress, setLinkProgress] = useState<string | null>(null)
   const [signingOut, setSigningOut] = useState(false)
+
+  async function runLinkCheck() {
+    if (!email) return toast('Sign in to check links: the check runs through your sync server.')
+    setLinkProgress('Checking…')
+    const finished = await checkLinks((done, total) => setLinkProgress(`Checking ${done}/${total}…`))
+    setLinkProgress(null)
+    const s = summarizeLinkChecks(useData.getState().bookmarks)
+    toast(finished ? `Checked ${s.checked} links: ${s.broken} broken.` : "Couldn't finish checking links. Try again later.")
+  }
 
   function exportBackup() {
     try {
-      downloadBlob(buildBackup(bookmarks, categories), backupFileName())
+      downloadBlob(buildBackup(allBookmarks(), categories), backupFileName())
       toast(`Exported ${plural(bookmarks.length, 'bookmark')} and ${plural(categories.length, 'category', 'categories')}.`)
     } catch {
       toast("Couldn't export a backup.")
@@ -104,9 +131,37 @@ export function SettingsScreen() {
       <Section title="backup" />
       <Group>
         <Row icon="fileDownload" title="Export backup" sub={`${plural(bookmarks.length, 'bookmark')} · ${plural(categories.length, 'category', 'categories')}`} onClick={exportBackup} />
-        <Row icon="fileUpload" title="Import backup" sub="Merge or replace, with a preview first" onClick={() => fileInput.current?.click()} />
+        <Row icon="fileUpload" title="Import backup or browser bookmarks" sub="A backup zip, or a bookmarks.html exported from Chrome, Firefox, Safari or Edge" onClick={() => fileInput.current?.click()} />
+        <Row icon="refresh" title="Check links" sub={linkProgress ?? (linkSummary.checked > 0 ? `${linkSummary.checked} checked · ${linkSummary.broken} broken · ${linkSummary.unreachable} unreachable` : 'Asks each saved site whether the page still exists (through your sync server)')} disabled={linkProgress !== null} onClick={() => void runLinkCheck()} />
+        <Row icon="delete" title="Trash" sub="Deleted bookmarks stay for 30 days" onClick={() => navigate('/trash')} />
       </Group>
-      <input ref={fileInput} type="file" accept=".zip,application/zip" hidden onChange={(e) => { void onPickBackup(e.target.files?.[0]); e.target.value = '' }} />
+      <input ref={fileInput} type="file" accept=".zip,.html,.htm,application/zip,text/html" hidden onChange={(e) => { void onPickBackup(e.target.files?.[0]); e.target.value = '' }} />
+
+      <Section title="saving" />
+      <Group>
+        <Row title="Suggest copied links" sub="Show a Save chip on Home when you have copied a link. Only works once the browser allows clipboard access." trailing={<Switch label="Suggest copied links" checked={clipboardChip} onChange={(v) => setPref('clipboardChip', v)} />} onClick={() => setPref('clipboardChip', !clipboardChip)} />
+        <Row title="Fetch link previews" sub="When signed in, your sync server reads the page for a title and thumbnail. Turn off to keep links on this device." trailing={<Switch label="Fetch link previews" checked={serverPreviews} onChange={(v) => setPref('serverPreviews', v)} />} onClick={() => setPref('serverPreviews', !serverPreviews)} />
+      </Group>
+
+      {desktop ? (
+        <>
+          <Section title="keyboard" />
+          <Group>
+            <Row icon="keyboard" title="Keyboard shortcuts" sub="Press ? anywhere to see them" onClick={() => setUi('shortcuts', true)} />
+          </Group>
+        </>
+      ) : null}
+
+      <Section title="bookmarklet" />
+      <Group>
+        <div className="settings-row" style={{ display: 'block' }}>
+          <div className="t-row-title">Save from any page</div>
+          <div className="t-row-sub muted" style={{ margin: '3px 0 12px' }}>
+            Drag this button to your browser&apos;s bookmarks bar. Click it on any page to open the add sheet with that page filled in.
+          </div>
+          <BookmarkletLink />
+        </div>
+      </Group>
 
       <Section title="appearance" />
       <Group>
@@ -118,7 +173,7 @@ export function SettingsScreen() {
       </Group>
 
       <p className="t-row-sub muted" style={{ padding: '20px 26px 0' }}>
-        Link previews aren&apos;t fetched on the web. Bookmarks you add here show a placeholder until the Android app fetches a preview after syncing.
+        When you are signed in, previews for links added here come from your sync server. Otherwise they show a placeholder until the Android app fetches a preview after syncing.
       </p>
 
       {confirmSignOut ? (

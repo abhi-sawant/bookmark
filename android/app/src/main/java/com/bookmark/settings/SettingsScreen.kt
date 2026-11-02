@@ -19,6 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.Sync
@@ -61,10 +62,14 @@ fun SettingsScreen(
     onDynamicColorChange: (Boolean) -> Unit,
     onTrueBlackChange: (Boolean) -> Unit,
     onFetchPreviewsChange: (Boolean) -> Unit,
+    onClipboardChipChange: (Boolean) -> Unit,
     onRefreshAll: () -> Unit,
     onClearThumbnails: () -> Unit,
     onExportBackup: () -> Unit,
     onImportBackup: () -> Unit,
+    onOpenTrash: () -> Unit,
+    linkCheckSummary: String,
+    onCheckLinks: () -> Unit,
     onSignIn: () -> Unit,
     onSyncNow: () -> Unit,
     onSignOut: () -> Unit,
@@ -132,10 +137,18 @@ fun SettingsScreen(
                 RowDivider()
                 SettingsRow(
                     leadingIcon = Icons.Outlined.FileUpload,
-                    title = "Import backup",
-                    subtitle = "Merge or replace, with a preview first",
+                    title = "Import backup or browser bookmarks",
+                    subtitle = "A backup zip, or a bookmarks.html from Chrome, Firefox, Safari or Edge",
                     enabled = true,
                     onClick = onImportBackup,
+                )
+                RowDivider()
+                SettingsRow(
+                    leadingIcon = Icons.Outlined.Delete,
+                    title = "Trash",
+                    subtitle = "Deleted bookmarks stay for 30 days",
+                    enabled = true,
+                    onClick = onOpenTrash,
                 )
             }
 
@@ -150,10 +163,25 @@ fun SettingsScreen(
                 )
                 RowDivider()
                 SettingsRow(
+                    title = "Suggest copied links",
+                    subtitle = "Show a Save chip on Home when you have copied a link. " +
+                        "The clipboard is only read while the app is open.",
+                    switchChecked = preferences.showClipboardChip,
+                    onSwitchCheckedChange = onClipboardChipChange,
+                )
+                RowDivider()
+                SettingsRow(
                     title = "Refresh all metadata",
                     subtitle = "${plural(summary.eligibleRefreshCount, "bookmark")} eligible",
                     enabled = true,
                     onClick = onRefreshAll,
+                )
+                RowDivider()
+                SettingsRow(
+                    title = "Check links",
+                    subtitle = linkCheckSummary,
+                    enabled = true,
+                    onClick = onCheckLinks,
                 )
                 RowDivider()
                 SettingsRow(

@@ -65,6 +65,26 @@
                 android:resource="@xml/shortcuts" />
         </activity>
 
+        <receiver
+            android:name=".widget.BookmarkWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/bookmark_widget_info" />
+        </receiver>
+
+        <!-- The widget's "Save copied link" button. Transparent and short-lived: it
+             must be an Activity because Android only lets a focused app read the clipboard. -->
+        <activity
+            android:name=".widget.WidgetSaveActivity"
+            android:theme="@style/Theme.App.Transparent"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:exported="false" />
+
         <!-- BookmarkApp is a Configuration.Provider, so WorkManager initialises
              on demand; the default startup initializer must go. -->
         <provider

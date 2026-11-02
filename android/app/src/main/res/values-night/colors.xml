@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="seed_surface">#FF0B0D0E</color>
+
+    <color name="widget_bg">#FF15191B</color>
+    <color name="widget_hairline">#FF222729</color>
+    <color name="widget_text">#FFF1F3F4</color>
+    <color name="widget_muted">#FF9AA3A8</color>
+    <color name="widget_accent">#FF3FC495</color>
+    <color name="widget_on_accent">#FF04140E</color>
 </resources>
