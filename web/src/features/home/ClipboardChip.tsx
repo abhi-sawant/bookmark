@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { isValid, normalize } from '@/core/util/urlNormalizer'
 import { extract } from '@/core/util/urlExtractor'
+import { enrichBookmark } from '@/data/enrich'
 import { defaultCategoryId, findByUrl, saveBookmark, useData } from '@/data/repo'
 import { usePrefs } from '@/app/prefs'
 import { Icon } from '@/components/Icon'
@@ -57,6 +58,7 @@ export function ClipboardChip() {
     const target = url!
     dismiss()
     const result = await saveBookmark({ rawUrl: target, categoryId })
+    if (result.kind === 'saved') void enrichBookmark(result.bookmark.id)
     toast(result.kind === 'saved' ? 'Saved' : 'Already saved')
   }
 

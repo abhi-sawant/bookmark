@@ -10,6 +10,8 @@ interface Prefs {
   lastUsedCategory: string | null
   /** Offer a copied link as a one-tap save chip on Home. */
   clipboardChip: boolean
+  /** Ask the sync server to read link previews for links added on the web (needs sign-in). */
+  serverPreviews: boolean
   set<K extends keyof Omit<Prefs, 'set'>>(key: K, value: Prefs[K]): void
 }
 
@@ -32,11 +34,12 @@ export const usePrefs = create<Prefs>((set, get) => ({
   sortOrder: stored.sortOrder ?? 'NEWEST',
   lastUsedCategory: stored.lastUsedCategory ?? null,
   clipboardChip: stored.clipboardChip ?? true,
+  serverPreviews: stored.serverPreviews ?? true,
   set(key, value) {
     set({ [key]: value } as Partial<Prefs>)
-    const { theme, trueBlack, viewMode, sortOrder, lastUsedCategory, clipboardChip } = get()
+    const { theme, trueBlack, viewMode, sortOrder, lastUsedCategory, clipboardChip, serverPreviews } = get()
     try {
-      localStorage.setItem(KEY, JSON.stringify({ theme, trueBlack, viewMode, sortOrder, lastUsedCategory, clipboardChip }))
+      localStorage.setItem(KEY, JSON.stringify({ theme, trueBlack, viewMode, sortOrder, lastUsedCategory, clipboardChip, serverPreviews }))
     } catch {
       // storage unavailable; preferences just won't persist
     }

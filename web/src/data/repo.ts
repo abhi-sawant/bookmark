@@ -242,6 +242,14 @@ export async function setPinned(id: string, pinned: boolean): Promise<void> {
   notifyChanged()
 }
 
+/** Applies fetched preview fields and marks the row dirty so they sync to the other devices. */
+export async function applyFetchedMetadata(id: string, patch: Partial<Bookmark>): Promise<void> {
+  const b = useData.getState().bookmarks.find((x) => x.id === id)
+  if (!b) return
+  await putBookmark({ ...b, ...patch, updatedAt: Date.now() })
+  notifyChanged()
+}
+
 /** Local-only dimension/accent update after a thumbnail upload succeeds. Does not dirty the row. */
 export async function patchBookmarkLocal(id: string, patch: Partial<Bookmark>): Promise<void> {
   const b = useData.getState().bookmarks.find((x) => x.id === id)

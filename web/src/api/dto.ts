@@ -1,5 +1,18 @@
 // Wire formats of the sync API (snake_case, epoch-millisecond timestamps).
 
+/** POST metadata.php: what the server read from the page. Every field can be null. */
+export interface MetadataResponse {
+  title: string | null
+  description: string | null
+  site_name: string | null
+  image_url: string | null
+  final_url: string
+  /** Set only when a bookmark_id was sent and the server stored a thumbnail for it. */
+  thumbnail_url: string | null
+  thumbnail_width: number | null
+  thumbnail_height: number | null
+}
+
 export interface CategoryDto {
   id: string
   name: string

@@ -68,7 +68,7 @@ export function SettingsScreen() {
   const bookmarks = useData((s) => s.bookmarks)
   const categories = useData((s) => s.categories)
   const { syncing, lastSyncedAt, error } = useSyncStatus()
-  const { theme, trueBlack, clipboardChip, set: setPref } = usePrefs()
+  const { theme, trueBlack, clipboardChip, serverPreviews, set: setPref } = usePrefs()
   const toast = useSnackbar((s) => s.show)
   const setUi = useUi((s) => s.set)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -124,6 +124,7 @@ export function SettingsScreen() {
       <Section title="saving" />
       <Group>
         <Row title="Suggest copied links" sub="Show a Save chip on Home when you have copied a link. Only works once the browser allows clipboard access." trailing={<Switch label="Suggest copied links" checked={clipboardChip} onChange={(v) => setPref('clipboardChip', v)} />} onClick={() => setPref('clipboardChip', !clipboardChip)} />
+        <Row title="Fetch link previews" sub="When signed in, your sync server reads the page for a title and thumbnail. Turn off to keep links on this device." trailing={<Switch label="Fetch link previews" checked={serverPreviews} onChange={(v) => setPref('serverPreviews', v)} />} onClick={() => setPref('serverPreviews', !serverPreviews)} />
       </Group>
 
       <Section title="bookmarklet" />
@@ -147,7 +148,7 @@ export function SettingsScreen() {
       </Group>
 
       <p className="t-row-sub muted" style={{ padding: '20px 26px 0' }}>
-        Link previews aren&apos;t fetched on the web. Bookmarks you add here show a placeholder until the Android app fetches a preview after syncing.
+        When you are signed in, previews for links added here come from your sync server. Otherwise they show a placeholder until the Android app fetches a preview after syncing.
       </p>
 
       {confirmSignOut ? (

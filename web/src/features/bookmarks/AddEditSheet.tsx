@@ -4,6 +4,7 @@ import { fromDomain, resolve as resolveTitle } from '@/core/util/titleFallback'
 import { extract } from '@/core/util/urlExtractor'
 import { fileToThumbnail, ThumbnailError } from '@/core/image'
 import { type ThumbnailChoice, BookmarkLimits, CATEGORY_NAME_MAX, UNSORTED_ID } from '@/data/models'
+import { enrichBookmark } from '@/data/enrich'
 import { createCategory, defaultCategoryId, findByUrl, saveBookmark, updateBookmark, useData } from '@/data/repo'
 import { parseCategoryColor } from '@/data/swatches'
 import { usePrefs } from '@/app/prefs'
@@ -123,6 +124,7 @@ export function AddEditSheet({ state }: { state: AddEditState }) {
         useUi.getState().set('duplicate', res.existing.id)
         return
       }
+      void enrichBookmark(res.bookmark.id)
       setPref('lastUsedCategory', categoryId)
       navigator.vibrate?.(10)
       close()

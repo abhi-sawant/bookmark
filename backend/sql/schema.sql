@@ -123,7 +123,7 @@ ALTER TABLE password_resets MODIFY token_hash CHAR(64) CHARACTER SET utf8mb4 COL
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS rate_limit_events (
     id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    action      ENUM('register', 'login', 'forgot_password') NOT NULL,
+    action      ENUM('register', 'login', 'forgot_password', 'metadata') NOT NULL,
     identifier  VARCHAR(255) NOT NULL,
     created_at  DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     PRIMARY KEY (id),

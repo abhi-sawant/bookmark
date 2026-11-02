@@ -39,6 +39,10 @@ define('CORS_ALLOWED_ORIGINS', [
     'http://localhost:5173', // Vite dev server
 ]);
 
+// Optional: how many link previews / link checks one account may request per
+// hour from api/metadata.php. Defaults to 60 when this line is absent.
+// define('METADATA_RATE_PER_HOUR', 60);
+
 // -----------------------------------------------------------------------
 // SMTP (used for password reset emails, sent via vendored PHPMailer)
 // -----------------------------------------------------------------------
