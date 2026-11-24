@@ -45,4 +45,4 @@ Do not run the macrobenchmark or androidTest tasks (they need a device); mention
 
 ## 5. Report
 
-Summarise: version and versionCode, folder contents with sizes, the cert check, and the changelog entry. Do NOT commit, tag, push, or create a GitHub release; remind the user of the remaining steps (commit the bump, tag `X.Y.Z`, attach the artifacts to a GitHub Release using the CHANGELOG section as notes, upload `web/dist` contents to the web docroot, and deploy the backend zip if it was included).
+Summarise: version and versionCode, folder contents with sizes, the cert check, and the changelog entry. Do NOT commit, tag, push, or create a GitHub release; remind the user of the remaining steps. CI now does the publishing: once the bump + CHANGELOG commit lands on `master`, `.github/workflows/release.yml` builds the signed APK, web zip and (if `backend/` changed since the last tag) backend zip, tags `X.Y.Z` and creates the GitHub Release with the CHANGELOG section as notes, and `deploy.yml` uploads `web/dist` to the web host. The local `releases/vX.Y.Z/` folder is a dry run / manual fallback. The backend still has to be deployed by hand from the backend zip.
