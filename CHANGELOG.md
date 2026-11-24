@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.1.1 — 2026-11-24
+
+### Changed
+- Maintenance release with no changes to the Android app, the web app or the backend. Releases are now built and published automatically by CI when a release commit lands on `master`. No server steps are required.
+
 ## 3.1.0 — 2026-11-02
 
 ### Added
